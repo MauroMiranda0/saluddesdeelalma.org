@@ -130,7 +130,7 @@ Una persona visita la página del consultorio y encuentra la información esenci
 ### Edge Cases
 
 - **Doble reserva**: se intenta agendar el mismo horario dos veces; el sistema rechaza la segunda y propone una alternativa.
-- **Paciente nuevo no identificado**: la persona agenda su primera cita; el sistema recaba los datos mínimos (nombre y contacto de WhatsApp) sin fricción.
+- **Paciente nuevo no identificado**: la persona agenda su primera cita; el sistema recaba los datos mínimos (nombre, contacto de WhatsApp y fecha de nacimiento) sin fricción.
 - **Cancelación sin reagendar**: la persona cancela y no desea otro horario; el sistema confirma con amabilidad y cierra sin culpar.
 - **Pago dividido**: se registra anticipo y luego liquidación en momentos diferentes; el estado avanza correctamente por etapas y el historial queda completo.
 - **Comprobante inválido o incompleto**: se registra un respaldo de pago; la psicóloga puede marcarlo como pendiente de validar sin romper el flujo.
