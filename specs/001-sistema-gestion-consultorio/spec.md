@@ -8,6 +8,16 @@
 
 **Input**: User description: "Definir el qué y el porqué del proyecto: asistente digital de Salud desde el Alma, sistema integral de gestión para un consultorio de psicología con atención por WhatsApp, agenda, pagos y recordatorios."
 
+## Clarifications
+
+### Session 2026-09-02
+
+- Q: ¿Qué verificación debe exigir el sistema antes de mostrar por WhatsApp el estado de una cita o un saldo pendiente? → A: Exigir número registrado y una confirmación adicional breve del paciente.
+- Q: ¿Qué dato breve debe pedir el asistente como segunda verificación antes de mostrar por WhatsApp el estado de una cita o un saldo pendiente? → A: Nombre y fecha de nacimiento.
+- Q: ¿En qué momento debe capturarse la fecha de nacimiento para poder verificar por WhatsApp el estado de una cita o un pago? → A: Pedirla al crear la primera cita del paciente.
+- Q: Cuando un paciente comparte detalles clínicos sensibles por WhatsApp, ¿qué debe guardar el sistema en el historial de conversación? → A: Guardar solo un resumen administrativo breve y metadatos básicos.
+- Q: ¿Después de cuánto tiempo de inactividad debe expirar la sesión del panel administrativo? → A: 30 minutos.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Agendar una cita por WhatsApp (Priority: P1)
@@ -25,7 +35,7 @@ Un paciente nuevo o recurrente escribe al WhatsApp del consultorio y, conversand
 3. **Given** un horario solicitado ya no está disponible **When** el paciente lo pide **Then** el asistente lo informa con amabilidad y ofrece una alternativa concreta.
 4. **Given** una conversación sobre temas clínicos **When** el paciente plantea un síntoma o preocupación de salud **Then** el asistente reconoce la inquietud y deriva la cuestión a la psicóloga, sin diagnosticar ni recomendar tratamiento.
 5. **Given** un paciente pregunta si está hablando con un sistema automatizado **When** solicita aclaración **Then** el asistente responde con transparencia que es un asistente digital del consultorio y ofrece continuar apoyando con temas administrativos.
-6. **Given** un paciente nuevo sin registro previo **When** solicita una cita **Then** el asistente solicita únicamente los datos mínimos necesarios para agendar: nombre y número de contacto de WhatsApp.
+6. **Given** un paciente nuevo sin registro previo **When** solicita una cita **Then** el asistente solicita únicamente los datos mínimos necesarios para agendar: nombre, número de contacto de WhatsApp y fecha de nacimiento.
 7. **Given** un paciente plantea una inquietud clínica extensa **When** el asistente identifica que requiere criterio profesional **Then** deriva el caso a la psicóloga y limita su respuesta a acompañamiento administrativo y oferta de cita.
 
 ---
@@ -45,7 +55,7 @@ La psicóloga abre su panel desde el teléfono y ve la agenda del día: citas co
 3. **Given** el panel en un teléfono **When** se realiza cualquier acción **Then** todas las funciones principales se usan sin desplazamientos incómodos ni redacción larga.
 4. **Given** dos solicitudes para el mismo horario **When** se intenta reservar la segunda **Then** el sistema impide la doble reserva y ofrece otro horario.
 5. **Given** una persona sin sesión válida **When** intenta abrir el panel administrativo **Then** el sistema solicita autenticación antes de mostrar cualquier dato.
-6. **Given** la psicóloga deja expirar su sesión por inactividad **When** intenta continuar en el panel **Then** el sistema solicita un nuevo inicio de sesión sin exponer información administrativa.
+6. **Given** la psicóloga deja expirar su sesión tras 30 minutos de inactividad **When** intenta continuar en el panel **Then** el sistema solicita un nuevo inicio de sesión sin exponer información administrativa.
 7. **Given** un usuario sin permisos administrativos válidos **When** intenta consultar o modificar pacientes, citas o pagos **Then** el sistema bloquea la acción y registra el intento en la auditoría.
 
 ---
@@ -95,8 +105,8 @@ Un paciente o persona interesada escribe al WhatsApp del consultorio para resolv
 **Acceptance Scenarios**:
 
 1. **Given** una persona pregunta por horarios, ubicación, modalidades o formas de pago **When** escribe al WhatsApp del consultorio **Then** el asistente responde con información correcta, clara y consistente con los datos oficiales del consultorio.
-2. **Given** un paciente identificado por su número de WhatsApp **When** pregunta por su próxima cita **Then** el asistente informa fecha, hora, modalidad y estado de la cita.
-3. **Given** un paciente identificado por su número de WhatsApp **When** pregunta si tiene saldo pendiente **Then** el asistente informa si existe un anticipo registrado o un pago pendiente de liquidar.
+2. **Given** un paciente identificado por su número de WhatsApp **When** confirma además su nombre y fecha de nacimiento **Then** el asistente informa fecha, hora, modalidad y estado de su próxima cita.
+3. **Given** un paciente identificado por su número de WhatsApp **When** confirma además su nombre y fecha de nacimiento **Then** el asistente informa si existe un anticipo registrado o un pago pendiente de liquidar.
 4. **Given** una persona no identificada o sin coincidencia suficiente **When** intenta consultar una cita o pago **Then** el asistente no expone datos sensibles y deriva la gestión a la psicóloga.
 
 ---
@@ -131,7 +141,7 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **Sesión expirada**: la psicóloga permanece inactiva y luego intenta continuar en el panel; el sistema solicita iniciar sesión nuevamente.
 - **Cita creada con menos de 24 horas de anticipación**: el sistema envía confirmación inmediata y omite el recordatorio de 24 horas, dejando constancia de esa condición.
 - **Pregunta sobre identidad del asistente**: el paciente pregunta si habla con una persona; el asistente responde con transparencia que es un asistente digital del consultorio.
-- **Contenido clínico sensible**: el paciente comparte detalles clínicos extensos; el sistema evita tratarlos como nota clínica y conserva solo la información mínima necesaria para operar y auditar.
+- **Contenido clínico sensible**: el paciente comparte detalles clínicos extensos; el sistema evita tratarlos como nota clínica y conserva solo un resumen administrativo breve y metadatos básicos para operar y auditar.
 
 ## Requirements *(mandatory)*
 
@@ -155,22 +165,23 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **FR-016**: El sistema DEBE registrar un rastro auditable de acciones críticas (accesos, citas, pagos y cancelaciones).
 - **FR-017**: El sistema DEBE presentar al público información clara del consultorio en la página: servicios, modalidades, horario, dirección y contactos.
 - **FR-018**: El sistema DEBE requerir autenticación para acceder al panel administrativo.
-- **FR-019**: El sistema DEBE expirar la sesión administrativa tras un periodo de inactividad y solicitar un nuevo inicio de sesión.
+- **FR-019**: El sistema DEBE expirar la sesión administrativa tras 30 minutos de inactividad y solicitar un nuevo inicio de sesión.
 - **FR-020**: El sistema DEBE proteger las rutas del panel y de la API administrativa contra acceso sin autenticación válida.
 - **FR-021**: El sistema DEBE aplicar control de acceso por rol para que solo el usuario administrador autorizado pueda consultar o modificar pacientes, citas, pagos, conversaciones y registros de auditoría en este MVP.
 - **FR-022**: El sistema DEBE responder por WhatsApp preguntas frecuentes del consultorio, incluyendo horarios, ubicación, modalidades y formas de pago, utilizando únicamente información oficial y vigente.
-- **FR-023**: El sistema DEBE permitir a un paciente identificado por su número de WhatsApp consultar el estado de su próxima cita y si mantiene saldo pendiente, sin exponer datos de otros pacientes.
-- **FR-024**: El sistema DEBE negar la consulta de citas, pagos o datos sensibles cuando no exista identificación suficiente del paciente y, en ese caso, derivar la gestión a la psicóloga.
-- **FR-025**: El sistema DEBE limitar el almacenamiento de conversaciones con contenido clínico a la información mínima necesaria para operación, seguimiento administrativo y auditoría, sin convertirlas en expediente clínico.
+- **FR-023**: El sistema DEBE permitir a un paciente consultar el estado de su próxima cita y si mantiene saldo pendiente solo cuando exista coincidencia con su número de WhatsApp registrado y el paciente confirme su nombre y fecha de nacimiento, sin exponer datos de otros pacientes.
+- **FR-024**: El sistema DEBE negar la consulta de citas, pagos o datos sensibles cuando no exista identificación suficiente del paciente, entendida en este MVP como la falta de coincidencia del número de WhatsApp registrado o la ausencia de validación satisfactoria de nombre y fecha de nacimiento, y en ese caso derivar la gestión a la psicóloga.
+- **FR-025**: El sistema DEBE limitar el almacenamiento de conversaciones con contenido clínico a un resumen administrativo breve y metadatos básicos necesarios para operación, seguimiento administrativo y auditoría, sin convertirlas en expediente clínico.
 - **FR-026**: El sistema DEBE registrar en el rastro auditable los accesos administrativos exitosos y fallidos, además de accesos, citas, pagos y cancelaciones.
+- **FR-027**: El sistema DEBE capturar nombre, número de contacto de WhatsApp y fecha de nacimiento al crear la primera cita de un paciente nuevo.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Paciente**: persona que solicita o recibe el servicio. Datos esenciales: nombre, contacto de WhatsApp, preferencia de modalidad.
+- **Paciente**: persona que solicita o recibe el servicio. Datos esenciales: nombre, contacto de WhatsApp, fecha de nacimiento y preferencia de modalidad.
 - **Cita**: evento de sesión con fecha, hora, modalidad y estado (programada, confirmada, completada, cancelada). Se vincula a un paciente.
 - **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado (pendiente, pagado). Se vincula a una cita.
 - **Recordatorio**: aviso programado (confirmación, recordatorio de cita, cancelación, pago pendiente) con estado de envío.
-- **Conversación**: intercambio del paciente con el asistente por WhatsApp. Conserva mensajes y metadatos operativos mínimos; si contiene contenido clínico, se limita a lo necesario para continuidad administrativa y auditoría, sin constituir expediente clínico.
+- **Conversación**: intercambio del paciente con el asistente por WhatsApp. Conserva mensajes y metadatos operativos mínimos; si contiene contenido clínico, guarda solo un resumen administrativo breve y metadatos básicos para continuidad administrativa y auditoría, sin constituir expediente clínico.
 - **Usuario administrativo**: persona con acceso autenticado al panel (la psicóloga), con control autorizado sobre agenda, pacientes, pagos, conversaciones y auditoría.
 - **Registro de auditoría**: traza de acciones críticas y accesos administrativos del sistema, incluyendo quién intentó acceder, qué acción realizó, cuándo ocurrió y su resultado.
 
@@ -189,6 +200,7 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **SC-009**: El 100% de los accesos no autenticados o con sesión expirada al panel administrativo es bloqueado.
 - **SC-010**: En UAT, la psicóloga valida que el chatbot responde correctamente al menos a las preguntas frecuentes principales del consultorio sin contradicciones con la información oficial.
 - **SC-011**: El 100% de las consultas de cita o pago realizadas desde un número no identificado evita exponer datos sensibles y se deriva correctamente a la psicóloga.
+- **SC-012**: El 100% de las sesiones administrativas inactivas por 30 minutos exige un nuevo inicio de sesión antes de permitir acceso adicional.
 
 ## Assumptions
 
@@ -202,3 +214,6 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - La persona responsable del consultorio es una sola psicóloga; no se contemplan múltiples terapeutas en esta fase.
 - La identificación operativa del paciente en WhatsApp se realiza principalmente por coincidencia de número telefónico.
 - La consulta de estado de cita o pago por WhatsApp se limita a información administrativa básica y no incluye datos clínicos.
+- La verificación para consultas administrativas por WhatsApp requiere coincidencia del número telefónico registrado y validación de nombre y fecha de nacimiento del paciente.
+- La fecha de nacimiento se captura durante la creación de la primera cita del paciente para habilitar verificaciones posteriores por WhatsApp.
+- La sesión del panel administrativo expira tras 30 minutos de inactividad.
