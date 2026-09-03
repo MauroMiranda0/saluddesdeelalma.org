@@ -1,0 +1,564 @@
+openapi: 3.1.0
+info:
+  title: Salud desde el Alma API
+  version: 0.1.0
+  description: >-
+    Contrato inicial para panel administrativo, agenda, pagos y webhook de WhatsApp
+    del MVP de Salud desde el Alma.
+servers:
+  - url: https://api.saluddesdeelalma.org
+    description: Produccion
+  - url: http://localhost:4000
+    description: Desarrollo local
+tags:
+  - name: Auth
+  - name: Appointments
+  - name: Payments
+  - name: Audit
+  - name: WhatsApp
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sda_admin_session
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    AdminSession:
+      type: object
+      required: [user, expiresAt]
+      properties:
+        user:
+          $ref: '#/components/schemas/AdminUser'
+        expiresAt:
+          type: string
+          format: date-time
+    AdminUser:
+      type: object
+      required: [id, email, fullName, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [admin]
+    Patient:
+      type: object
+      required: [id, fullName, whatsappPhone, birthdate]
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        whatsappPhone:
+          type: string
+        birthdate:
+          type: string
+          format: date
+        preferredModality:
+          type: string
+          enum: [online, presencial]
+    Appointment:
+      type: object
+      required: [id, patient, scheduledAt, modality, status, createdVia, paymentStatus]
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient:
+          $ref: '#/components/schemas/Patient'
+        scheduledAt:
+          type: string
+          format: date-time
+        modality:
+          type: string
+          enum: [online, presencial]
+        status:
+          type: string
+          enum: [programada, confirmada, completada, cancelada]
+        createdVia:
+          type: string
+          enum: [whatsapp, panel, system]
+        isManualException:
+          type: boolean
+        paymentStatus:
+          type: string
+          enum: [pendiente, anticipo, completado]
+        meetingLink:
+          type: string
+          nullable: true
+        locationLabel:
+          type: string
+          nullable: true
+    Payment:
+      type: object
+      required: [id, appointmentId, patientId, paymentType, amount, method, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        paymentType:
+          type: string
+          enum: [anticipo, completo]
+        amount:
+          type: number
+          format: float
+        method:
+          type: string
+          enum: [transferencia, efectivo]
+        status:
+          type: string
+          enum: [pendiente_validacion, validado, rechazado]
+        proofReference:
+          type: string
+          nullable: true
+    Reminder:
+      type: object
+      required: [id, appointmentId, reminderType, scheduledAt, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        reminderType:
+          type: string
+          enum: [confirmacion, recordatorio_24h, cancelacion, pago_pendiente]
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pendiente, procesando, enviado, fallido, omitido]
+    AuditLog:
+      type: object
+      required: [id, actorChannel, action, entityType, result, occurredAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        actorUserId:
+          type: string
+          format: uuid
+          nullable: true
+        actorChannel:
+          type: string
+          enum: [admin_panel, whatsapp, system]
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+          nullable: true
+        result:
+          type: string
+          enum: [success, failure]
+        metadata:
+          type: object
+          additionalProperties: true
+        occurredAt:
+          type: string
+          format: date-time
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Inicia sesion administrativa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login exitoso; establece cookie `sda_admin_session`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+        '401':
+          description: Credenciales invalidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cierra la sesion actual
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Sesion revocada
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Devuelve la sesion administrativa activa
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Sesion activa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+        '401':
+          description: Sesion inexistente o expirada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/appointments:
+    get:
+      tags: [Appointments]
+      summary: Lista citas por fecha
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Agenda del dia
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appointment'
+    post:
+      tags: [Appointments]
+      summary: Crea una cita desde panel o automatizacion interna
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient, scheduledAt, modality, createdVia]
+              properties:
+                patient:
+                  type: object
+                  required: [fullName, whatsappPhone, birthdate]
+                  properties:
+                    fullName:
+                      type: string
+                    whatsappPhone:
+                      type: string
+                    birthdate:
+                      type: string
+                      format: date
+                scheduledAt:
+                  type: string
+                  format: date-time
+                modality:
+                  type: string
+                  enum: [online, presencial]
+                createdVia:
+                  type: string
+                  enum: [panel, system]
+                isManualException:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Cita creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '409':
+          description: Horario ya ocupado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/appointments/{appointmentId}:
+    patch:
+      tags: [Appointments]
+      summary: Actualiza fecha, modalidad o estado operativo de una cita
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduledAt:
+                  type: string
+                  format: date-time
+                modality:
+                  type: string
+                  enum: [online, presencial]
+                status:
+                  type: string
+                  enum: [programada, confirmada, completada]
+      responses:
+        '200':
+          description: Cita actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+  /api/v1/appointments/{appointmentId}/cancel:
+    post:
+      tags: [Appointments]
+      summary: Cancela una cita y dispara notificacion al paciente
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Cita cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+  /api/v1/payments:
+    get:
+      tags: [Payments]
+      summary: Lista pagos de una cita
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pagos asociados a la cita
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+    post:
+      tags: [Payments]
+      summary: Registra un anticipo o pago completo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentId, patientId, paymentType, amount, method]
+              properties:
+                appointmentId:
+                  type: string
+                  format: uuid
+                patientId:
+                  type: string
+                  format: uuid
+                paymentType:
+                  type: string
+                  enum: [anticipo, completo]
+                amount:
+                  type: number
+                  format: float
+                method:
+                  type: string
+                  enum: [transferencia, efectivo]
+                proofReference:
+                  type: string
+      responses:
+        '201':
+          description: Pago registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+  /api/v1/reminders:
+    get:
+      tags: [Appointments]
+      summary: Lista recordatorios de una cita
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recordatorios asociados
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reminder'
+  /api/v1/audit-logs:
+    get:
+      tags: [Audit]
+      summary: Lista accesos y acciones criticas auditadas
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: action
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Registros de auditoria
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+  /api/v1/webhooks/whatsapp:
+    get:
+      tags: [WhatsApp]
+      summary: Verificacion del webhook de Meta
+      parameters:
+        - in: query
+          name: hub.mode
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: hub.verify_token
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: hub.challenge
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Challenge devuelto
+          content:
+            text/plain:
+              schema:
+                type: string
+    post:
+      tags: [WhatsApp]
+      summary: Recibe eventos de mensajes y estados desde WhatsApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entry]
+              properties:
+                entry:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '202':
+          description: Evento aceptado para procesamiento asincrono

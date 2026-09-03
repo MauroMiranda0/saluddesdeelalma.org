@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Approved
 
 **Input**: User description: "Definir el qué y el porqué del proyecto: asistente digital de Salud desde el Alma, sistema integral de gestión para un consultorio de psicología con atención por WhatsApp, agenda, pagos y recordatorios."
 
@@ -130,7 +130,7 @@ Una persona visita la página del consultorio y encuentra la información esenci
 ### Edge Cases
 
 - **Doble reserva**: se intenta agendar el mismo horario dos veces; el sistema rechaza la segunda y propone una alternativa.
-- **Paciente nuevo no identificado**: la persona agenda su primera cita; el sistema recaba los datos mínimos (nombre y contacto de WhatsApp) sin fricción.
+- **Paciente nuevo no identificado**: la persona agenda su primera cita; el sistema recaba los datos mínimos (nombre, contacto de WhatsApp y fecha de nacimiento) sin fricción.
 - **Cancelación sin reagendar**: la persona cancela y no desea otro horario; el sistema confirma con amabilidad y cierra sin culpar.
 - **Pago dividido**: se registra anticipo y luego liquidación en momentos diferentes; el estado avanza correctamente por etapas y el historial queda completo.
 - **Comprobante inválido o incompleto**: se registra un respaldo de pago; la psicóloga puede marcarlo como pendiente de validar sin romper el flujo.
@@ -179,7 +179,7 @@ Una persona visita la página del consultorio y encuentra la información esenci
 
 - **Paciente**: persona que solicita o recibe el servicio. Datos esenciales: nombre, contacto de WhatsApp, fecha de nacimiento y preferencia de modalidad.
 - **Cita**: evento de sesión con fecha, hora, modalidad y estado (programada, confirmada, completada, cancelada). Se vincula a un paciente.
-- **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado (pendiente, pagado). Se vincula a una cita.
+- **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado de validación (`pendiente de validación`, `validado`, `rechazado`). Se vincula a una cita; el estado visible de pago por cita se deriva como `pendiente`, `anticipo` o `completado`.
 - **Recordatorio**: aviso programado (confirmación, recordatorio de cita, cancelación, pago pendiente) con estado de envío.
 - **Conversación**: intercambio del paciente con el asistente por WhatsApp. Conserva mensajes y metadatos operativos mínimos; si contiene contenido clínico, guarda solo un resumen administrativo breve y metadatos básicos para continuidad administrativa y auditoría, sin constituir expediente clínico.
 - **Usuario administrativo**: persona con acceso autenticado al panel (la psicóloga), con control autorizado sobre agenda, pacientes, pagos, conversaciones y auditoría.
