@@ -98,6 +98,7 @@ Resultado esperado:
 - El backend ofrece horarios reales.
 - Se crea o reutiliza paciente.
 - Se registra cita, confirmacion y auditoria.
+- La primera respuesta administrativa del flujo se entrega dentro de 2 minutos.
 
 ### 6. Flujo de WhatsApp: consulta de cita o pago
 
@@ -130,6 +131,17 @@ Resultado esperado:
 - El backend rechaza la sesion.
 - El frontend redirige a login.
 - Se audita el acceso con sesion expirada si aplica.
+
+### 9. Consulta de auditoria
+
+1. Iniciar sesion en el panel o consumir la API administrativa autenticada.
+2. Consultar `GET /api/v1/audit-logs` con un rango corto de fechas.
+
+Resultado esperado:
+
+- Se listan accesos exitosos y fallidos, altas o cancelaciones de citas y registros de pago.
+- No se exponen datos clinicos innecesarios en la metadata.
+- La informacion es suficiente para revisar quien hizo que accion y cuando.
 
 ## Suite de pruebas esperada
 

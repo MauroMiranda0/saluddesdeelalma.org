@@ -41,7 +41,7 @@ description: "Lista de tareas para implementar la funcionalidad"
 - [ ] T007 [P] Configurar entorno, logging y manejo global de errores del backend en `backend/src/config/env.ts`, `backend/src/lib/logger.ts` y `backend/src/middleware/error-handler.ts`
 - [ ] T008 [P] Definir el esquema base de Prisma para admin, pacientes, citas, pagos, recordatorios, chat y auditoria en `backend/prisma/schema.prisma`
 - [ ] T009 [P] Crear migracion inicial de Prisma y wrapper del cliente en `backend/prisma/migrations/*` y `backend/src/lib/prisma.ts`
-- [ ] T010 Implementar middleware de autenticacion y sesiones en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts` y `backend/src/middleware/authenticate.ts`
+- [ ] T010 Implementar middleware de autenticacion, sesiones y autorizacion por rol en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts` y `backend/src/middleware/authenticate.ts`
 - [ ] T011 [P] Implementar infraestructura de auditoria en `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
 - [ ] T012 [P] Montar router base de API y rutas shell de health/auth en `backend/src/app.ts`, `backend/src/modules/health/health.routes.ts` y `backend/src/modules/auth/auth.routes.ts`
 - [ ] T013 [P] Crear app shell del frontend y helpers de API/sesion en `frontend/app/layout.tsx`, `frontend/lib/api/client.ts` y `frontend/lib/auth/session.ts`
@@ -60,14 +60,14 @@ description: "Lista de tareas para implementar la funcionalidad"
 ### Pruebas para Historia de Usuario 1
 
 - [ ] T015 [P] [US1] Crear prueba de contrato del webhook de WhatsApp en `backend/tests/contract/whatsapp-webhook.contract.test.ts`
-- [ ] T016 [P] [US1] Crear prueba de integracion del flujo de agendamiento por WhatsApp en `backend/tests/integration/whatsapp-booking.integration.test.ts`
+- [ ] T016 [P] [US1] Crear prueba de integracion del flujo de agendamiento por WhatsApp, incluyendo primera respuesta administrativa en menos de 2 minutos, en `backend/tests/integration/whatsapp-booking.integration.test.ts`
 
 ### Implementacion para Historia de Usuario 1
 
 - [ ] T017 [P] [US1] Implementar persistencia y busqueda de pacientes en `backend/src/modules/patients/patients.repository.ts` y `backend/src/modules/patients/patients.service.ts`
 - [ ] T018 [P] [US1] Implementar persistencia de citas y reglas de disponibilidad en `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/modules/appointments/appointments.service.ts`
 - [ ] T019 [P] [US1] Implementar adaptador del proveedor de WhatsApp en `backend/src/integrations/whatsapp/whatsapp.gateway.ts`
-- [ ] T020 [US1] Implementar intents de agendamiento y reglas de derivacion clinica en `backend/src/modules/chatbot/chatbot.intents.ts` y `backend/src/modules/chatbot/chatbot.booking.handler.ts`
+- [ ] T020 [US1] Implementar intents de agendamiento, clasificacion asistida por IA y reglas de derivacion clinica en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.booking.handler.ts` y `backend/src/integrations/ai/intent-classifier.ts`
 - [ ] T021 [US1] Implementar controller y rutas del webhook de WhatsApp en `backend/src/modules/chatbot/chatbot.controller.ts` y `backend/src/modules/chatbot/chatbot.routes.ts`
 - [ ] T022 [US1] Crear programacion del recordatorio de confirmacion al agendar en `backend/src/modules/reminders/reminders.service.ts`
 - [ ] T023 [US1] Persistir mensajes entrantes y salientes del chat en `backend/src/modules/chatbot/chat-messages.repository.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
@@ -86,19 +86,19 @@ description: "Lista de tareas para implementar la funcionalidad"
 ### Pruebas para Historia de Usuario 2
 
 - [ ] T025 [P] [US2] Crear prueba de contrato de autenticacion y sesion en `backend/tests/contract/auth.contract.test.ts`
-- [ ] T026 [P] [US2] Crear prueba de contrato de endpoints administrativos de citas en `backend/tests/contract/appointments.contract.test.ts`
+- [ ] T026 [P] [US2] Crear prueba de contrato de endpoints administrativos de citas y consulta de auditoria en `backend/tests/contract/appointments.contract.test.ts` y `backend/tests/contract/audit-logs.contract.test.ts`
 - [ ] T027 [P] [US2] Crear prueba E2E movil de login y agenda diaria en `frontend/tests/e2e/admin-agenda.spec.ts`
 
 ### Implementacion para Historia de Usuario 2
 
 - [ ] T028 [P] [US2] Implementar controllers y rutas de login, logout y sesion activa en `backend/src/modules/auth/auth.controller.ts`, `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/auth/auth.routes.ts`
-- [ ] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.controller.ts` y `backend/src/modules/appointments/admin-appointments.routes.ts`
+- [ ] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas, incluyendo excepciones manuales fuera de horario regular, en `backend/src/modules/appointments/appointments.controller.ts` y `backend/src/modules/appointments/admin-appointments.routes.ts`
 - [ ] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/ui/login-form.tsx`
 - [ ] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/agenda/daily-agenda.tsx`
-- [ ] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/agenda/appointment-form.tsx` y `frontend/components/agenda/cancel-appointment-dialog.tsx`
+- [ ] T032 [P] [US2] Implementar formulario de cita con control de excepcion manual y dialogo de cancelacion en `frontend/components/agenda/appointment-form.tsx` y `frontend/components/agenda/cancel-appointment-dialog.tsx`
 - [ ] T033 [US2] Implementar proteccion de rutas y expiracion de sesion en `frontend/app/admin/agenda/page.tsx`, `frontend/lib/auth/session.ts` y `frontend/middleware.ts`
 - [ ] T034 [US2] Disparar notificaciones de cancelacion desde acciones administrativas en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`
-- [ ] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/audit/audit.service.ts`
+- [ ] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas, y exponer consulta administrativa de auditoria en `backend/src/modules/auth/auth.service.ts`, `backend/src/modules/audit/audit.service.ts`, `backend/src/modules/audit/audit.controller.ts` y `backend/src/modules/audit/audit.routes.ts`
 
 **Punto de control**: Las Historias de Usuario 1 y 2 deben funcionar de forma independiente
 
@@ -165,7 +165,7 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Implementacion para Historia de Usuario 5
 
-- [ ] T054 [P] [US5] Implementar catalogo de FAQ y plantillas de respuesta en `backend/src/modules/chatbot/faq.catalog.ts` y `backend/src/modules/chatbot/response-templates.ts`
+- [ ] T054 [P] [US5] Implementar catalogo de FAQ, plantillas de respuesta y compositor asistido por IA en `backend/src/modules/chatbot/faq.catalog.ts`, `backend/src/modules/chatbot/response-templates.ts` y `backend/src/integrations/ai/response-composer.ts`
 - [ ] T055 [P] [US5] Implementar flujo de verificacion de identidad en `backend/src/modules/chatbot/identity-verification.service.ts` y `backend/src/modules/chatbot/chatbot.intents.ts`
 - [ ] T056 [US5] Implementar handlers de estado de cita y pago en `backend/src/modules/chatbot/chatbot.status.handler.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
 - [ ] T057 [US5] Aplicar minimizacion de mensajes sensibles en `backend/src/modules/chatbot/message-sanitizer.ts` y `backend/src/modules/chatbot/chat-messages.repository.ts`
@@ -296,7 +296,7 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 5. US4 y validacion de recordatorios y reintentos
 6. US5 y validacion de FAQ y consultas seguras
 7. US6 y validacion de la landing publica
-8. Polish y validacion final de `quickstart.md`
+8. Pulido y validacion final de `quickstart.md`
 
 ### Estrategia para equipo en paralelo
 

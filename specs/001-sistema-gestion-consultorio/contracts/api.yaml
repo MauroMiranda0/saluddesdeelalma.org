@@ -14,6 +14,7 @@ tags:
   - name: Auth
   - name: Appointments
   - name: Payments
+  - name: Audit
   - name: WhatsApp
 components:
   securitySchemes:
@@ -150,6 +151,37 @@ components:
         status:
           type: string
           enum: [pendiente, procesando, enviado, fallido, omitido]
+    AuditLog:
+      type: object
+      required: [id, actorChannel, action, entityType, result, occurredAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        actorUserId:
+          type: string
+          format: uuid
+          nullable: true
+        actorChannel:
+          type: string
+          enum: [admin_panel, whatsapp, system]
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+          nullable: true
+        result:
+          type: string
+          enum: [success, failure]
+        metadata:
+          type: object
+          additionalProperties: true
+        occurredAt:
+          type: string
+          format: date-time
 paths:
   /api/v1/auth/login:
     post:
@@ -440,6 +472,51 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Reminder'
+  /api/v1/audit-logs:
+    get:
+      tags: [Audit]
+      summary: Lista accesos y acciones criticas auditadas
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: action
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Registros de auditoria
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
   /api/v1/webhooks/whatsapp:
     get:
       tags: [WhatsApp]
