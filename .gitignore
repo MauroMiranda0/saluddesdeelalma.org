@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.next/
+coverage/
+*.log
+.env*
+!.env.example
+backend/.env.example
+frontend/.env.example
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.idea/
+.vscode/

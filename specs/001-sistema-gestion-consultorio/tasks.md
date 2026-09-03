@@ -23,11 +23,11 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 **Proposito**: Inicializacion del repositorio y estructura base del proyecto
 
-- [ ] T001 Crear configuracion de monorepo con workspaces en `package.json`, `.gitignore` y `.nvmrc`
-- [ ] T002 [P] Inicializar workspace del backend en `backend/package.json` y `backend/tsconfig.json`
-- [ ] T003 [P] Inicializar workspace del frontend en `frontend/package.json`, `frontend/tsconfig.json` y `frontend/next.config.ts`
-- [ ] T004 [P] Configurar linting y formato en `eslint.config.js` y `prettier.config.js`
-- [ ] T005 [P] Agregar plantillas de variables de entorno en `backend/.env.example` y `frontend/.env.example`
+- [X] T001 Crear configuracion de monorepo con workspaces en `package.json`, `.gitignore` y `.nvmrc`
+- [X] T002 [P] Inicializar workspace del backend en `backend/package.json` y `backend/tsconfig.json`
+- [X] T003 [P] Inicializar workspace del frontend en `frontend/package.json`, `frontend/tsconfig.json` y `frontend/next.config.ts`
+- [X] T004 [P] Configurar linting y formato en `eslint.config.js` y `prettier.config.js`
+- [X] T005 [P] Agregar plantillas de variables de entorno en `backend/.env.example` y `frontend/.env.example`
 
 ---
 
