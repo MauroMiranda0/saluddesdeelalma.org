@@ -3,11 +3,12 @@ dist/
 build/
 .next/
 coverage/
+*.tsbuildinfo
 *.log
 .env*
 !.env.example
-backend/.env.example
-frontend/.env.example
+!backend/.env.example
+!frontend/.env.example
 .DS_Store
 Thumbs.db
 *.tmp

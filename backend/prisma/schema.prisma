@@ -1,0 +1,298 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  admin
+}
+
+enum Modality {
+  online
+  presencial
+}
+
+enum PatientStatus {
+  activo
+  inactivo
+}
+
+enum AppointmentStatus {
+  programada
+  confirmada
+  completada
+  cancelada
+}
+
+enum AppointmentCreatedVia {
+  whatsapp
+  panel
+  system
+}
+
+enum PaymentType {
+  anticipo
+  completo
+}
+
+enum PaymentMethod {
+  transferencia
+  efectivo
+}
+
+enum PaymentValidationStatus {
+  pendiente_validacion
+  validado
+  rechazado
+}
+
+enum ReminderType {
+  confirmacion
+  recordatorio_24h
+  cancelacion
+  pago_pendiente
+}
+
+enum ReminderStatus {
+  pendiente
+  procesando
+  enviado
+  fallido
+  omitido
+}
+
+enum ConversationIntent {
+  faq
+  availability
+  book
+  cancel
+  payment_info
+  payment_status
+  identity_check
+  handoff
+  unknown
+}
+
+enum VerificationStatus {
+  not_needed
+  pending
+  verified
+  failed
+}
+
+enum ConversationState {
+  abierta
+  cerrada
+  derivada
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum SenderKind {
+  patient
+  assistant
+  admin
+  system
+}
+
+enum ContentMode {
+  full_text
+  admin_summary
+}
+
+enum ActorChannel {
+  admin_panel
+  whatsapp
+  system
+}
+
+enum AuditResult {
+  success
+  failure
+}
+
+model AdminUser {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String         @unique @db.VarChar(255)
+  passwordHash  String         @map("password_hash") @db.VarChar(255)
+  fullName      String         @map("full_name") @db.VarChar(120)
+  role          AdminRole      @default(admin)
+  isActive      Boolean        @default(true) @map("is_active")
+  lastLoginAt   DateTime?      @map("last_login_at") @db.Timestamptz(6)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions      AdminSession[]
+  appointments  Appointment[]
+  payments      Payment[]
+  auditLogs     AuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminSession {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  jwtId          String    @unique @map("jwt_id") @db.Uuid
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz(6)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  ipAddress      String?   @map("ip_address") @db.Inet
+  userAgent      String?   @map("user_agent")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           AdminUser @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}
+
+model Patient {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName          String             @map("full_name") @db.VarChar(150)
+  whatsappPhone     String             @unique @map("whatsapp_phone") @db.VarChar(30)
+  birthdate         DateTime           @db.Date
+  preferredModality Modality?          @map("preferred_modality")
+  email             String?            @db.VarChar(255)
+  notes             String?
+  status            PatientStatus      @default(activo)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointments      Appointment[]
+  payments          Payment[]
+  conversations     ChatConversation[]
+
+  @@map("patients")
+}
+
+model Appointment {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId         String                @map("patient_id") @db.Uuid
+  scheduledAt       DateTime              @map("scheduled_at") @db.Timestamptz(6)
+  modality          Modality
+  status            AppointmentStatus     @default(programada)
+  isManualException Boolean               @default(false) @map("is_manual_exception")
+  locationLabel     String?               @map("location_label") @db.VarChar(255)
+  meetingLink       String?               @map("meeting_link")
+  cancelReason      String?               @map("cancel_reason")
+  createdByUserId   String?               @map("created_by_user_id") @db.Uuid
+  createdVia        AppointmentCreatedVia @map("created_via")
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  patient           Patient               @relation(fields: [patientId], references: [id])
+  createdBy         AdminUser?            @relation(fields: [createdByUserId], references: [id])
+  payments          Payment[]
+  reminders         AppointmentReminder[]
+
+  @@index([patientId])
+  @@index([scheduledAt])
+  /// La migracion inicial agrega un indice unico parcial sobre scheduled_at
+  /// para citas activas porque Prisma no modela indices parciales.
+  @@map("appointments")
+}
+
+model Payment {
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId    String                  @map("appointment_id") @db.Uuid
+  patientId        String                  @map("patient_id") @db.Uuid
+  paymentType      PaymentType             @map("payment_type")
+  amount           Decimal                 @db.Decimal(10, 2)
+  method           PaymentMethod
+  status           PaymentValidationStatus @default(pendiente_validacion)
+  proofReference   String?                 @map("proof_reference")
+  recordedByUserId String                  @map("recorded_by_user_id") @db.Uuid
+  paidAt           DateTime?               @map("paid_at") @db.Timestamptz(6)
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointment      Appointment             @relation(fields: [appointmentId], references: [id])
+  patient          Patient                 @relation(fields: [patientId], references: [id])
+  recordedBy       AdminUser               @relation(fields: [recordedByUserId], references: [id])
+
+  @@index([appointmentId])
+  @@index([patientId])
+  /// La migracion inicial agrega indices unicos parciales para impedir mas de
+  /// un anticipo validado y mas de un pago completo validado por cita.
+  @@map("payments")
+}
+
+model AppointmentReminder {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId     String            @map("appointment_id") @db.Uuid
+  reminderType      ReminderType      @map("reminder_type")
+  scheduledAt       DateTime          @map("scheduled_at") @db.Timestamptz(6)
+  status            ReminderStatus    @default(pendiente)
+  attemptsCount     Int               @default(0) @map("attempts_count")
+  lastError         String?           @map("last_error")
+  sentAt            DateTime?         @map("sent_at") @db.Timestamptz(6)
+  providerMessageId String?           @map("provider_message_id") @db.VarChar(120)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointment       Appointment       @relation(fields: [appointmentId], references: [id])
+
+  @@unique([appointmentId, reminderType])
+  @@index([scheduledAt, status])
+  @@map("appointment_reminders")
+}
+
+model ChatConversation {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId          String?            @map("patient_id") @db.Uuid
+  whatsappPhone      String             @map("whatsapp_phone") @db.VarChar(30)
+  currentIntent      ConversationIntent @default(unknown) @map("current_intent")
+  verificationStatus VerificationStatus @default(not_needed) @map("verification_status")
+  lastVerifiedAt     DateTime?          @map("last_verified_at") @db.Timestamptz(6)
+  state              ConversationState  @default(abierta)
+  lastMessageAt      DateTime           @map("last_message_at") @db.Timestamptz(6)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  patient            Patient?           @relation(fields: [patientId], references: [id])
+  messages           ChatMessage[]
+
+  @@index([whatsappPhone])
+  @@index([patientId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id                               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId                   String           @map("conversation_id") @db.Uuid
+  waMessageId                      String           @unique @map("wa_message_id") @db.VarChar(120)
+  direction                        MessageDirection
+  senderKind                       SenderKind       @map("sender_kind")
+  contentMode                      ContentMode      @map("content_mode")
+  contentText                      String           @map("content_text")
+  containsSensitiveClinicalContent Boolean          @default(false) @map("contains_sensitive_clinical_content")
+  intent                           String?          @db.VarChar(60)
+  metadata                         Json             @default("{}")
+  createdAt                        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  conversation                     ChatConversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
+  @@map("chat_messages")
+}
+
+model AuditLog {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorUserId  String?      @map("actor_user_id") @db.Uuid
+  actorChannel ActorChannel @map("actor_channel")
+  action       String       @db.VarChar(80)
+  entityType   String       @map("entity_type") @db.VarChar(80)
+  entityId     String?      @map("entity_id") @db.Uuid
+  result       AuditResult
+  metadata     Json         @default("{}")
+  ipAddress    String?      @map("ip_address") @db.Inet
+  userAgent    String?      @map("user_agent")
+  occurredAt   DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actorUser    AdminUser?   @relation(fields: [actorUserId], references: [id])
+
+  @@index([actorUserId])
+  @@index([occurredAt])
+  @@map("audit_logs")
+}

@@ -10,6 +10,7 @@ module.exports = tseslint.config(
       "**/build/**",
       "**/.next/**",
       "**/coverage/**",
+      "**/next-env.d.ts",
       "**/*.min.js"
     ]
   },

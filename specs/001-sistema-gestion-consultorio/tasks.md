@@ -1,5 +1,4 @@
 ---
-
 description: "Lista de tareas para implementar la funcionalidad"
 ---
 
@@ -23,11 +22,11 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 **Proposito**: Inicializacion del repositorio y estructura base del proyecto
 
-- [X] T001 Crear configuracion de monorepo con workspaces en `package.json`, `.gitignore` y `.nvmrc`
-- [X] T002 [P] Inicializar workspace del backend en `backend/package.json` y `backend/tsconfig.json`
-- [X] T003 [P] Inicializar workspace del frontend en `frontend/package.json`, `frontend/tsconfig.json` y `frontend/next.config.ts`
-- [X] T004 [P] Configurar linting y formato en `eslint.config.js` y `prettier.config.js`
-- [X] T005 [P] Agregar plantillas de variables de entorno en `backend/.env.example` y `frontend/.env.example`
+- [x] T001 Crear configuracion de monorepo con workspaces en `package.json`, `.gitignore` y `.nvmrc`
+- [x] T002 [P] Inicializar workspace del backend en `backend/package.json` y `backend/tsconfig.json`
+- [x] T003 [P] Inicializar workspace del frontend en `frontend/package.json`, `frontend/tsconfig.json` y `frontend/next.config.ts`
+- [x] T004 [P] Configurar linting y formato en `eslint.config.js` y `prettier.config.js`
+- [x] T005 [P] Agregar plantillas de variables de entorno en `backend/.env.example` y `frontend/.env.example`
 
 ---
 
@@ -37,15 +36,15 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 **CRITICO**: Ninguna historia de usuario puede comenzar antes de completar esta fase
 
-- [ ] T006 Crear bootstrap del backend y entrypoints del servidor en `backend/src/app.ts` y `backend/src/server.ts`
-- [ ] T007 [P] Configurar entorno, logging y manejo global de errores del backend en `backend/src/config/env.ts`, `backend/src/lib/logger.ts` y `backend/src/middleware/error-handler.ts`
-- [ ] T008 [P] Definir el esquema base de Prisma para admin, pacientes, citas, pagos, recordatorios, chat y auditoria en `backend/prisma/schema.prisma`
-- [ ] T009 [P] Crear migracion inicial de Prisma y wrapper del cliente en `backend/prisma/migrations/*` y `backend/src/lib/prisma.ts`
-- [ ] T010 Implementar middleware de autenticacion y sesiones en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts` y `backend/src/middleware/authenticate.ts`
-- [ ] T011 [P] Implementar infraestructura de auditoria en `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
-- [ ] T012 [P] Montar router base de API y rutas shell de health/auth en `backend/src/app.ts`, `backend/src/modules/health/health.routes.ts` y `backend/src/modules/auth/auth.routes.ts`
-- [ ] T013 [P] Crear app shell del frontend y helpers de API/sesion en `frontend/app/layout.tsx`, `frontend/lib/api/client.ts` y `frontend/lib/auth/session.ts`
-- [ ] T014 [P] Agregar schemas de validacion compartidos para paciente, cita, pago y chatbot en `backend/src/lib/validators/patient.ts`, `backend/src/lib/validators/appointment.ts`, `backend/src/lib/validators/payment.ts` y `backend/src/lib/validators/chatbot.ts`
+- [x] T006 Crear bootstrap del backend y entrypoints del servidor en `backend/src/app.ts` y `backend/src/server.ts`
+- [x] T007 [P] Configurar entorno, logging y manejo global de errores del backend en `backend/src/config/env.ts`, `backend/src/lib/logger.ts` y `backend/src/middleware/error-handler.ts`
+- [x] T008 [P] Definir el esquema base de Prisma para admin, pacientes, citas, pagos, recordatorios, chat y auditoria en `backend/prisma/schema.prisma`
+- [x] T009 [P] Crear migracion inicial de Prisma y wrapper del cliente en `backend/prisma/migrations/*` y `backend/src/lib/prisma.ts`
+- [x] T010 Implementar middleware de autenticacion y sesiones en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts` y `backend/src/middleware/authenticate.ts`
+- [x] T011 [P] Implementar infraestructura de auditoria en `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
+- [x] T012 [P] Montar router base de API y rutas shell de health/auth en `backend/src/app.ts`, `backend/src/modules/health/health.routes.ts` y `backend/src/modules/auth/auth.routes.ts`
+- [x] T013 [P] Crear app shell del frontend y helpers de API/sesion en `frontend/app/layout.tsx`, `frontend/lib/api/client.ts` y `frontend/lib/auth/session.ts`
+- [x] T014 [P] Agregar schemas de validacion compartidos para paciente, cita, pago y chatbot en `backend/src/lib/validators/patient.ts`, `backend/src/lib/validators/appointment.ts`, `backend/src/lib/validators/payment.ts` y `backend/src/lib/validators/chatbot.ts`
 
 **Punto de control**: La base comun queda lista y ya pueden empezar las historias de usuario
 
@@ -323,3 +322,14 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - Alcance recomendado para MVP:
   - Punto de control inicial de desarrollo: `US1`
   - Gate constitucional del MVP: `US1 + US2`
+
+---
+
+## Fase 10: Convergencia Fase 2
+
+**Proposito**: Remediar desviaciones detectadas al contrastar Fase 2 contra `spec.md`, `plan.md` y `tasks.md` antes de iniciar historias de usuario.
+
+- [X] T069 Corregir expiracion por inactividad de sesion administrativa renovando JWT y cookie al validar actividad en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts`, `backend/src/middleware/authenticate.ts` y `backend/src/modules/auth/auth.routes.ts`
+- [X] T070 Centralizar autorizacion de rol admin y auditoria de denegaciones en `backend/src/middleware/authorize-admin.ts`, `backend/src/middleware/authenticate.ts`, `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
+- [X] T071 Configurar soporte CORS y cookies para frontend y backend separados en `backend/src/app.ts`, `backend/src/config/env.ts`, `backend/.env.example`, `backend/package.json` y `frontend/.env.example`
+- [X] T072 Documentar indices SQL manuales no representables por Prisma en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260904000000_initial/migration.sql`
