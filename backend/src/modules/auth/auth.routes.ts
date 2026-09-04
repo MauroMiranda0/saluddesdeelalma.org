@@ -4,7 +4,10 @@ import { env } from "../../config/env";
 import { authenticate } from "../../middleware/authenticate";
 import { authorizeAdmin } from "../../middleware/authorize-admin";
 import { asyncHandler, AppError } from "../../middleware/error-handler";
-import { getSessionCookieOptions, revokeAdminSession } from "./session.service";
+import {
+  getClearSessionCookieOptions,
+  revokeAdminSession
+} from "./session.service";
 
 export const authRoutes = Router();
 
@@ -40,7 +43,10 @@ authRoutes.post(
     }
 
     await revokeAdminSession(request.adminSession.id);
-    response.clearCookie(env.SESSION_COOKIE_NAME, getSessionCookieOptions());
+    response.clearCookie(
+      env.SESSION_COOKIE_NAME,
+      getClearSessionCookieOptions()
+    );
     response.status(204).send();
   })
 );

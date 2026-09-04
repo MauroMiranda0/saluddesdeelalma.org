@@ -11,8 +11,14 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "build": "npm run prisma:generate --workspace backend && npm run build --workspaces",
+    "clean:artifacts": "node -e \"for (const path of ['backend/dist','frontend/.next','frontend/tsconfig.tsbuildinfo']) require('node:fs').rmSync(path, { recursive: true, force: true })\"",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
+    "prisma:validate": "npm run prisma:validate --workspace backend",
+    "start:backend": "npm run start --workspace backend",
+    "start:frontend": "npm run start --workspace frontend",
+    "typecheck": "npm run typecheck --workspaces",
     "lint": "eslint .",
     "format": "prettier --write --ignore-unknown package.json backend frontend eslint.config.js prettier.config.js",
     "format:check": "prettier --check --ignore-unknown package.json backend frontend eslint.config.js prettier.config.js"

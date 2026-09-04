@@ -8,6 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema prisma/schema.prisma",
+    "prisma:validate": "prisma validate --schema prisma/schema.prisma",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js"
   },
   "dependencies": {

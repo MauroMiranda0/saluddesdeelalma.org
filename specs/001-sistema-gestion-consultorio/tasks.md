@@ -329,7 +329,12 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 **Proposito**: Remediar desviaciones detectadas al contrastar Fase 2 contra `spec.md`, `plan.md` y `tasks.md` antes de iniciar historias de usuario.
 
-- [X] T069 Corregir expiracion por inactividad de sesion administrativa renovando JWT y cookie al validar actividad en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts`, `backend/src/middleware/authenticate.ts` y `backend/src/modules/auth/auth.routes.ts`
-- [X] T070 Centralizar autorizacion de rol admin y auditoria de denegaciones en `backend/src/middleware/authorize-admin.ts`, `backend/src/middleware/authenticate.ts`, `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
-- [X] T071 Configurar soporte CORS y cookies para frontend y backend separados en `backend/src/app.ts`, `backend/src/config/env.ts`, `backend/.env.example`, `backend/package.json` y `frontend/.env.example`
-- [X] T072 Documentar indices SQL manuales no representables por Prisma en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260904000000_initial/migration.sql`
+- [x] T069 Corregir expiracion por inactividad de sesion administrativa renovando JWT y cookie al validar actividad en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/token.service.ts`, `backend/src/middleware/authenticate.ts` y `backend/src/modules/auth/auth.routes.ts`
+- [x] T070 Centralizar autorizacion de rol admin y auditoria de denegaciones en `backend/src/middleware/authorize-admin.ts`, `backend/src/middleware/authenticate.ts`, `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
+- [x] T071 Configurar soporte CORS y cookies para frontend y backend separados en `backend/src/app.ts`, `backend/src/config/env.ts`, `backend/.env.example`, `backend/package.json` y `frontend/.env.example`
+- [x] T072 Documentar indices SQL manuales no representables por Prisma en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260904000000_initial/migration.sql`
+- [X] T073 Completar consistencia local de Prisma Migrate agregando `backend/prisma/migrations/migration_lock.toml` y validacion de schema en `backend/package.json`
+- [X] T074 Agregar scripts verificables de ciclo de vida en `package.json`, `backend/package.json` y `frontend/package.json`
+- [X] T075 Endurecer manejo de cookies de sesion separando opciones de set/clear y tratando cookies malformadas como 401 auditado en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/auth.routes.ts` y `backend/src/middleware/authenticate.ts`
+- [X] T076 Reforzar validacion de sesion verificando coincidencia entre `sub` del JWT y `admin_sessions.user_id` en `backend/src/modules/auth/session.service.ts`
+- [X] T077 Limpiar artefactos generados ignorados y agregar higiene de workspace en `.gitignore` y `package.json`

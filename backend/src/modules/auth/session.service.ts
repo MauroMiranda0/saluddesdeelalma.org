@@ -49,6 +49,7 @@ export const validateAdminSessionToken = async (token: string) => {
 
   if (
     !session ||
+    session.userId !== payload.userId ||
     session.jwtId !== payload.jwtId ||
     session.revokedAt ||
     !session.user.isActive
@@ -95,4 +96,11 @@ export const getSessionCookieOptions = () => ({
   sameSite: "lax" as const,
   path: "/",
   maxAge: env.SESSION_IDLE_TIMEOUT_MINUTES * 60 * 1000
+});
+
+export const getClearSessionCookieOptions = () => ({
+  httpOnly: true,
+  secure: env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/"
 });

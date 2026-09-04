@@ -34,7 +34,15 @@ const auditDeniedAccess = async (request: Request, action: string) => {
 
 export const authenticate: RequestHandler = async (request, response, next) => {
   try {
-    const cookies = parseCookies(request.header("cookie"));
+    let cookies: Map<string, string>;
+
+    try {
+      cookies = parseCookies(request.header("cookie"));
+    } catch {
+      await auditDeniedAccess(request, "auth_malformed_cookie");
+      throw new AppError(401, "unauthorized", "Session cookie is malformed");
+    }
+
     const token = cookies.get(env.SESSION_COOKIE_NAME);
 
     if (!token) {
