@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-28
 
-**Status**: Approved
+**Status**: Draft
 
 **Input**: User description: "Definir el qué y el porqué del proyecto: asistente digital de Salud desde el Alma, sistema integral de gestión para un consultorio de psicología con atención por WhatsApp, agenda, pagos y recordatorios."
 
@@ -17,6 +17,12 @@
 - Q: ¿En qué momento debe capturarse la fecha de nacimiento para poder verificar por WhatsApp el estado de una cita o un pago? → A: Pedirla al crear la primera cita del paciente.
 - Q: Cuando un paciente comparte detalles clínicos sensibles por WhatsApp, ¿qué debe guardar el sistema en el historial de conversación? → A: Guardar solo un resumen administrativo breve y metadatos básicos.
 - Q: ¿Después de cuánto tiempo de inactividad debe expirar la sesión del panel administrativo? → A: 30 minutos.
+
+### Session 2026-09-07
+
+- Q: ¿Cuándo y a quién se envía el recordatorio de cita? → A: Al paciente y a Jocelyn, entre las 18:00 y las 19:00 (zona `America/Mexico_City`) del día calendario anterior a la cita.
+- Q: ¿Cómo se aplica la política de cancelación? → A: La confirmación siempre indica que se debe avisar con al menos 24 horas de anticipación para evitar un costo adicional; una cancelación con menos de 24 horas se clasifica como tardía, sin generar un cobro automático en el MVP.
+- Q: ¿Qué cuentas pueden iniciar sesión en el panel durante el MVP? → A: Únicamente la cuenta activa cuyo usuario es `admin` y cuyo rol es `admin`; los perfiles de psicólogos/as y pacientes solo se visualizan desde ese panel.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -31,7 +37,7 @@ Un paciente nuevo o recurrente escribe al WhatsApp del consultorio y, conversand
 **Acceptance Scenarios**:
 
 1. **Given** un paciente escribe al WhatsApp del consultorio **When** pide información para agendar una sesión **Then** el asistente responde en menos de 2 minutos con opciones concretas de día y horario.
-2. **Given** un paciente confirma un horario disponible **When** se completa la conversación **Then** recibe confirmación con fecha, hora y modalidad (en línea o presencial).
+2. **Given** un paciente confirma un horario disponible **When** se completa la conversación **Then** recibe confirmación con fecha, hora, modalidad (en línea o presencial) y la leyenda de cancelación con al menos 24 horas de anticipación.
 3. **Given** un horario solicitado ya no está disponible **When** el paciente lo pide **Then** el asistente lo informa con amabilidad y ofrece una alternativa concreta.
 4. **Given** una conversación sobre temas clínicos **When** el paciente plantea un síntoma o preocupación de salud **Then** el asistente reconoce la inquietud y deriva la cuestión a la psicóloga, sin diagnosticar ni recomendar tratamiento.
 5. **Given** un paciente pregunta si está hablando con un sistema automatizado **When** solicita aclaración **Then** el asistente responde con transparencia que es un asistente digital del consultorio y ofrece continuar apoyando con temas administrativos.
@@ -57,6 +63,8 @@ La psicóloga abre su panel desde el teléfono y ve la agenda del día: citas co
 5. **Given** una persona sin sesión válida **When** intenta abrir el panel administrativo **Then** el sistema solicita autenticación antes de mostrar cualquier dato.
 6. **Given** la psicóloga deja expirar su sesión tras 30 minutos de inactividad **When** intenta continuar en el panel **Then** el sistema solicita un nuevo inicio de sesión sin exponer información administrativa.
 7. **Given** un usuario sin permisos administrativos válidos **When** intenta consultar o modificar pacientes, citas o pagos **Then** el sistema bloquea la acción y registra el intento en la auditoría.
+8. **Given** una cuenta distinta de `admin`, aunque corresponda a un perfil de psicólogo/a o paciente **When** intenta iniciar sesión o usar una ruta administrativa **Then** el sistema rechaza el acceso, no emite sesión y audita la denegación.
+9. **Given** Jocelyn inicia sesión con la cuenta activa `admin` **When** abre el panel **Then** puede visualizar el directorio de psicólogos/as y pacientes, sus citas y sus pagos pendientes.
 
 ---
 
@@ -79,16 +87,16 @@ La psicóloga registra el anticipo opcional del 50% al apartar una cita y liquid
 
 ### User Story 4 - Recibir recordatorios automáticos de citas y pagos (Priority: P2)
 
-Configurado el agendamiento, el sistema avisa por WhatsApp a cada paciente: confirmación al agendar, recordatorio 24 horas antes de la sesión, aviso de cancelación y recordatorio amable de pagos pendientes. La psicóloga deja de perseguir recordatorios de forma manual.
+Configurado el agendamiento, el sistema avisa por WhatsApp a cada paciente: confirmación al agendar, recordatorio del día anterior entre las 18:00 y las 19:00, aviso de cancelación y recordatorio amable de pagos pendientes. El mismo recordatorio de cita se envía a Jocelyn para que tenga visible su agenda del día siguiente.
 
 **Why this priority**: Reduce inasistencias y pagos pendientes, que impactan directamente los ingresos, pero requiere citas existentes para funcionar.
 
-**Independent Test**: Se agenda una cita de prueba y se verifica la confirmación inmediata, el recordatorio a las 24 horas previas y el aviso de pago pendiente el día de la sesión.
+**Independent Test**: Se agenda una cita de prueba y se verifica la confirmación inmediata con la política de cancelación, los dos recordatorios del día previo dentro de la ventana 18:00–19:00 y el aviso de pago pendiente el día de la sesión.
 
 **Acceptance Scenarios**:
 
-1. **Given** una cita agendada **When** se registra **Then** el paciente recibe confirmación con los datos de la sesión.
-2. **Given** una cita programada **When** faltan 24 horas **Then** el paciente recibe un recordatorio con día, hora y modalidad.
+1. **Given** una cita agendada **When** se registra **Then** el paciente recibe confirmación con los datos de la sesión y la política de cancelación de al menos 24 horas de anticipación.
+2. **Given** una cita programada para el día siguiente **When** el cron se ejecuta entre las 18:00 y las 19:00 en `America/Mexico_City` **Then** el paciente y Jocelyn reciben exactamente un recordatorio trazable con día, hora y modalidad.
 3. **Given** una cita con saldo pendiente **When** llega el día de la sesión **Then** el paciente recibe un aviso amable recordándole el pago.
 4. **Given** una cita cancelada **When** se cancela **Then** el paciente recibe confirmación de cancelación y la opción de reagendar, sin reproches.
 
@@ -139,7 +147,10 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **Consulta no autorizada**: una persona intenta consultar el estado de una cita o pago desde un número no reconocido; el sistema no expone información sensible y deriva a la psicóloga.
 - **Acceso no autorizado al panel**: una persona sin sesión válida intenta abrir el panel o una ruta administrativa; el sistema bloquea el acceso y solicita autenticación.
 - **Sesión expirada**: la psicóloga permanece inactiva y luego intenta continuar en el panel; el sistema solicita iniciar sesión nuevamente.
-- **Cita creada con menos de 24 horas de anticipación**: el sistema envía confirmación inmediata y omite el recordatorio de 24 horas, dejando constancia de esa condición.
+- **Cita creada después de la ventana previa**: si se agenda después de las 19:00 del día anterior (o el mismo día), el sistema envía confirmación inmediata y omite los recordatorios del día previo, dejando constancia de esa condición.
+- **Cancelación tardía**: una cancelación ocurrida a menos de 24 horas se registra como tardía y el sistema no genera un cobro sin una regla tarifaria aprobada.
+- **Ejecución fuera de la ventana**: el job de recordatorios no envía mensajes fuera de 18:00–18:59 en `America/Mexico_City`; conserva el estado para auditoría y atención operativa.
+- **Cuenta no administrativa**: un perfil de psicólogo/a o paciente intenta autenticarse; el login se rechaza aunque el perfil exista y el intento queda auditado.
 - **Pregunta sobre identidad del asistente**: el paciente pregunta si habla con una persona; el asistente responde con transparencia que es un asistente digital del consultorio.
 - **Contenido clínico sensible**: el paciente comparte detalles clínicos extensos; el sistema evita tratarlos como nota clínica y conserva solo un resumen administrativo breve y metadatos básicos para operar y auditar.
 
@@ -152,8 +163,8 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **FR-003**: El sistema DEBE impedir la doble reserva de un mismo horario.
 - **FR-004**: El sistema DEBE permitir agendar y cancelar citas tanto por WhatsApp como desde el panel administrativo.
 - **FR-005**: El sistema DEBE registrar la modalidad de cada cita: en línea o presencial.
-- **FR-006**: El sistema DEBE enviar confirmación de cita con los datos de la sesión al momento de agendar.
-- **FR-007**: El sistema DEBE enviar un recordatorio 24 horas antes de cada cita creada con al menos 24 horas de anticipación.
+- **FR-006**: El sistema DEBE enviar confirmación de cita con los datos de la sesión y la leyenda: "Si necesita cancelar o reagendar, avísenos con al menos 24 horas de anticipación para evitar un costo adicional." al momento de agendar.
+- **FR-007**: El sistema DEBE programar y enviar un recordatorio de cada cita activa al paciente y a Jocelyn exclusivamente entre las 18:00 y las 19:00 (hora `America/Mexico_City`) del día calendario anterior a la cita.
 - **FR-008**: El sistema DEBE enviar aviso de cancelación y ofrecer reagendar cuando se cancela una cita.
 - **FR-009**: El sistema DEBE registrar pagos de dos tipos: anticipo opcional del 50% y pago completo, vinculados a la cita correspondiente.
 - **FR-010**: El sistema DEBE mostrar en el panel el estado de pago de cada cita (pendiente, anticipo, completado).
@@ -167,22 +178,27 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **FR-018**: El sistema DEBE requerir autenticación para acceder al panel administrativo.
 - **FR-019**: El sistema DEBE expirar la sesión administrativa tras 30 minutos de inactividad y solicitar un nuevo inicio de sesión.
 - **FR-020**: El sistema DEBE proteger las rutas del panel y de la API administrativa contra acceso sin autenticación válida.
-- **FR-021**: El sistema DEBE aplicar control de acceso por rol para que solo el usuario administrador autorizado pueda consultar o modificar pacientes, citas, pagos, conversaciones y registros de auditoría en este MVP.
+- **FR-021**: El sistema DEBE aplicar control de acceso por identidad y rol para que solo la cuenta activa con usuario `admin` y rol `admin` pueda iniciar sesión, consultar o modificar pacientes, citas, pagos, conversaciones y registros de auditoría en este MVP.
 - **FR-022**: El sistema DEBE responder por WhatsApp preguntas frecuentes del consultorio, incluyendo horarios, ubicación, modalidades y formas de pago, utilizando únicamente información oficial y vigente.
 - **FR-023**: El sistema DEBE permitir a un paciente consultar el estado de su próxima cita y si mantiene saldo pendiente solo cuando exista coincidencia con su número de WhatsApp registrado y el paciente confirme su nombre y fecha de nacimiento, sin exponer datos de otros pacientes.
 - **FR-024**: El sistema DEBE negar la consulta de citas, pagos o datos sensibles cuando no exista identificación suficiente del paciente, entendida en este MVP como la falta de coincidencia del número de WhatsApp registrado o la ausencia de validación satisfactoria de nombre y fecha de nacimiento, y en ese caso derivar la gestión a la psicóloga.
 - **FR-025**: El sistema DEBE limitar el almacenamiento de conversaciones con contenido clínico a un resumen administrativo breve y metadatos básicos necesarios para operación, seguimiento administrativo y auditoría, sin convertirlas en expediente clínico.
 - **FR-026**: El sistema DEBE registrar en el rastro auditable los accesos administrativos exitosos y fallidos, además de accesos, citas, pagos y cancelaciones.
 - **FR-027**: El sistema DEBE capturar nombre, número de contacto de WhatsApp y fecha de nacimiento al crear la primera cita de un paciente nuevo.
+- **FR-028**: El sistema DEBE clasificar una cancelación como `a_tiempo` si se registra con 24 horas o más de anticipación a la cita, o como `tardia` en caso contrario, usando instantes con zona horaria.
+- **FR-029**: El sistema NO DEBE generar un cargo automático por cancelación tardía hasta que exista una tarifa y autorización comercial explícitas.
+- **FR-030**: El sistema DEBE permitir a la cuenta `admin` visualizar un directorio de perfiles de psicólogos/as y pacientes, con sus citas y pagos pendientes, sin habilitarles autenticación o permisos administrativos.
+- **FR-031**: El sistema DEBE persistir de forma independiente el resultado de envío del recordatorio dirigido al paciente y el dirigido a Jocelyn para cada cita.
+- **FR-032**: El backend DEBE aplicar la autorización antes de acceder a Prisma y PostgreSQL; no se expone la base de datos a clientes. Si se adopta Supabase en el futuro, las mismas restricciones se implementarán además con RLS.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Paciente**: persona que solicita o recibe el servicio. Datos esenciales: nombre, contacto de WhatsApp, fecha de nacimiento y preferencia de modalidad.
-- **Cita**: evento de sesión con fecha, hora, modalidad y estado (programada, confirmada, completada, cancelada). Se vincula a un paciente.
-- **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado de validación (`pendiente de validación`, `validado`, `rechazado`). Se vincula a una cita; el estado visible de pago por cita se deriva como `pendiente`, `anticipo` o `completado`.
-- **Recordatorio**: aviso programado (confirmación, recordatorio de cita, cancelación, pago pendiente) con estado de envío.
+- **Cita**: evento de sesión con fecha, hora, modalidad, estado y clasificación de aviso de cancelación (`a_tiempo` o `tardia`). Se vincula a un paciente.
+- **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado (pendiente, pagado). Se vincula a una cita.
+- **Recordatorio**: aviso programado (confirmación, recordatorio de cita, cancelación, pago pendiente) con destinatario, ventana de envío y estado. El recordatorio del día previo tiene un registro para el paciente y otro para Jocelyn.
 - **Conversación**: intercambio del paciente con el asistente por WhatsApp. Conserva mensajes y metadatos operativos mínimos; si contiene contenido clínico, guarda solo un resumen administrativo breve y metadatos básicos para continuidad administrativa y auditoría, sin constituir expediente clínico.
-- **Usuario administrativo**: persona con acceso autenticado al panel (la psicóloga), con control autorizado sobre agenda, pacientes, pagos, conversaciones y auditoría.
+- **Usuario administrativo**: la única persona con acceso autenticado al panel en el MVP: Jocelyn mediante la cuenta activa `admin`. El directorio puede contener perfiles de psicólogos/as y pacientes sin capacidad de login.
 - **Registro de auditoría**: traza de acciones críticas y accesos administrativos del sistema, incluyendo quién intentó acceder, qué acción realizó, cuándo ocurrió y su resultado.
 
 ## Success Criteria *(mandatory)*
@@ -190,8 +206,8 @@ Una persona visita la página del consultorio y encuentra la información esenci
 ### Measurable Outcomes
 
 - **SC-001**: Un paciente agenda su primera cita por WhatsApp en menos de 2 minutos de conversación activa.
-- **SC-002**: El 100% de las citas agendadas genera confirmación inmediata con datos de la sesión.
-- **SC-003**: El 100% de las citas confirmadas creadas con al menos 24 horas de anticipación recibe su recordatorio 24 horas antes.
+- **SC-002**: El 100% de las citas agendadas genera confirmación inmediata con datos de la sesión y la política de cancelación de 24 horas.
+- **SC-003**: El 100% de las citas activas para el día siguiente recibe un recordatorio al paciente y otro a Jocelyn, enviados entre las 18:00 y las 19:00 de `America/Mexico_City` el día previo.
 - **SC-004**: La psicóloga registra un pago (anticipo o total) en menos de 30 segundos desde su teléfono.
 - **SC-005**: Cero dobles reservas: ninguna cita confirma un horario ya ocupado.
 - **SC-006**: El 100% de las cancelaciones genera aviso al paciente con opción de reagendar.
@@ -201,6 +217,8 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **SC-010**: En UAT, la psicóloga valida que el chatbot responde correctamente al menos a las preguntas frecuentes principales del consultorio sin contradicciones con la información oficial.
 - **SC-011**: El 100% de las consultas de cita o pago realizadas desde un número no identificado evita exponer datos sensibles y se deriva correctamente a la psicóloga.
 - **SC-012**: El 100% de las sesiones administrativas inactivas por 30 minutos exige un nuevo inicio de sesión antes de permitir acceso adicional.
+- **SC-013**: El 100% de los intentos de login o acceso administrativo de una identidad distinta de `admin` se rechaza, no crea sesión y deja una auditoría.
+- **SC-014**: El 100% de las cancelaciones conserva su clasificación temporal (`a_tiempo` o `tardia`) calculada contra la fecha de la cita.
 
 ## Assumptions
 
@@ -211,9 +229,10 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - Los pagos se reciben por transferencia (y el día de la sesión también en efectivo), sin pasarela de cobro en esta fase.
 - Los datos personales y de salud se tratan con confidencialidad y conforme a la normativa mexicana aplicable de protección de datos (LFPDPPP).
 - El historial clínico digital y los reportes estadísticos complejos quedan fuera del alcance de este ciclo y se desarrollarán en fases posteriores.
-- La persona responsable del consultorio es una sola psicóloga; no se contemplan múltiples terapeutas en esta fase.
+- Jocelyn es la única administradora y la única cuenta que puede iniciar sesión (`admin`) durante este MVP. El directorio se diseña para visualizar perfiles de psicólogos/as y pacientes sin concederles acceso.
 - La identificación operativa del paciente en WhatsApp se realiza principalmente por coincidencia de número telefónico.
 - La consulta de estado de cita o pago por WhatsApp se limita a información administrativa básica y no incluye datos clínicos.
 - La verificación para consultas administrativas por WhatsApp requiere coincidencia del número telefónico registrado y validación de nombre y fecha de nacimiento del paciente.
 - La fecha de nacimiento se captura durante la creación de la primera cita del paciente para habilitar verificaciones posteriores por WhatsApp.
 - La sesión del panel administrativo expira tras 30 minutos de inactividad.
+- La zona horaria operativa para programar y evaluar la ventana de recordatorios es `America/Mexico_City`; en PostgreSQL los instantes se almacenan como `timestamptz`.

@@ -1,0 +1,36 @@
+:root {
+  color-scheme: light;
+  --background: #f7f3ec;
+  --foreground: #24372f;
+  --muted: #6f7f73;
+  --surface: #fffaf2;
+  --accent: #3c7a5d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, "Helvetica Neue", sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

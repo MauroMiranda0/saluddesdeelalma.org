@@ -43,8 +43,8 @@
 
 ## Decision 6: Disponibilidad, conflictos y recordatorios
 
-- **Decision**: gestionar disponibilidad con validacion transaccional y una restriccion unica parcial para citas activas; programar recordatorios en tabla propia y procesarlos cada 5 minutos con reclamacion atomica y hasta 3 reintentos.
-- **Rationale**: evita dobles reservas aun con concurrencia entre panel y chatbot, y ofrece una estrategia simple de scheduler compatible con Hostinger.
+- **Decision**: gestionar disponibilidad con validacion transaccional y una restriccion unica parcial para citas activas; programar en tabla propia dos recordatorios del día previo (paciente y Jocelyn) para las 18:00 de `America/Mexico_City`. El job se ejecuta cada 5 minutos, pero solo reclama, envía o reintenta entre 18:00:00 y 18:59:59, con reclamacion atomica y hasta 3 intentos dentro de esa ventana.
+- **Rationale**: evita dobles reservas aun con concurrencia entre panel y chatbot, garantiza la política comercial de envío entre las 18:00 y las 19:00 y ofrece una estrategia simple de scheduler compatible con Hostinger. Persistir un registro por destinatario mantiene la trazabilidad aunque uno de los dos envíos falle.
 - **Alternatives considered**:
   - Solo validacion en aplicacion sin restriccion en BD: rechazada porque no garantiza integridad bajo carrera.
   - Scheduler externo administrado: rechazado en MVP para no meter otra dependencia operativa.
@@ -64,3 +64,11 @@
 - **Alternatives considered**:
   - Guardar payload completo siempre: rechazado por conflicto con la aclaracion funcional y el principio de minimizacion.
   - No guardar nada de conversaciones: rechazado porque afecta trazabilidad, soporte y seguimiento administrativo.
+
+## Decision 9: Identidad administrativa y perfiles visibles
+
+- **Decision**: modelar un directorio de usuarios con perfiles `admin`, `psicologo` y `paciente`, pero habilitar login de panel exclusivamente para la única cuenta activa con `username = 'admin'` y `role = 'admin'`. El middleware aplica autenticación seguida de validación de identidad antes de cualquier acceso Prisma.
+- **Rationale**: permite a Jocelyn visualizar perfiles y preparar el crecimiento del directorio sin abrir datos sensibles ni crear una superficie de autorización incompleta en el MVP.
+- **Alternatives considered**:
+  - Permitir el acceso a cualquier perfil con rol administrativo: rechazado porque contradice el administrador único solicitado.
+  - Supabase RLS como control actual: rechazado porque la constitución establece PostgreSQL privado detrás de Express y Prisma. RLS se evaluará únicamente si la arquitectura migra a Supabase.
