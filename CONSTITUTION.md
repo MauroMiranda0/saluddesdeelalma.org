@@ -3,8 +3,8 @@
 > **Proyecto:** Salud desde el Alma
 > **Eslogan:** "Tu bienestar, nuestro propósito"
 > **Servicio:** Psicología integral (Cuerpo, Mente, Espíritu)
-> **Versión:** 1.1
-> **Fecha:** 28 de agosto de 2026
+> **Versión:** 1.2
+> **Fecha:** 7 de septiembre de 2026
 > **Estado:** Guía constitutiva para el ciclo de vida del proyecto
 
 Este documento es la referencia de mayor jerarquía para el desarrollo, diseño, implementación y mantenimiento del asistente digital del consultorio de psicología **Salud desde el Alma**. Todo trabajo técnico o de diseño debe alinearse con lo aquí establecido.
@@ -38,7 +38,7 @@ Construir un **asistente digital integral** que centralice la gestión operativa
 | Incluido (Fase MVP) | Excluido (fases posteriores) |
 |---|---|
 | Landing page informativa | Historial clínico digital |
-| Panel administrativo (citas y pagos) | Reportes estadísticos complejos |
+| Panel administrativo (citas, pagos y directorio operativo de psicólogos/as y pacientes) | Reportes estadísticos complejos |
 | Agendamiento/cancelación en línea y presencial | Descarga de expedientes |
 | Pagos: anticipo 50% (opcional) y pago completo | Facturación electrónica / CFDI |
 | Recordatorios de citas y pagos vía WhatsApp | Multi-sucursal o multi-terapeuta |
@@ -100,8 +100,8 @@ La paleta se extrae de `logo.jpg`, con verdes y sepias como colores predominante
 | **ORM** | Prisma (esquema claro y versionado, migraciones seguras y consistentes) |
 | **Chatbot** | WhatsApp Business Cloud API (Meta) + proveedor de mensajería (p. ej. Twilio / 360dialog) + capa de IA conversacional |
 | **Despliegue** | Hostinger (backend y base de datos) — plan con soporte Node.js y PostgreSQL — SSL |
-| **Autenticación** | Middleware propio en Node (JWT) para el panel administrativo |
-| **Recordatorios** | Cron / tareas programadas en Node → envío vía API de WhatsApp |
+| **Autenticación** | Middleware propio en Node (JWT) para el panel administrativo; solo la cuenta `admin` puede iniciar sesión en el MVP |
+| **Recordatorios** | Cron / tareas programadas en Node → envío vía API de WhatsApp entre 18:00 y 19:00 del día previo |
 
 ### 3.2 Justificación
 
@@ -123,7 +123,8 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 
 - **Cifrado SSL/TLS** en toda comunicación (HTTPS obligatorio en producción).
 - **Middleware de autenticación** en Node (JWT + sesión segura con expiración) para proteger el panel administrativo y las rutas de la API.
-- **Control de accesos por rol** en la lógica de la aplicación: solo el administrador puede leer/escribir pacientes, citas y pagos.
+- **Control de accesos por identidad y rol** en la lógica de la aplicación: durante el MVP solo la cuenta activa con usuario `admin` y rol `admin` puede iniciar sesión o leer/escribir información administrativa. Los perfiles de psicólogos/as y pacientes se conservan para visualización y evolución futura, pero no pueden autenticarse ni acceder al panel.
+- La base de datos no se expone directamente a clientes: el usuario técnico del backend es el único con acceso a PostgreSQL. La autorización se aplica en Express antes de Prisma; si se adopta Supabase posteriormente, esta regla se replica con RLS.
 - **Datos sensibles de salud** tratados con confidencialidad y acceso restringido, cumpliendo estándares de privacidad en datos de salud.
 - Variables de entorno para secretos; **jamás** credenciales en el repositorio.
 - **Registro de auditoría** de acciones críticas (accesos, citas, pagos, cancelaciones) como base para la futura auditoría de datos sensibles.
@@ -140,8 +141,8 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 3. El chatbot consulta disponibilidad real contra la agenda en la base de datos (PostgreSQL).
 4. Ofrece **horarios concretos** disponibles.
 5. Confirma el día, la hora y la **modalidad** (en línea o presencial).
-6. Registra la cita y envía confirmación con datos de la sesión (ubicación o enlace de videollamada).
-7. Registra un **recordatorio automático** (24 h antes).
+6. Registra la cita y envía confirmación con datos de la sesión (ubicación o enlace de videollamada) y la política de cancelación: se debe avisar con al menos 24 horas de anticipación para evitar un costo adicional.
+7. Registra un **recordatorio automático** para el día previo, a enviar entre las 18:00 y las 19:00 (hora `America/Mexico_City`) al paciente y a Jocelyn.
 
 **Ejemplo de interacción (agendamiento):**
 
@@ -150,7 +151,7 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 > **Paciente:** Presencial.
 > **Chatbot:** Con gusto 😊 Podemos ofrecerle el jueves a las 5 pm o el viernes a las 11 am. ¿Cuál le funciona?
 > **Paciente:** El jueves a las 5 pm.
-> **Chatbot:** Perfecto, queda agendado. Nos vemos el jueves a las 5 pm en Valle del Ciprés #148, Jardines del Valle. ¿Necesita los datos del anticipo?
+> **Chatbot:** Perfecto, queda agendado. Nos vemos el jueves a las 5 pm en Valle del Ciprés #148, Jardines del Valle. Si necesita cancelar o reagendar, avísenos con al menos 24 horas de anticipación para evitar un costo adicional. ¿Necesita los datos del anticipo?
 
 **Ejemplo de interacción (sin disponibilidad):**
 
@@ -183,8 +184,8 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 
 | Tipo | Cuándo | Canal | Contenido |
 |---|---|---|---|
-| Confirmación | Al agendar | WhatsApp | Datos de la cita + modalidad |
-| Recordatorio de cita | 24 h antes | WhatsApp | Día/hora, modalidad, datos de acceso |
+| Confirmación | Al agendar | WhatsApp al paciente | Datos de la cita + modalidad + política de cancelación con 24 h de anticipación |
+| Recordatorio de cita | Entre 18:00 y 19:00 del día previo, hora `America/Mexico_City` | WhatsApp al paciente y a Jocelyn | Día/hora, modalidad, datos de acceso; dos envíos trazables |
 | Aviso de cancelación | Cuando se cancela | WhatsApp | Confirmación de cancelación + opción de reagendar |
 | Recordatorio de pago pendiente | Día de la sesión (o día previo) | WhatsApp | Aviso amable del saldo pendiente |
 
@@ -192,6 +193,8 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 
 > **Paciente:** Voy a tener que cancelar la cita del jueves.
 > **Chatbot:** De acuerdo, gracias por avisarnos. ¿Desea que revisemos otro horario para reagendar?
+
+La cancelación se clasifica como **a tiempo** cuando ocurre 24 horas o más antes de la cita; de otro modo se clasifica como **tardía**. La clasificación informa la política comercial, pero no genera un cobro automático mientras no exista una tarifa y autorización explícitas.
 
 **Ejemplo de recordatorio de pago:**
 
@@ -204,12 +207,14 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 PostgreSQL alojado en Hostinger. El esquema se gestiona y versiona con **Prisma** (migraciones seguras y consistentes). Todas las tablas incluyen `id` (UUID), `created_at` y `updated_at`; el acceso está protegido por el backend (autenticación y control de accesos).
 
 ```
-users (admin/terapeuta)
+users (directorio operativo)
 ├── id UUID PK
+├── username VARCHAR UNIQUE (solo `admin` puede iniciar sesión en MVP)
 ├── email VARCHAR UNIQUE
 ├── password_hash VARCHAR
 ├── full_name VARCHAR
-├── rol ENUM('admin')
+├── rol ENUM('admin','psicologo','paciente')
+├── panel_login_enabled BOOLEAN DEFAULT FALSE (TRUE solo para `admin`)
 ├── active BOOLEAN DEFAULT TRUE
 
 patients
@@ -229,6 +234,8 @@ appointments
 ├── modality ENUM('online','presencial')
 ├── status ENUM('programada','confirmada','completada','cancelada')
 ├── cancel_reason TEXT
+├── cancelled_at TIMESTAMPTZ
+├── cancellation_notice ENUM('a_tiempo','tardia')
 ├── created_by UUID FK → users
 
 payments
@@ -247,6 +254,7 @@ appointment_reminders
 ├── id UUID PK
 ├── appointment_id UUID FK → appointments
 ├── type ENUM('confirmacion','recordatorio','cancelacion','pago')
+├── recipient ENUM('paciente','admin')
 ├── scheduled_at TIMESTAMPTZ
 ├── sent_at TIMESTAMPTZ (NULL = pendiente)
 ├── status ENUM('pendiente','enviado','fallido')
@@ -279,7 +287,7 @@ audit_logs (auditoría de accesos y acciones críticas)
 
 - `patients 1—N appointments`
 - `appointments 1—N payments` (en general 1 pago por cita; se permite N para anticipo + liquidación)
-- `appointments 1—N appointment_reminders`
+- `appointments 1—N appointment_reminders`; el recordatorio del día previo genera un registro para `paciente` y otro para `admin`.
 - `patients 1—N chat_conversations`
 - `users graban payments / citas`
 - `users 1—N audit_logs`
@@ -319,11 +327,11 @@ audit_logs (auditoría de accesos y acciones críticas)
 
 **Fase 2 — MVP:** la cita debe poder agendarse y cancelarse desde el chatbot y desde el panel; la disponibilidad se sincroniza y no permite doble reserva.
 
-**Fase 3 — Pagos/recordatorios:** anticipo y pago completo registrables; recordatorios enviados por WhatsApp en el horario definido; estados de pago visibles en el panel.
+**Fase 3 — Pagos/recordatorios:** anticipo y pago completo registrables; los recordatorios del día previo se envían al paciente y a Jocelyn únicamente entre las 18:00 y 19:00, hora `America/Mexico_City`; estados de pago visibles en el panel.
 
 **Fase 4 — Chatbot IA:** responde FAQ, agenda, cancela y consulta pagos siguiendo el tono definido (ver §7); deriva temas clínicos a la psicóloga; es transparente si le preguntan si es un bot.
 
-**Fase 5 — Panel y pruebas:** flujos UAT superados, pruebas de seguridad aprobadas, sistema desplegado en producción con SSL.
+**Fase 5 — Panel y pruebas:** el directorio permite visualizar psicólogos/as y pacientes, pero solo la cuenta activa `admin` inicia sesión y administra; flujos UAT superados, pruebas de seguridad aprobadas, sistema desplegado en producción con SSL.
 
 ---
 
@@ -526,7 +534,7 @@ Los siguientes elementos **se dejan deliberadamente para fases posteriores**:
 - Cualquier enmienda (cambio de stack, paleta, alcance, fechas o conducta del chatbot) debe **reflejarse aquí** y registrarse en el historial de versiones antes de implementarse.
 - Los PRs y entregables por fase deben verificar el cumplimiento de los criterios de aceptación definidos en §6.4.
 
-**Versión:** 1.1 | **Ratificación:** 28/08/2026 | **Última enmienda:** 28/08/2026 — Backend propio en Hostinger (Node/Express + Prisma + PostgreSQL) y paleta de colores oficial verde/sepia. | **Próxima revisión:** al cierre de cada fase.
+**Versión:** 1.2 | **Ratificación:** 28/08/2026 | **Última enmienda:** 07/09/2026 — Política de cancelación con 24 h, recordatorios del día previo entre 18:00 y 19:00 para paciente y Jocelyn, y acceso MVP exclusivo para la cuenta `admin`. | **Próxima revisión:** al cierre de cada fase.
 
 ---
 

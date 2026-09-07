@@ -174,3 +174,50 @@ Se agregaron scripts raiz para `build`, `typecheck`, `prisma:validate`, `start:b
 - Los comandos documentados son cortos y verificables desde la raiz.
 - `npm run build` genera artefactos ignorados que pueden limpiarse con `npm run clean:artifacts`.
 - `start:*` requiere ejecutar build previamente.
+
+## 2026-09-07 - Validacion de Prisma con entorno de ejemplo
+
+**Contexto**
+
+`prisma validate` y `prisma generate` necesitan resolver `DATABASE_URL` aunque no se conecten a PostgreSQL. Pedir un `.env` local solo para esas validaciones impedia ejecutar la auditoria desde un checkout limpio.
+
+**Decision**
+
+Los scripts `prisma:validate` y `prisma:generate` del workspace `backend` usan `dotenv-cli` para cargar `backend/.env.example`.
+
+**Consecuencias**
+
+- El schema y Prisma Client se pueden validar o generar sin secretos locales ni una base de datos disponible.
+- `prisma:migrate` conserva el entorno real, para evitar aplicar migraciones contra la URL de ejemplo.
+
+## 2026-09-07 - Usuarios de directorio y cuenta administrativa unica
+
+**Contexto**
+
+El MVP requiere conservar perfiles de psicólogos/as y pacientes para el directorio, sin permitir que esos perfiles accedan al panel. Solo Jocelyn puede usar la cuenta administrativa `admin`.
+
+**Decision**
+
+La migración de reglas de negocio renombra `admin_users` a `users`, agrega los roles `psicologo` y `paciente`, y restringe en PostgreSQL que exista un único rol `admin` con usuario `admin` y login habilitado. Los perfiles de directorio no pueden tener usuario, contraseña ni login de panel. También incorpora el perfil de usuario de cada paciente, el instante y clasificación de cancelación, y el destinatario de cada recordatorio.
+
+**Consecuencias**
+
+- La defensa de identidad existe incluso si un futuro endpoint omite una validación de aplicación.
+- El seed requiere `ADMIN_SEED_PASSWORD` y nunca almacena una contraseña en texto plano.
+- La prueba de integración aplica ambas migraciones sobre PostgreSQL embebido para verificar esas restricciones sin requerir una instancia local.
+
+## 2026-09-07 - Actualizacion de dependencias con vulnerabilidades altas
+
+**Contexto**
+
+La auditoría de dependencias reportó vulnerabilidades altas transitivas en Prisma y PostCSS, este último a través de Next.js. La corrección disponible requería una actualización mayor de Next.js y cambiar Prisma a una línea no afectada.
+
+**Decision**
+
+Con aprobación explícita, Next.js se actualizó a `16.3.4` y Prisma Client/CLI se alinearon en `6.12.0`. Next.js actualizó los ajustes obligatorios de TypeScript en el frontend.
+
+**Consecuencias**
+
+- `npm audit` finaliza sin vulnerabilidades conocidas.
+- La generación de Prisma debe ejecutarse después de actualizar sus paquetes; el script de build ya lo hace.
+- Se verificaron nuevamente formato, lint, integración, typecheck y build completo.

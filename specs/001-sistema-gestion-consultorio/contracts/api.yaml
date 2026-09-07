@@ -14,6 +14,7 @@ tags:
   - name: Auth
   - name: Appointments
   - name: Payments
+  - name: Directory
   - name: WhatsApp
 components:
   securitySchemes:
@@ -35,17 +36,20 @@ components:
       required: [user, expiresAt]
       properties:
         user:
-          $ref: '#/components/schemas/AdminUser'
+          $ref: "#/components/schemas/AdminUser"
         expiresAt:
           type: string
           format: date-time
     AdminUser:
       type: object
-      required: [id, email, fullName, role]
+      required: [id, username, email, fullName, role]
       properties:
         id:
           type: string
           format: uuid
+        username:
+          type: string
+          const: admin
         email:
           type: string
           format: email
@@ -73,13 +77,14 @@ components:
           enum: [online, presencial]
     Appointment:
       type: object
-      required: [id, patient, scheduledAt, modality, status, createdVia, paymentStatus]
+      required:
+        [id, patient, scheduledAt, modality, status, createdVia, paymentStatus]
       properties:
         id:
           type: string
           format: uuid
         patient:
-          $ref: '#/components/schemas/Patient'
+          $ref: "#/components/schemas/Patient"
         scheduledAt:
           type: string
           format: date-time
@@ -105,7 +110,8 @@ components:
           nullable: true
     Payment:
       type: object
-      required: [id, appointmentId, patientId, paymentType, amount, method, status]
+      required:
+        [id, appointmentId, patientId, paymentType, amount, method, status]
       properties:
         id:
           type: string
@@ -133,7 +139,8 @@ components:
           nullable: true
     Reminder:
       type: object
-      required: [id, appointmentId, reminderType, scheduledAt, status]
+      required:
+        [id, appointmentId, reminderType, recipient, scheduledAt, status]
       properties:
         id:
           type: string
@@ -144,9 +151,13 @@ components:
         reminderType:
           type: string
           enum: [confirmacion, recordatorio_24h, cancelacion, pago_pendiente]
+        recipient:
+          type: string
+          enum: [paciente, admin]
         scheduledAt:
           type: string
           format: date-time
+          description: Para `recordatorio_24h`, corresponde a las 18:00 de America/Mexico_City del día previo.
         status:
           type: string
           enum: [pendiente, procesando, enviado, fallido, omitido]
@@ -161,27 +172,33 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, password]
+              required: [username, password]
               properties:
-                email:
+                username:
                   type: string
-                  format: email
+                  const: admin
                 password:
                   type: string
                   format: password
       responses:
-        '200':
+        "200":
           description: Login exitoso; establece cookie `sda_admin_session`
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminSession'
-        '401':
+                $ref: "#/components/schemas/AdminSession"
+        "401":
           description: Credenciales invalidas
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La identidad no es la cuenta administrativa `admin`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/v1/auth/logout:
     post:
       tags: [Auth]
@@ -189,7 +206,7 @@ paths:
       security:
         - cookieAuth: []
       responses:
-        '204':
+        "204":
           description: Sesion revocada
   /api/v1/auth/me:
     get:
@@ -198,22 +215,22 @@ paths:
       security:
         - cookieAuth: []
       responses:
-        '200':
+        "200":
           description: Sesion activa
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminSession'
-        '401':
+                $ref: "#/components/schemas/AdminSession"
+        "401":
           description: Sesion inexistente o expirada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v1/appointments:
     get:
       tags: [Appointments]
-      summary: Lista citas por fecha
+      summary: Lista citas por fecha (solo cuenta `admin`)
       security:
         - cookieAuth: []
       parameters:
@@ -224,7 +241,7 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Agenda del dia
           content:
             application/json:
@@ -235,7 +252,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Appointment'
+                      $ref: "#/components/schemas/Appointment"
     post:
       tags: [Appointments]
       summary: Crea una cita desde panel o automatizacion interna
@@ -273,18 +290,18 @@ paths:
                   type: boolean
                   default: false
       responses:
-        '201':
+        "201":
           description: Cita creada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
-        '409':
+                $ref: "#/components/schemas/Appointment"
+        "409":
           description: Horario ya ocupado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /api/v1/appointments/{appointmentId}:
     patch:
       tags: [Appointments]
@@ -315,12 +332,12 @@ paths:
                   type: string
                   enum: [programada, confirmada, completada]
       responses:
-        '200':
+        "200":
           description: Cita actualizada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                $ref: "#/components/schemas/Appointment"
   /api/v1/appointments/{appointmentId}/cancel:
     post:
       tags: [Appointments]
@@ -345,16 +362,16 @@ paths:
                 reason:
                   type: string
       responses:
-        '200':
+        "200":
           description: Cita cancelada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                $ref: "#/components/schemas/Appointment"
   /api/v1/payments:
     get:
       tags: [Payments]
-      summary: Lista pagos de una cita
+      summary: Lista pagos de una cita (solo cuenta `admin`)
       security:
         - cookieAuth: []
       parameters:
@@ -365,7 +382,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Pagos asociados a la cita
           content:
             application/json:
@@ -376,7 +393,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Payment'
+                      $ref: "#/components/schemas/Payment"
     post:
       tags: [Payments]
       summary: Registra un anticipo o pago completo
@@ -408,16 +425,16 @@ paths:
                 proofReference:
                   type: string
       responses:
-        '201':
+        "201":
           description: Pago registrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Payment'
+                $ref: "#/components/schemas/Payment"
   /api/v1/reminders:
     get:
       tags: [Appointments]
-      summary: Lista recordatorios de una cita
+      summary: Lista recordatorios de una cita (solo cuenta `admin`)
       security:
         - cookieAuth: []
       parameters:
@@ -428,7 +445,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Recordatorios asociados
           content:
             application/json:
@@ -439,7 +456,40 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Reminder'
+                      $ref: "#/components/schemas/Reminder"
+  /api/v1/directory:
+    get:
+      tags: [Directory]
+      summary: Lista perfiles de psicólogos/as y pacientes para visualización administrativa
+      description: Solo la cuenta autenticada `admin` con rol `admin` puede consultar este recurso. Los perfiles devueltos no obtienen capacidad de login.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Directorio operativo con resumen de citas y pagos pendientes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, fullName, role]
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        fullName:
+                          type: string
+                        role:
+                          type: string
+                          enum: [psicologo, paciente]
+                        pendingPaymentsCount:
+                          type: integer
+                          minimum: 0
   /api/v1/webhooks/whatsapp:
     get:
       tags: [WhatsApp]
@@ -461,7 +511,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Challenge devuelto
           content:
             text/plain:
@@ -483,5 +533,5 @@ paths:
                   items:
                     type: object
       responses:
-        '202':
+        "202":
           description: Evento aceptado para procesamiento asincrono

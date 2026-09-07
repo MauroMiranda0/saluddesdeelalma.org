@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Este repositorio esta en cierre de la **Fase 2: Fundacional** del proyecto `001-sistema-gestion-consultorio`, despues de ejecutar convergencia y cerrar las remediaciones `T069` a `T077`.
+Este repositorio cerró la **Fase 2: Fundacional** del proyecto `001-sistema-gestion-consultorio`. Las tareas de implementación y convergencia `T069` a `T080` y `T087` a `T090` están cerradas.
 
 En este punto existe:
 
@@ -14,6 +14,8 @@ En este punto existe:
 - bootstrap del backend en `backend/src/app.ts` y `backend/src/server.ts`
 - rutas shell de health y auth en `/health`, `/api/v1/health` y `/api/v1/auth/*`
 - Prisma schema base y migracion inicial para admin, pacientes, citas, pagos, recordatorios, chat y auditoria
+- migracion de reglas de negocio para `users`, perfiles de directorio, cancelaciones y destinatarios de recordatorio
+- seed idempotente de Jocelyn como única cuenta activa `admin` y prueba de integración de las restricciones de acceso
 - infraestructura de sesiones administrativas con JWT, cookie HttpOnly y expiracion por inactividad
 - middleware de autenticacion, autorizacion admin y auditoria de denegaciones
 - helpers frontend para API y sesion
@@ -25,7 +27,7 @@ En este punto todavia no existe:
 - flujos de agendamiento por WhatsApp de US1
 - panel administrativo funcional de agenda/pagos
 - landing publica funcional
-- pruebas unitarias, de contrato, integracion o E2E
+- pruebas unitarias, de contrato y E2E; existe una prueba de integración de migraciones y restricciones de acceso
 
 ## Estructura actual
 
@@ -76,7 +78,19 @@ Validar Prisma schema:
 npm run prisma:validate
 ```
 
-En entorno local, `prisma:validate` requiere `DATABASE_URL`. Se verifico con una URL PostgreSQL local de desarrollo.
+El comando carga `backend/.env.example`, por lo que valida el schema sin requerir un archivo `.env` ni conectarse a PostgreSQL.
+
+Ejecutar la prueba de restricciones de usuarios:
+
+```bash
+npm run test:integration --workspace backend
+```
+
+Crear o actualizar la cuenta de Jocelyn en una base de datos configurada:
+
+```bash
+ADMIN_SEED_PASSWORD="una-contrasena-de-al-menos-16-caracteres" npm run db:seed --workspace backend
+```
 
 Validar tipos:
 
@@ -133,6 +147,7 @@ npm run clean:artifacts
 - `npm run start:frontend` requiere haber ejecutado `npm run build`.
 - El frontend arranca como shell, pero no tiene pagina publica ni panel funcional todavia.
 - No se ha ejecutado `prisma migrate deploy/status` contra PostgreSQL real; solo se valido el schema localmente.
+- `npm audit` no reporta vulnerabilidades conocidas en las dependencias instaladas.
 
 ## Referencias
 
