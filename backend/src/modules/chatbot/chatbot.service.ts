@@ -40,6 +40,22 @@ type ProcessingContext = {
   userAgent?: string;
 };
 
+type ProcessingDependencies = {
+  saveIncomingMessage: typeof saveIncomingMessage;
+  updateConversation: typeof updateConversation;
+  createWhatsAppAppointment: typeof createWhatsAppAppointment;
+  audit: typeof audit;
+  sendAppointmentConfirmation: typeof sendAppointmentConfirmation;
+};
+
+const defaultProcessingDependencies: ProcessingDependencies = {
+  saveIncomingMessage,
+  updateConversation,
+  createWhatsAppAppointment,
+  audit,
+  sendAppointmentConfirmation
+};
+
 const clinicalSummary =
   "El paciente solicitó apoyo clínico; se derivó a la psicóloga.";
 
@@ -77,13 +93,18 @@ const sendAvailability = async (input: {
 
 export const processIncomingWhatsAppMessage = async (
   message: IncomingWhatsAppMessage,
-  context: ProcessingContext
+  context: ProcessingContext,
+  dependencies: Partial<ProcessingDependencies> = {}
 ) => {
+  const processingDependencies = {
+    ...defaultProcessingDependencies,
+    ...dependencies
+  };
   const hasSensitiveClinicalContent = containsSensitiveClinicalContent(
     message.text
   );
   const classifiedIntent = classifyIntent(message.text);
-  const conversation = await saveIncomingMessage({
+  const conversation = await processingDependencies.saveIncomingMessage({
     whatsappPhone: message.from,
     waMessageId: message.id,
     contentText: sanitizeIncomingWhatsAppContent(message.text),
@@ -102,7 +123,7 @@ export const processIncomingWhatsAppMessage = async (
       : classifiedIntent;
 
   if (isAutomationQuestion(message.text)) {
-    await updateConversation(conversation.id, {
+    await processingDependencies.updateConversation(conversation.id, {
       intent,
       lastMessageAt: message.receivedAt
     });
@@ -117,12 +138,12 @@ export const processIncomingWhatsAppMessage = async (
   }
 
   if (intent === "handoff") {
-    await updateConversation(conversation.id, {
+    await processingDependencies.updateConversation(conversation.id, {
       intent,
       state: "derivada",
       lastMessageAt: message.receivedAt
     });
-    await audit({
+    await processingDependencies.audit({
       actorChannel: "whatsapp",
       action: "clinical_handoff",
       entityType: "chat_conversation",
@@ -143,7 +164,7 @@ export const processIncomingWhatsAppMessage = async (
   }
 
   if (intent === "availability") {
-    await updateConversation(conversation.id, {
+    await processingDependencies.updateConversation(conversation.id, {
       intent,
       lastMessageAt: message.receivedAt
     });
@@ -160,7 +181,7 @@ export const processIncomingWhatsAppMessage = async (
     const details = getCompleteBookingDetails(message.text);
 
     if (!details) {
-      await updateConversation(conversation.id, {
+      await processingDependencies.updateConversation(conversation.id, {
         intent,
         lastMessageAt: message.receivedAt
       });
@@ -174,24 +195,25 @@ export const processIncomingWhatsAppMessage = async (
     }
 
     try {
-      const { appointment, patient } = await createWhatsAppAppointment({
-        patient: {
-          fullName: details.fullName,
-          whatsappPhone: message.from,
-          birthdate: details.birthdate,
-          preferredModality: details.modality
-        },
-        scheduledAt: details.scheduledAt,
-        modality: details.modality,
-        createdVia: "whatsapp",
-        isManualException: false
-      });
-      await updateConversation(conversation.id, {
+      const { appointment, patient } =
+        await processingDependencies.createWhatsAppAppointment({
+          patient: {
+            fullName: details.fullName,
+            whatsappPhone: message.from,
+            birthdate: details.birthdate,
+            preferredModality: details.modality
+          },
+          scheduledAt: details.scheduledAt,
+          modality: details.modality,
+          createdVia: "whatsapp",
+          isManualException: false
+        });
+      await processingDependencies.updateConversation(conversation.id, {
         intent,
         patientId: patient.id,
         lastMessageAt: message.receivedAt
       });
-      await audit({
+      await processingDependencies.audit({
         actorChannel: "whatsapp",
         action: "appointment_created",
         entityType: "appointment",
@@ -201,7 +223,7 @@ export const processIncomingWhatsAppMessage = async (
         ipAddress: context.ipAddress,
         userAgent: context.userAgent
       });
-      await sendAppointmentConfirmation({
+      await processingDependencies.sendAppointmentConfirmation({
         appointment,
         patient,
         conversationId: conversation.id,
@@ -213,7 +235,7 @@ export const processIncomingWhatsAppMessage = async (
         error instanceof AppointmentConflictError ||
         error instanceof AppointmentScheduleError
       ) {
-        await audit({
+        await processingDependencies.audit({
           actorChannel: "whatsapp",
           action:
             error instanceof AppointmentConflictError
@@ -245,7 +267,7 @@ export const processIncomingWhatsAppMessage = async (
     }
   }
 
-  await updateConversation(conversation.id, {
+  await processingDependencies.updateConversation(conversation.id, {
     intent: "unknown",
     lastMessageAt: message.receivedAt
   });

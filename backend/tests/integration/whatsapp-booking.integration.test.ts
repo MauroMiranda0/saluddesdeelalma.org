@@ -19,7 +19,10 @@ import {
   parseBookingDetails
 } from "../../src/modules/chatbot/chatbot.intents.js";
 import { automationDisclosureResponse } from "../../src/modules/chatbot/response-templates.js";
-import { sanitizeIncomingWhatsAppContent } from "../../src/modules/chatbot/chatbot.service.js";
+import {
+  processIncomingWhatsAppMessage,
+  sanitizeIncomingWhatsAppContent
+} from "../../src/modules/chatbot/chatbot.service.js";
 
 const testsDirectory = dirname(fileURLToPath(import.meta.url));
 const backendDirectory = join(testsDirectory, "..", "..");
@@ -152,6 +155,60 @@ test("WhatsApp booking only accepts regular Mexico City hourly slots", () => {
       assertWhatsAppAppointmentSchedule(new Date("2026-09-13T23:00:00.000Z")),
     AppointmentScheduleError
   );
+});
+
+test("WhatsApp booking flow creates an appointment, confirmation, and audit record", async () => {
+  let inboundContent = "";
+  let appointmentPhone = "";
+  let updatedPatientId = "";
+  let auditAction = "";
+  let confirmationAppointmentId = "";
+  let confirmationConversationId = "";
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.booking-flow",
+      from: "5215550000000",
+      text: "Quiero agendar. Nombre: Ana Pérez; nacimiento: 1990-01-15; cita: 2026-09-14 17:00; modalidad: presencial",
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    {
+      gateway: {
+        sendText: async () => ({ messageId: "wamid.outbound" })
+      }
+    },
+    {
+      saveIncomingMessage: async (input) => {
+        inboundContent = input.contentText;
+        return { id: "conversation-1", currentIntent: "unknown" } as never;
+      },
+      createWhatsAppAppointment: async (input) => {
+        appointmentPhone = input.patient.whatsappPhone;
+        return {
+          appointment: { id: "appointment-1" } as never,
+          patient: { id: "patient-1" } as never
+        };
+      },
+      updateConversation: async (_conversationId, input) => {
+        updatedPatientId = input.patientId ?? "";
+        return {} as never;
+      },
+      audit: async (input) => {
+        auditAction = input.action;
+      },
+      sendAppointmentConfirmation: async (input) => {
+        confirmationAppointmentId = input.appointment.id;
+        confirmationConversationId = input.conversationId;
+      }
+    }
+  );
+
+  assert.equal(inboundContent.includes("Ana Pérez"), true);
+  assert.equal(appointmentPhone, "5215550000000");
+  assert.equal(updatedPatientId, "patient-1");
+  assert.equal(auditAction, "appointment_created");
+  assert.equal(confirmationAppointmentId, "appointment-1");
+  assert.equal(confirmationConversationId, "conversation-1");
 });
 
 test("WhatsApp booking persistence keeps the appointment, confirmation, and audit trail", async (t) => {

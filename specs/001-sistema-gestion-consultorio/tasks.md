@@ -382,3 +382,11 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 **Proposito**: Remediar la desviacion de calidad detectada durante la validacion de cierre de US1.
 
 - [x] T094 Aplicar el formato configurado a los archivos cubiertos por `npm run format:check` para que el gate declarado por T004 y T087 vuelva a finalizar sin errores per T004, T087, Constitution IV (contradicts)
+
+---
+
+## Fase 14: Segunda convergencia Fase 3
+
+**Proposito**: Remediar la cobertura incompleta del flujo de agendamiento detectada en la segunda auditoria de US1.
+
+- [x] T095 Ejecutar `processIncomingWhatsAppMessage` en la prueba de integracion y verificar que orquesta la persistencia de la cita, confirmacion y auditoria en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per T016, Constitution IV (partial)
