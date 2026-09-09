@@ -221,3 +221,25 @@ Con aprobación explícita, Next.js se actualizó a `16.3.4` y Prisma Client/CLI
 - `npm audit` finaliza sin vulnerabilidades conocidas.
 - La generación de Prisma debe ejecutarse después de actualizar sus paquetes; el script de build ya lo hace.
 - Se verificaron nuevamente formato, lint, integración, typecheck y build completo.
+
+## 2026-09-08 - Prueba del orquestador de agendamiento con limites inyectables
+
+**Contexto**
+
+La prueba inicial de US1 comprobaba el esquema de persistencia insertando registros directamente en PostgreSQL embebido, pero no ejecutaba el flujo que recibe un mensaje de WhatsApp y coordina la cita, auditoria y confirmacion.
+
+**Decision**
+
+`processIncomingWhatsAppMessage` acepta dependencias opcionales para sus limites de persistencia, auditoria y confirmacion. La prueba de integracion ejecuta el orquestador real con implementaciones controladas y verifica los efectos de una reserva. La prueba respaldada por PostgreSQL embebido se conserva para validar las relaciones persistidas.
+
+**Alternativas consideradas**
+
+- Conectar la prueba al cliente Prisma y una instancia externa de PostgreSQL.
+- Mantener inserciones SQL directas sin ejecutar el orquestador.
+- Simular todo el flujo fuera del modulo de aplicacion.
+
+**Consecuencias**
+
+- La prueba verifica la coordinacion real del caso de uso sin requerir una base de datos externa.
+- El contrato de produccion conserva las dependencias predeterminadas; la inyeccion solo se usa para pruebas.
+- La integridad de migraciones y relaciones se sigue comprobando con PostgreSQL embebido.

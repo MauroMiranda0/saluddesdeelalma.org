@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Este repositorio cerró la **Fase 2: Fundacional** del proyecto `001-sistema-gestion-consultorio`. Las tareas de implementación y convergencia `T069` a `T080` y `T087` a `T090` están cerradas.
+Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones de convergencia de esta fase, `T091` a `T095`, están cerradas.
 
 En este punto existe:
 
@@ -20,14 +20,18 @@ En este punto existe:
 - middleware de autenticacion, autorizacion admin y auditoria de denegaciones
 - helpers frontend para API y sesion
 - validadores Zod para paciente, cita, pago y chatbot
+- webhook de WhatsApp en `/api/v1/webhooks/whatsapp`, con verificacion de Meta y aceptacion asincrona de mensajes de texto
+- flujo determinista de disponibilidad, agendamiento, derivacion clinica y transparencia sobre el asistente digital
+- persistencia de pacientes, citas y mensajes de chat; las reservas de WhatsApp generan confirmacion inmediata y auditoria
+- pruebas de contrato del webhook y pruebas de integracion del flujo de agendamiento, incluyendo persistencia de cita, confirmacion y auditoria
 
 En este punto todavia no existe:
 
 - login funcional con credenciales; `/api/v1/auth/login` es shell y devuelve `501` hasta `T028`
-- flujos de agendamiento por WhatsApp de US1
 - panel administrativo funcional de agenda/pagos
 - landing publica funcional
-- pruebas unitarias, de contrato y E2E; existe una prueba de integración de migraciones y restricciones de acceso
+- recordatorios del dia previo, cancelaciones, pagos, FAQ y consultas de estado por WhatsApp
+- pruebas unitarias y E2E; las pruebas automatizadas actuales cubren contrato, integracion y restricciones de migracion
 
 ## Estructura actual
 
@@ -44,8 +48,14 @@ En este punto todavia no existe:
 │   │   ├── server.ts
 │   │   ├── config/
 │   │   ├── lib/
+│   │   ├── integrations/whatsapp/
 │   │   ├── middleware/
 │   │   └── modules/
+│   │       ├── appointments/
+│   │       ├── chatbot/
+│   │       ├── patients/
+│   │       ├── reminders/
+│   │       └── audit/
 │   └── tsconfig.json
 ├── frontend/
 │   ├── .env.example
@@ -80,22 +90,23 @@ npm run prisma:validate
 
 El comando carga `backend/.env.example`, por lo que valida el schema sin requerir un archivo `.env` ni conectarse a PostgreSQL.
 
-Ejecutar la prueba de restricciones de usuarios:
+Ejecutar las pruebas de contrato e integracion del backend:
 
 ```bash
-npm run test:integration --workspace backend
-```
-
-Crear o actualizar la cuenta de Jocelyn en una base de datos configurada:
-
-```bash
-ADMIN_SEED_PASSWORD="una-contrasena-de-al-menos-16-caracteres" npm run db:seed --workspace backend
+npm run test --workspace backend
 ```
 
 Validar tipos:
 
 ```bash
 npm run typecheck
+```
+
+Validar lint y formato:
+
+```bash
+npm run lint
+npm run format:check
 ```
 
 Build completo:
@@ -116,36 +127,26 @@ Health check verificado:
 curl http://localhost:4000/health
 ```
 
+La respuesta verificada es:
+
+```json
+{ "status": "ok", "service": "saluddesdeelalma-backend" }
+```
+
 Levantar frontend compilado:
 
 ```bash
 npm run start:frontend
 ```
 
-Validar lint:
-
-```bash
-npm run lint
-```
-
-Validar formato:
-
-```bash
-npm run format:check
-```
-
-Limpiar artefactos generados:
-
-```bash
-npm run clean:artifacts
-```
+El servidor de Next.js inicia en `http://localhost:3000`. La ruta publica aun responde `404` hasta implementar la landing en US6.
 
 ## Limitaciones actuales
 
-- No hay `npm test` porque las pruebas empiezan en fases de historias de usuario y pulido.
 - `npm run start:backend` requiere haber ejecutado `npm run build`.
 - `npm run start:frontend` requiere haber ejecutado `npm run build`.
-- El frontend arranca como shell, pero no tiene pagina publica ni panel funcional todavia.
+- Sin `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`, el adaptador de WhatsApp simula el envio fuera de produccion; en produccion ambas credenciales son obligatorias.
+- El frontend arranca como shell y no tiene pagina publica ni panel funcional todavia.
 - No se ha ejecutado `prisma migrate deploy/status` contra PostgreSQL real; solo se valido el schema localmente.
 - `npm audit` no reporta vulnerabilidades conocidas en las dependencias instaladas.
 
