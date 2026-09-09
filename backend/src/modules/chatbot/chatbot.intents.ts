@@ -8,12 +8,20 @@ export type BookingDetails = {
 export type SupportedIntent = "availability" | "book" | "handoff" | "unknown";
 
 const clinicalPattern =
-  /\b(ansiedad|depresi[oó]n|suicid|autolesi|trauma|ataque de p[aá]nico|medicamento|diagn[oó]stic)/i;
+  /\b(ansiedad|depresi[oó]n|suicid|autolesi|trauma|ataque de p[aá]nico|medicamento|diagn[oó]stic|terapia|trastorno|crisis|violencia|abuso|duelo|me siento|me siento mal|no puedo m[aá]s|me quiero hacer da[nñ]o|quiero morir|s[ií]ntoma)/i;
 const bookingPattern = /\b(agend|reserv|cita|ses[ií]on|consult)/i;
 const availabilityPattern = /\b(disponib|horario|espacio|fecha)/i;
+const automationQuestionPattern =
+  /\b(eres|es usted|hablo|estoy hablando|hablar)\b.*\b(bot|sistema|automatizad[oa]|asistente digital|inteligencia artificial|persona)\b|\b(bot|sistema automatizado|asistente digital|inteligencia artificial)\b/i;
+
+export const containsSensitiveClinicalContent = (text: string) =>
+  clinicalPattern.test(text);
+
+export const isAutomationQuestion = (text: string) =>
+  automationQuestionPattern.test(text);
 
 export const classifyIntent = (text: string): SupportedIntent => {
-  if (clinicalPattern.test(text)) {
+  if (containsSensitiveClinicalContent(text)) {
     return "handoff";
   }
   if (bookingPattern.test(text)) {

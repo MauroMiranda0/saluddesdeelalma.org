@@ -364,3 +364,21 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [X] T087 Aplicar el formato configurado por Prettier a los archivos de configuracion, backend y frontend para cerrar T004 y hacer que `npm run format:check` finalice sin errores per T004 (partial)
 - [X] T088 Instalar Prisma CLI y Prisma Client en el workspace `backend` para habilitar la validacion del esquema y cerrar T008/T009 per T008, T009 (missing)
 - [X] T089 Configurar `prisma:validate` y `prisma:generate` para cargar `backend/.env.example` en validacion local sin versionar secretos per T009, T074 (partial)
+
+---
+
+## Fase 12: Convergencia Fase 3
+
+**Proposito**: Remediar brechas detectadas al contrastar US1 contra `spec.md`, `plan.md` y `tasks.md` antes de iniciar US2.
+
+- [x] T091 Responder con transparencia cuando el paciente pregunte si habla con un sistema automatizado y cubrir el escenario en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/response-templates.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per US1/AC5, FR-015, Constitution V (missing)
+- [x] T092 Ampliar la deteccion y minimizacion de contenido clinico sensible para no persistir texto clinico extenso, con pruebas de regresion en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/chat-messages.repository.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per US1/AC7, FR-025, Constitution III (partial)
+- [x] T093 Convertir la prueba de flujo de agendamiento de WhatsApp en una integracion verificable con persistencia, cita creada, confirmacion y auditoria, en `backend/tests/integration/whatsapp-booking.integration.test.ts` per T016, Constitution IV (partial)
+
+---
+
+## Fase 13: Convergencia de validacion Fase 3
+
+**Proposito**: Remediar la desviacion de calidad detectada durante la validacion de cierre de US1.
+
+- [x] T094 Aplicar el formato configurado a los archivos cubiertos por `npm run format:check` para que el gate declarado por T004 y T087 vuelva a finalizar sin errores per T004, T087, Constitution IV (contradicts)

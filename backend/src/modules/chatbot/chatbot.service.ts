@@ -12,13 +12,19 @@ import {
   saveOutboundMessage,
   updateConversation
 } from "./chat-messages.repository";
-import { classifyIntent, type SupportedIntent } from "./chatbot.intents";
+import {
+  classifyIntent,
+  containsSensitiveClinicalContent,
+  isAutomationQuestion,
+  type SupportedIntent
+} from "./chatbot.intents";
 import { getCompleteBookingDetails } from "./chatbot.booking.handler";
 import {
   bookingConflictResponse,
   bookingDetailsPrompt,
   clinicalHandoffResponse,
-  genericGreetingResponse
+  genericGreetingResponse,
+  automationDisclosureResponse
 } from "./response-templates";
 
 export type IncomingWhatsAppMessage = {
@@ -36,6 +42,9 @@ type ProcessingContext = {
 
 const clinicalSummary =
   "El paciente solicitó apoyo clínico; se derivó a la psicóloga.";
+
+export const sanitizeIncomingWhatsAppContent = (text: string) =>
+  containsSensitiveClinicalContent(text) ? clinicalSummary : text;
 
 const sendResponse = async (input: {
   conversationId: string;
@@ -70,15 +79,17 @@ export const processIncomingWhatsAppMessage = async (
   message: IncomingWhatsAppMessage,
   context: ProcessingContext
 ) => {
+  const hasSensitiveClinicalContent = containsSensitiveClinicalContent(
+    message.text
+  );
   const classifiedIntent = classifyIntent(message.text);
   const conversation = await saveIncomingMessage({
     whatsappPhone: message.from,
     waMessageId: message.id,
-    contentText:
-      classifiedIntent === "handoff" ? clinicalSummary : message.text,
+    contentText: sanitizeIncomingWhatsAppContent(message.text),
     receivedAt: message.receivedAt,
     intent: classifiedIntent,
-    containsSensitiveClinicalContent: classifiedIntent === "handoff"
+    containsSensitiveClinicalContent: hasSensitiveClinicalContent
   });
 
   if (!conversation) {
@@ -89,6 +100,21 @@ export const processIncomingWhatsAppMessage = async (
     classifiedIntent === "unknown" && conversation.currentIntent === "book"
       ? "book"
       : classifiedIntent;
+
+  if (isAutomationQuestion(message.text)) {
+    await updateConversation(conversation.id, {
+      intent,
+      lastMessageAt: message.receivedAt
+    });
+    await sendResponse({
+      conversationId: conversation.id,
+      to: message.from,
+      text: automationDisclosureResponse,
+      intent,
+      gateway: context.gateway
+    });
+    return;
+  }
 
   if (intent === "handoff") {
     await updateConversation(conversation.id, {

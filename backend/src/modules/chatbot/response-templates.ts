@@ -48,5 +48,8 @@ export const bookingConflictResponse =
 export const genericGreetingResponse =
   "Buen día. Puedo ayudarle a consultar disponibilidad y agendar una sesión. ¿Qué día le gustaría revisar?";
 
+export const automationDisclosureResponse =
+  "Soy un asistente digital del consultorio. Puedo apoyarle con temas administrativos, como consultar disponibilidad y agendar una sesión.";
+
 export const modalityLabel = (modality: Modality) =>
   modality === "online" ? "en línea" : "presencial";
