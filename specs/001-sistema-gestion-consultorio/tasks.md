@@ -68,19 +68,19 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 1
 
-- [ ] T015 [P] [US1] Crear prueba de contrato del webhook de WhatsApp en `backend/tests/contract/whatsapp-webhook.contract.test.ts`
-- [ ] T016 [P] [US1] Crear prueba de integracion del flujo de agendamiento por WhatsApp en `backend/tests/integration/whatsapp-booking.integration.test.ts`
+- [x] T015 [P] [US1] Crear prueba de contrato del webhook de WhatsApp en `backend/tests/contract/whatsapp-webhook.contract.test.ts`
+- [x] T016 [P] [US1] Crear prueba de integracion del flujo de agendamiento por WhatsApp en `backend/tests/integration/whatsapp-booking.integration.test.ts`
 
 ### Implementacion para Historia de Usuario 1
 
-- [ ] T017 [P] [US1] Implementar persistencia y busqueda de pacientes en `backend/src/modules/patients/patients.repository.ts` y `backend/src/modules/patients/patients.service.ts`
-- [ ] T018 [P] [US1] Implementar persistencia de citas y reglas de disponibilidad en `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/modules/appointments/appointments.service.ts`
-- [ ] T019 [P] [US1] Implementar adaptador del proveedor de WhatsApp en `backend/src/integrations/whatsapp/whatsapp.gateway.ts`
-- [ ] T020 [US1] Implementar intents de agendamiento y reglas de derivacion clinica en `backend/src/modules/chatbot/chatbot.intents.ts` y `backend/src/modules/chatbot/chatbot.booking.handler.ts`
-- [ ] T021 [US1] Implementar controller y rutas del webhook de WhatsApp en `backend/src/modules/chatbot/chatbot.controller.ts` y `backend/src/modules/chatbot/chatbot.routes.ts`
-- [ ] T022 [US1] Crear la confirmación inmediata al agendar con la plantilla obligatoria de cancelación con al menos 24 horas en `backend/src/modules/reminders/reminders.service.ts` y `backend/src/modules/chatbot/response-templates.ts`
-- [ ] T023 [US1] Persistir mensajes entrantes y salientes del chat en `backend/src/modules/chatbot/chat-messages.repository.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
-- [ ] T024 [US1] Auditar agendamientos, conflictos de horario y derivaciones clinicas en `backend/src/modules/audit/audit.service.ts`
+- [x] T017 [P] [US1] Implementar persistencia y busqueda de pacientes en `backend/src/modules/patients/patients.repository.ts` y `backend/src/modules/patients/patients.service.ts`
+- [x] T018 [P] [US1] Implementar persistencia de citas y reglas de disponibilidad en `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/modules/appointments/appointments.service.ts`
+- [x] T019 [P] [US1] Implementar adaptador del proveedor de WhatsApp en `backend/src/integrations/whatsapp/whatsapp.gateway.ts`
+- [x] T020 [US1] Implementar intents de agendamiento y reglas de derivacion clinica en `backend/src/modules/chatbot/chatbot.intents.ts` y `backend/src/modules/chatbot/chatbot.booking.handler.ts`
+- [x] T021 [US1] Implementar controller y rutas del webhook de WhatsApp en `backend/src/modules/chatbot/chatbot.controller.ts` y `backend/src/modules/chatbot/chatbot.routes.ts`
+- [x] T022 [US1] Crear la confirmación inmediata al agendar con la plantilla obligatoria de cancelación con al menos 24 horas en `backend/src/modules/reminders/reminders.service.ts` y `backend/src/modules/chatbot/response-templates.ts`
+- [x] T023 [US1] Persistir mensajes entrantes y salientes del chat en `backend/src/modules/chatbot/chat-messages.repository.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
+- [x] T024 [US1] Auditar agendamientos, conflictos de horario y derivaciones clinicas en `backend/src/modules/audit/audit.service.ts`
 
 **Punto de control**: La Historia de Usuario 1 debe quedar funcional y comprobable de forma independiente
 
@@ -364,3 +364,29 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [X] T087 Aplicar el formato configurado por Prettier a los archivos de configuracion, backend y frontend para cerrar T004 y hacer que `npm run format:check` finalice sin errores per T004 (partial)
 - [X] T088 Instalar Prisma CLI y Prisma Client en el workspace `backend` para habilitar la validacion del esquema y cerrar T008/T009 per T008, T009 (missing)
 - [X] T089 Configurar `prisma:validate` y `prisma:generate` para cargar `backend/.env.example` en validacion local sin versionar secretos per T009, T074 (partial)
+
+---
+
+## Fase 12: Convergencia Fase 3
+
+**Proposito**: Remediar brechas detectadas al contrastar US1 contra `spec.md`, `plan.md` y `tasks.md` antes de iniciar US2.
+
+- [x] T091 Responder con transparencia cuando el paciente pregunte si habla con un sistema automatizado y cubrir el escenario en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/response-templates.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per US1/AC5, FR-015, Constitution V (missing)
+- [x] T092 Ampliar la deteccion y minimizacion de contenido clinico sensible para no persistir texto clinico extenso, con pruebas de regresion en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/chat-messages.repository.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per US1/AC7, FR-025, Constitution III (partial)
+- [x] T093 Convertir la prueba de flujo de agendamiento de WhatsApp en una integracion verificable con persistencia, cita creada, confirmacion y auditoria, en `backend/tests/integration/whatsapp-booking.integration.test.ts` per T016, Constitution IV (partial)
+
+---
+
+## Fase 13: Convergencia de validacion Fase 3
+
+**Proposito**: Remediar la desviacion de calidad detectada durante la validacion de cierre de US1.
+
+- [x] T094 Aplicar el formato configurado a los archivos cubiertos por `npm run format:check` para que el gate declarado por T004 y T087 vuelva a finalizar sin errores per T004, T087, Constitution IV (contradicts)
+
+---
+
+## Fase 14: Segunda convergencia Fase 3
+
+**Proposito**: Remediar la cobertura incompleta del flujo de agendamiento detectada en la segunda auditoria de US1.
+
+- [x] T095 Ejecutar `processIncomingWhatsAppMessage` en la prueba de integracion y verificar que orquesta la persistencia de la cita, confirmacion y auditoria en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per T016, Constitution IV (partial)

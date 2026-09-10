@@ -6,6 +6,7 @@ import express from "express";
 import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { chatbotRoutes } from "./modules/chatbot/chatbot.routes";
 import { healthRoutes } from "./modules/health/health.routes";
 
 export const createApp = () => {
@@ -31,6 +32,7 @@ export const createApp = () => {
   app.use("/health", healthRoutes);
   app.use(`${env.API_PREFIX}/health`, healthRoutes);
   app.use(`${env.API_PREFIX}/auth`, authRoutes);
+  app.use(`${env.API_PREFIX}/webhooks`, chatbotRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

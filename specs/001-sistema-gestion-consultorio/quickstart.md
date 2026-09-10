@@ -2,9 +2,9 @@
 
 ## Estado actual
 
-Esta guia refleja el cierre de la **Fase 2: Fundacional**, después de convergencia y remediaciones `T069` a `T080` y `T087` a `T090`.
+Esta guia refleja el cierre de la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp**, despues de convergencia y remediaciones `T091` a `T095`.
 
-El repositorio ya tiene backend Express compilable, schema y migracion inicial de Prisma, infraestructura de sesiones/auditoria, shell frontend de Next.js y comandos de validacion/build. Las historias funcionales de agendamiento, panel, pagos, recordatorios, chatbot y landing aun no estan implementadas.
+El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, shell frontend de Next.js y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y puede ofrecer horarios, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital.
 
 ## Prerrequisitos verificados para esta fase
 
@@ -45,7 +45,7 @@ Archivo: `frontend/.env.example`
 npm install
 ```
 
-## Validacion disponible en Fase 2
+## Validacion disponible en Fase 3
 
 ### 1. Validar Prisma schema
 
@@ -68,28 +68,20 @@ Resultado esperado:
 
 - TypeScript valida backend y frontend sin errores.
 
-### 3. Probar restricciones de usuarios
+### 3. Ejecutar pruebas de contrato e integracion
 
 ```bash
-npm run test:integration --workspace backend
+npm run test --workspace backend
 ```
 
 Resultado esperado:
 
-- Se aplican las migraciones inicial y de reglas de negocio en PostgreSQL embebido.
+- El webhook valida el challenge de Meta y acepta eventos de mensajes.
+- El flujo de agendamiento valida datos, disponibilidad, derivacion clinica, transparencia y la confirmacion obligatoria.
+- Se verifican la orquestacion de cita, confirmacion y auditoria, ademas de las migraciones inicial y de reglas de negocio en PostgreSQL embebido.
 - La base de datos rechaza un segundo `admin` y habilitar el login de panel a un perfil de directorio.
 
-### 4. Crear o actualizar la cuenta administrativa
-
-Con `DATABASE_URL` apuntando a la base de datos destino y una contraseña de al menos 16 caracteres:
-
-```bash
-ADMIN_SEED_PASSWORD="una-contrasena-de-al-menos-16-caracteres" npm run db:seed --workspace backend
-```
-
-El seed crea o actualiza de forma idempotente a Jocelyn Gutiérrez como la única cuenta activa `username = admin`, `role = admin` y `panel_login_enabled = true`.
-
-### 5. Build completo
+### 4. Build completo
 
 ```bash
 npm run build
@@ -101,7 +93,7 @@ Resultado esperado:
 - Backend compila a `backend/dist/`.
 - Frontend compila a `frontend/.next/`.
 
-### 6. Levantar backend compilado
+### 5. Levantar backend compilado
 
 ```bash
 npm run start:backend
@@ -119,7 +111,7 @@ Resultado esperado:
 { "status": "ok", "service": "saluddesdeelalma-backend" }
 ```
 
-### 7. Levantar frontend compilado
+### 6. Levantar frontend compilado
 
 ```bash
 npm run start:frontend
@@ -128,9 +120,9 @@ npm run start:frontend
 Resultado esperado:
 
 - Next.js inicia en `http://localhost:3000`.
-- La aplicacion aun es shell; las paginas funcionales se implementan en fases posteriores.
+- La ruta publica responde `404` porque la landing se implementara en US6.
 
-### 8. Validar lint
+### 7. Validar lint
 
 ```bash
 npm run lint
@@ -140,7 +132,7 @@ Resultado esperado:
 
 - ESLint finaliza sin errores.
 
-### 9. Validar formato
+### 8. Validar formato
 
 ```bash
 npm run format:check
@@ -150,20 +142,12 @@ Resultado esperado:
 
 - Prettier confirma que los archivos configurados cumplen el estilo esperado.
 
-### 10. Limpiar artefactos generados
-
-```bash
-npm run clean:artifacts
-```
-
-Resultado esperado:
-
-- Se eliminan `backend/dist/`, `frontend/.next/` y `frontend/tsconfig.tsbuildinfo` si existen.
-
 ## Limites de esta fase
 
 - `/api/v1/auth/login` existe solo como shell y devuelve `501`; la implementacion real corresponde a `T028`.
 - `/api/v1/auth/me` y `/api/v1/auth/logout` requieren una cookie de sesion valida, que se emitira cuando exista login funcional.
-- La única prueba automatizada actual valida migraciones y restricciones de acceso; las pruebas unitarias, de contrato y E2E se agregan en sus fases respectivas.
+- El adaptador de WhatsApp simula envios fuera de produccion si faltan `WHATSAPP_ACCESS_TOKEN` o `WHATSAPP_PHONE_NUMBER_ID`; produccion exige ambas credenciales.
+- El panel administrativo, las cancelaciones, pagos, recordatorios del dia previo, FAQ y consultas de estado siguen pendientes de sus historias correspondientes.
+- Las pruebas unitarias y E2E se agregan en fases posteriores.
 - No se ha ejecutado una migracion contra PostgreSQL real desde esta guia.
-- La landing publica, el panel administrativo y los flujos de WhatsApp no forman parte de Fase 2.
+- La landing publica y el panel administrativo no forman parte de esta fase.

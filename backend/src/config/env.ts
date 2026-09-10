@@ -46,4 +46,19 @@ if (
   throw new Error("JWT_SECRET must be replaced in production");
 }
 
+if (
+  parsedEnv.data.NODE_ENV === "production" &&
+  (!parsedEnv.data.WHATSAPP_ACCESS_TOKEN ||
+    !parsedEnv.data.WHATSAPP_PHONE_NUMBER_ID)
+) {
+  throw new Error("WhatsApp credentials must be configured in production");
+}
+
+if (
+  parsedEnv.data.NODE_ENV === "production" &&
+  parsedEnv.data.WHATSAPP_VERIFY_TOKEN === "development-whatsapp-verify-token"
+) {
+  throw new Error("WHATSAPP_VERIFY_TOKEN must be replaced in production");
+}
+
 export const env = parsedEnv.data;
