@@ -1,4 +1,4 @@
-import type { Appointment, Patient } from "@prisma/client";
+import type { Appointment, Patient, Prisma } from "@prisma/client";
 
 import { env } from "../../config/env";
 import type { WhatsAppGateway } from "../../integrations/whatsapp/whatsapp.gateway";
@@ -196,38 +196,51 @@ export const sendAppointmentConfirmation = async (input: {
   });
   const text = appointmentConfirmation(input.appointment, input.patient);
 
-  const sentPatientMessage = await sendReminder({
-    reminderId: patientReminder.id,
-    to: input.patient.whatsappPhone,
-    text,
-    gateway: input.gateway
-  });
-
-  if (!env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID) {
-    throw new Error("Psychologists group destination is not configured");
-  }
-  await sendReminder({
-    reminderId: groupReminder.id,
-    to: env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID,
-    text: groupConfirmation(input.appointment),
-    gateway: input.gateway
-  });
-
-  if (sentPatientMessage) {
-    await saveOutboundMessage({
-      conversationId: input.conversationId,
-      waMessageId: sentPatientMessage.messageId,
-      contentText: text,
-      intent: "book"
+  try {
+    const sentPatientMessage = await sendReminder({
+      reminderId: patientReminder.id,
+      to: input.patient.whatsappPhone,
+      text,
+      gateway: input.gateway
     });
+
+    if (sentPatientMessage) {
+      await saveOutboundMessage({
+        conversationId: input.conversationId,
+        waMessageId: sentPatientMessage.messageId,
+        contentText: text,
+        intent: "book"
+      });
+    }
+
+    if (env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID) {
+      await sendReminder({
+        reminderId: groupReminder.id,
+        to: env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID,
+        text: groupConfirmation(input.appointment),
+        gateway: input.gateway
+      });
+    } else {
+      await prisma.appointmentReminder.update({
+        where: { id: groupReminder.id },
+        data: {
+          status: "omitido",
+          lastError: "Group destination is not configured"
+        }
+      });
+    }
+  } finally {
+    // Scheduling the prior-day reminders must not depend on the outcome of
+    // the immediate confirmation sends.
+    await scheduleAppointmentReminders(input.appointment);
   }
-  await scheduleAppointmentReminders(input.appointment);
 };
 
 export const createPostCompletionPaymentReminder = async (
-  appointmentId: string
+  appointmentId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma
 ) => {
-  const appointment = await prisma.appointment.findUniqueOrThrow({
+  const appointment = await db.appointment.findUniqueOrThrow({
     where: { id: appointmentId },
     include: {
       payments: { where: { paymentType: "completo", status: "validado" } }
@@ -238,7 +251,7 @@ export const createPostCompletionPaymentReminder = async (
     return null;
   }
 
-  return prisma.appointmentReminder.upsert({
+  return db.appointmentReminder.upsert({
     where: {
       appointmentId_reminderType_recipient: {
         appointmentId,

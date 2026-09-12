@@ -22,11 +22,11 @@ export const isAutomationQuestion = (text: string) =>
   automationQuestionPattern.test(text);
 
 export const classifyIntent = (text: string): SupportedIntent => {
-  if (bookingPattern.test(text)) {
-    return "book";
-  }
   if (containsSensitiveClinicalContent(text)) {
     return "handoff";
+  }
+  if (bookingPattern.test(text)) {
+    return "book";
   }
   if (availabilityPattern.test(text)) {
     return "availability";

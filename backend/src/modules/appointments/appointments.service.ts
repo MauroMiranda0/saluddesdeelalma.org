@@ -7,6 +7,10 @@ import {
   findPatientWithAssignedTherapist
 } from "../patients/patients.service";
 import {
+  createAuditLogInTransaction,
+  type AuditCreateInput
+} from "../audit/audit.repository";
+import {
   createAppointmentRecord,
   findActiveAppointmentsForTherapist
 } from "./appointments.repository";
@@ -188,12 +192,22 @@ export const findNextAvailableSlots = async (
   return slots;
 };
 
-export const completeAppointment = async (appointmentId: string) => {
-  // Completion is the only event that schedules the priority post-session notice.
-  const appointment = await prisma.appointment.update({
-    where: { id: appointmentId },
-    data: { status: "completada", completedAt: new Date() }
+export const completeAppointmentWithAudit = (input: {
+  appointmentId: string;
+  audit: AuditCreateInput;
+}) => {
+  // Completion is the only event that schedules the priority post-session
+  // notice; the mutation, reminder and audit log are written atomically.
+  return prisma.$transaction(async (transaction) => {
+    const appointment = await transaction.appointment.update({
+      where: { id: input.appointmentId },
+      data: { status: "completada", completedAt: new Date() }
+    });
+    await createPostCompletionPaymentReminder(appointment.id, transaction);
+    await createAuditLogInTransaction(transaction, {
+      ...input.audit,
+      entityId: appointment.id
+    });
+    return appointment;
   });
-  await createPostCompletionPaymentReminder(appointment.id);
-  return appointment;
 };

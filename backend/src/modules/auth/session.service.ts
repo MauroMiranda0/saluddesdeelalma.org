@@ -1,6 +1,10 @@
 import { env } from "../../config/env";
 import { prisma } from "../../lib/prisma";
 import {
+  auditLogCreateData,
+  type AuditCreateInput
+} from "../audit/audit.repository";
+import {
   createJwtId,
   signAdminSessionToken,
   verifyAdminSessionToken
@@ -61,32 +65,60 @@ export const validateAdminSessionToken = async (token: string) => {
     return null;
   }
 
-  const expiresAt = getSessionExpiry();
-
-  const refreshedSession = await prisma.adminSession.update({
-    where: { id: session.id },
-    data: {
-      lastActivityAt: new Date(),
-      expiresAt
-    },
-    include: { user: true }
-  });
-  const refreshedToken = await signAdminSessionToken(
-    {
-      userId: refreshedSession.userId,
-      sessionId: refreshedSession.id,
-      jwtId: refreshedSession.jwtId
-    },
-    refreshedSession.expiresAt
-  );
-
-  return { session: refreshedSession, token: refreshedToken };
+  return { session, token };
 };
 
-export const revokeAdminSession = async (sessionId: string) => {
-  await prisma.adminSession.update({
-    where: { id: sessionId },
-    data: { revokedAt: new Date() }
+const auditData = auditLogCreateData;
+
+export const refreshAdminSessionWithAudit = async (input: {
+  sessionId: string;
+  audit: AuditCreateInput;
+}) => {
+  const session = await prisma.$transaction(async (transaction) => {
+    const refreshed = await transaction.adminSession.update({
+      where: { id: input.sessionId },
+      data: { lastActivityAt: new Date(), expiresAt: getSessionExpiry() },
+      include: { user: true }
+    });
+    await transaction.auditLog.create({ data: auditData(input.audit) });
+    return refreshed;
+  });
+  const token = await signAdminSessionToken(
+    { userId: session.userId, sessionId: session.id, jwtId: session.jwtId },
+    session.expiresAt
+  );
+
+  return { session, token };
+};
+
+export const slideAdminSession = async (input: {
+  sessionId: string;
+  jwtId: string;
+  userId: string;
+}) => {
+  const session = await prisma.adminSession.update({
+    where: { id: input.sessionId },
+    data: { lastActivityAt: new Date(), expiresAt: getSessionExpiry() },
+    include: { user: true }
+  });
+  const token = await signAdminSessionToken(
+    { userId: session.userId, sessionId: session.id, jwtId: session.jwtId },
+    session.expiresAt
+  );
+
+  return { session, token };
+};
+
+export const revokeAdminSessionWithAudit = (input: {
+  sessionId: string;
+  audit: AuditCreateInput;
+}) => {
+  return prisma.$transaction(async (transaction) => {
+    await transaction.adminSession.update({
+      where: { id: input.sessionId },
+      data: { revokedAt: new Date() }
+    });
+    await transaction.auditLog.create({ data: auditData(input.audit) });
   });
 };
 

@@ -1,9 +1,10 @@
-import type { Request, RequestHandler } from "express";
+import type { Request, RequestHandler, Response } from "express";
 
 import { env } from "../config/env";
 import { audit } from "../modules/audit/audit.service";
 import {
   getSessionCookieOptions,
+  slideAdminSession,
   validateAdminSessionToken
 } from "../modules/auth/session.service";
 import { AppError } from "./error-handler";
@@ -21,12 +22,17 @@ const parseCookies = (cookieHeader: string | undefined) => {
   );
 };
 
-const auditDeniedAccess = async (request: Request, action: string) => {
+const auditDeniedAccess = async (
+  request: Request,
+  response: Response,
+  action: string
+) => {
   await audit({
     actorChannel: "admin_panel",
     action,
     entityType: "admin_session",
     result: "failure",
+    metadata: { requestId: response.locals.requestId },
     ipAddress: request.ip,
     userAgent: request.header("user-agent")
   });
@@ -39,25 +45,29 @@ export const authenticate: RequestHandler = async (request, response, next) => {
     try {
       cookies = parseCookies(request.header("cookie"));
     } catch {
-      await auditDeniedAccess(request, "auth_malformed_cookie");
+      await auditDeniedAccess(request, response, "auth_malformed_cookie");
       throw new AppError(401, "unauthorized", "Session cookie is malformed");
     }
 
     const token = cookies.get(env.SESSION_COOKIE_NAME);
 
     if (!token) {
-      await auditDeniedAccess(request, "auth_missing_session");
+      await auditDeniedAccess(request, response, "auth_missing_session");
       throw new AppError(401, "unauthorized", "Authentication required");
     }
 
     const validation = await validateAdminSessionToken(token);
 
     if (!validation) {
-      await auditDeniedAccess(request, "auth_invalid_session");
+      await auditDeniedAccess(request, response, "auth_invalid_session");
       throw new AppError(401, "unauthorized", "Session expired or invalid");
     }
 
-    const { session } = validation;
+    const { session, token: renewedToken } = await slideAdminSession({
+      sessionId: validation.session.id,
+      jwtId: validation.session.jwtId,
+      userId: validation.session.user.id
+    });
 
     request.adminSession = {
       id: session.id,
@@ -73,7 +83,7 @@ export const authenticate: RequestHandler = async (request, response, next) => {
 
     response.cookie(
       env.SESSION_COOKIE_NAME,
-      validation.token,
+      renewedToken,
       getSessionCookieOptions()
     );
 

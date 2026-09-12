@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createApp } from "../../src/app.js";
+import { env } from "../../src/config/env.js";
 
 const withServer = async (run: (baseUrl: string) => Promise<void>) => {
   const server = createApp().listen(0);
@@ -24,7 +25,7 @@ const withServer = async (run: (baseUrl: string) => Promise<void>) => {
 test("GET WhatsApp webhook returns Meta's challenge for the configured token", async () => {
   await withServer(async (baseUrl) => {
     const response = await fetch(
-      `${baseUrl}/api/v1/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=development-whatsapp-verify-token&hub.challenge=challenge-123`
+      `${baseUrl}/api/v1/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(env.WHATSAPP_VERIFY_TOKEN)}&hub.challenge=challenge-123`
     );
 
     assert.equal(response.status, 200);

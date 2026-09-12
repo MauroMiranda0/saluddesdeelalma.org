@@ -121,6 +121,12 @@ test("clinical language is classified for handoff instead of booking", () => {
     classifyIntent("Tengo mucha ansiedad y necesito saber si es normal"),
     "handoff"
   );
+  assert.equal(
+    classifyIntent(
+      "Me siento muy mal y quiero agendar una cita con la terapeuta"
+    ),
+    "handoff"
+  );
 });
 
 test("automation questions are answered transparently and clinical content is minimized", () => {

@@ -5,7 +5,7 @@ import { AppError } from "./error-handler";
 
 export const authorizeAdmin: RequestHandler = async (
   request,
-  _response,
+  response,
   next
 ) => {
   try {
@@ -21,6 +21,7 @@ export const authorizeAdmin: RequestHandler = async (
         entityType: "admin_session",
         entityId: request.adminSession.id,
         result: "failure",
+        metadata: { requestId: response.locals.requestId },
         ipAddress: request.ip,
         userAgent: request.header("user-agent")
       });

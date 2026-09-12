@@ -4,8 +4,10 @@ import {
   AppointmentConflictError,
   AppointmentScheduleError,
   TherapistAssignmentRequiredError,
-  createWhatsAppAppointment
+  createWhatsAppAppointment,
+  findNextAvailableSlots
 } from "../appointments/appointments.service";
+import { findPatientWithAssignedTherapist } from "../patients/patients.service";
 import { sendAppointmentConfirmation } from "../reminders/reminders.service";
 import {
   saveIncomingMessage,
@@ -81,12 +83,23 @@ const sendResponse = async (input: {
 const sendAvailability = async (input: {
   conversationId: string;
   to: string;
+  whatsappPhone: string;
   intent: "availability" | "book";
   gateway: WhatsAppGateway;
 }) => {
+  const patient = await findPatientWithAssignedTherapist(input.whatsappPhone);
+  const slots =
+    patient?.assignedTherapistId && patient.assignedTherapist?.isActive
+      ? await findNextAvailableSlots(
+          patient.assignedTherapistId,
+          "individual",
+          3
+        )
+      : [];
+
   await sendResponse({
     ...input,
-    text: bookingDetailsPrompt([])
+    text: bookingDetailsPrompt(slots)
   });
 };
 
@@ -170,6 +183,7 @@ export const processIncomingWhatsAppMessage = async (
     await sendAvailability({
       conversationId: conversation.id,
       to: message.from,
+      whatsappPhone: message.from,
       intent,
       gateway: context.gateway
     });
@@ -187,6 +201,7 @@ export const processIncomingWhatsAppMessage = async (
       await sendAvailability({
         conversationId: conversation.id,
         to: message.from,
+        whatsappPhone: message.from,
         intent,
         gateway: context.gateway
       });
@@ -258,6 +273,7 @@ export const processIncomingWhatsAppMessage = async (
         await sendAvailability({
           conversationId: conversation.id,
           to: message.from,
+          whatsappPhone: message.from,
           intent,
           gateway: context.gateway
         });

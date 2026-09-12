@@ -400,6 +400,71 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T096 Crear perfiles clínicos, asignación paciente-psicóloga, tipo/duración 60/90 min y exclusión PostgreSQL por intervalo activo en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260911000000_therapist_session_rules/migration.sql`.
 - [x] T097 Actualizar el flujo de WhatsApp para capturar tipo de sesión, validar el fin de jornada y exigir una psicóloga asignada en `backend/src/modules/chatbot/`, `backend/src/modules/appointments/` y `backend/src/lib/validators/appointment.ts`.
 - [x] T098 Registrar confirmaciones individuales al paciente y copia mínima al destino interno, más filas de aviso previo y posterior de pago, en `backend/src/modules/reminders/reminders.service.ts`.
-- [ ] T099 Implementar UI y endpoints de `admin` para crear perfiles clínicos, asignar/reasignar pacientes y completar citas, con auditoría.
+- [x] T099 Implementar UI y endpoints de `admin` para crear perfiles clínicos, asignar/reasignar pacientes y completar citas, con auditoría.
 - [x] T100 Implementar el dispatcher recurrente que entregue recordatorios previos en ventana, omita saldo liquidado y envíe el aviso posterior al completar la cita.
-- [ ] T101 Crear pruebas de migración PostgreSQL real para exclusión de intervalos, asignación, idempotencia de ambos destinos, privacidad del grupo y avisos de pago.
+- [x] T101 Crear pruebas de migración PostgreSQL real para exclusión de intervalos, asignación, idempotencia de ambos destinos, privacidad del grupo y avisos de pago.
+
+---
+
+## Phase 16: Convergence
+
+- [x] T102 [P] Configurar Tailwind CSS 4 en el workspace frontend: añadir dependencias y PostCSS en `frontend/package.json` y `frontend/postcss.config.mjs`, importar Tailwind en `frontend/app/globals.css` y verificar frontend build. per T003, plan: stack, Constitution II (missing)
+- [x] T103 [P] Rechazar en producción todos los valores placeholder documentados para JWT y WhatsApp en `backend/src/config/env.ts`, y añadir pruebas de regresión de configuración productiva en `backend/tests/unit/env-production-validation.test.ts`. per T005, Constitution II (partial)
+- [x] T104 [P] Aplicar la configuración existente de Prettier a los archivos reportados por `npm run format:check` y verificar que finalice sin errores. per T004, Constitution IV (partial)
+
+---
+
+## Phase 17: Convergence
+
+- [x] T105 Cubrir de forma independiente los placeholders documentados de `JWT_SECRET`, `WHATSAPP_PHONE_NUMBER_ID` y `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` en `backend/tests/unit/env-production-validation.test.ts`. per T103, Constitution II (partial)
+
+---
+
+## Phase 18: Convergence
+
+- [x] T106 Cubrir el placeholder documentado de `JWT_SECRET` (`replace-with-a-strong-secret-of-at-least-32-characters`) en `backend/tests/unit/env-production-validation.test.ts`. per T105, Constitution II (partial)
+
+---
+
+## Phase 19: Convergence
+
+- [x] T107 Rechazar en producción el placeholder documentado de `AI_PROVIDER_API_KEY` y cubrirlo de forma independiente en `backend/src/config/env.ts` y `backend/tests/unit/env-production-validation.test.ts`. per Constitution II (partial)
+
+---
+
+## Phase 20: Convergence
+
+- [x] T108 [P] Eliminar el valor predeterminado de `DATABASE_URL` en `backend/src/config/env.ts`, exigir una URL configurada y agregar prueba que rechace ausencia o placeholder en producción; mantener `backend/.env.example` solo con una URL sintácticamente válida sin credenciales reales. per T007, Constitution §3.4 (partial)
+- [x] T109 Hacer confiable la persistencia de auditoría en `backend/src/modules/audit/audit.service.ts` y casos administrativos: no suprimir fallos; registrar la auditoría junto con la mutación en una transacción o rechazar la operación, y añadir prueba de integración con fallo inyectado del repositorio. per T011, FR-016, Constitution III (partial)
+- [x] T110 [P] Auditar accesos administrativos exitosos a `GET /api/v1/auth/me` y cierres de sesión en `POST /api/v1/auth/logout`, incluyendo actor, resultado, IP, user-agent y request ID; cubrirlos con pruebas de integración. per T011/T012, FR-016, FR-026 (missing)
+
+---
+
+## Phase 21: Convergence
+
+- [x] T111 Eliminar los valores activos predeterminados de `JWT_SECRET` y `WHATSAPP_VERIFY_TOKEN` de `backend/src/config/env.ts`, exigirlos desde el entorno y adaptar la configuración de pruebas sin versionar secretos. per T007, Constitution II (contradicts)
+- [x] T112 Garantizar que la actualización de sesión y su auditoría, así como logout y su auditoría, se completen atómicamente o se rechacen, y cubrir fallos de auditoría en integración administrativa. per T109, FR-016, Constitution III (partial)
+- [x] T113 Ampliar `backend/tests/integration/auth-audit.integration.test.ts` para afirmar actor, resultado, IP, user-agent y request ID de los eventos exitosos. per T110, FR-016, FR-026 (partial)
+
+---
+
+## Phase 22: Convergence
+
+- [x] T114 Provocar un fallo real de `auditLog.create` dentro de la transacción Prisma de renovación/revocación de sesión y comprobar en integración que la sesión no se actualiza ni se revoca. per T109/T112, Constitution III (partial)
+
+---
+
+## Phase 23: Convergence
+
+- [x] T115 Reordenar `classifyIntent` para derivar contenido clínico sensible antes que el flujo de reserva y cubrirlo con una prueba de regresión en `backend/src/modules/chatbot/chatbot.intents.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts`. per FR-013, FR-014, FR-025, Constitution §7.8 (partial)
+- [x] T116 Exigir terapeuta activo asignado también a nivel de base de datos (rechazar `therapist_id` nulo en el trigger y endurecer el listado administrativo ante filas históricas sin terapeuta) en `backend/prisma/migrations/20261101000000_convergence_hardening/migration.sql`, `backend/prisma/schema.prisma` y `backend/src/modules/therapists/therapists.routes.ts`. per FR-005b (partial)
+- [x] T117 Deslizar la ventana de inactividad de sesión administrativa en cada petición autenticada de rutas administrativas (no solo `/auth/me`), renovando actividad/expiración, en `backend/src/middleware/authenticate.ts`, `backend/src/modules/auth/session.service.ts` y `backend/src/modules/auth/auth.routes.ts`. per FR-019, SC-012, Decision 2026-09-04 (partial)
+- [x] T118 Renovar la cookie de sesión con opciones de set (maxAge de 30 minutos) en `/auth/me`, reservando el clear para logout, en `backend/src/modules/auth/auth.routes.ts`. per T075, Decision 2026-09-04 (contradicts)
+- [x] T119 Limitar el envío del recordatorio del día previo al día calendario anterior y a citas aún futuras, omitiendo las filas rezagadas, en `backend/src/modules/reminders/reminder-dispatcher.ts`. per FR-007, SC-003 (partial)
+- [x] T120 Programar los recordatorios del día previo con independencia del envío inmediato de confirmación (o en la transacción de creación de la cita), en `backend/src/modules/reminders/reminders.service.ts`. per FR-007 (partial)
+- [x] T121 Integrar `findNextAvailableSlots` a la respuesta de disponibilidad del flujo de WhatsApp para ofrecer horarios concretos, en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/src/modules/chatbot/response-templates.ts`. per FR-002, US1/AC1 (partial)
+- [x] T122 Incluir `requestId` en la metadata de las auditorías de acceso denegado (cookie ausente/malformada, sesión inválida y rol prohibido), en `backend/src/middleware/authenticate.ts` y `backend/src/middleware/authorize-admin.ts`. per FR-026, T110 (partial)
+- [x] T123 Resolver el estado del recordatorio de confirmación grupal cuando el destino interno no está configurado (omisión o reintento controlado), en `backend/src/modules/reminders/reminders.service.ts`. per FR-031, FR-007 (partial)
+- [x] T124 Devolver 400 `validation_error` para parámetros de ruta no-UUID en la API administrativa, en lugar de 404 `not_found`, en `backend/src/modules/therapists/therapists.routes.ts`. per contracts/api.yaml, forma de error de validación (contradicts)
+- [x] T125 Ejecutar `npm run format` sobre los archivos reportados por `npm run format:check` y verificar que el gate finalice sin errores. per T004, T087, T094, Constitution IV (contradicts)
+- [x] T126 Eliminar o usar las constantes sin uso en `backend/tests/contract/admin-clinical.contract.test.ts` para que `npm run lint` finalice sin errores. per T004 (contradicts)

@@ -21,6 +21,23 @@ const isPriorDayWindow = (now: Date) => {
   return hour >= 18 && hour < 19;
 };
 
+export const mexicoDayKey = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: env.REMINDER_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  return value("year") * 10000 + value("month") * 100 + value("day");
+};
+
+export const isPriorDayReminderDue = (now: Date, scheduledAt: Date) =>
+  mexicoDayKey(scheduledAt) - mexicoDayKey(now) === 1 &&
+  scheduledAt.getTime() > now.getTime();
+
 const appointmentSummary = (appointment: {
   scheduledAt: Date;
   modality: "online" | "presencial";
@@ -80,7 +97,21 @@ export const dispatchDueReminders = async (input?: {
       continue;
     }
 
-    if (isPriorDayReminder && !isPriorDayWindow(now)) {
+    if (
+      isPriorDayReminder &&
+      (!isPriorDayWindow(now) ||
+        !isPriorDayReminderDue(now, reminder.appointment.scheduledAt))
+    ) {
+      if (isPriorDayReminderDue(now, reminder.appointment.scheduledAt)) {
+        continue;
+      }
+      await prisma.appointmentReminder.update({
+        where: { id: reminder.id },
+        data: {
+          status: "omitido",
+          lastError: "Outside the prior-day reminder window"
+        }
+      });
       continue;
     }
 
