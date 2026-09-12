@@ -90,70 +90,91 @@ export const sendReminder = async (input: {
 };
 
 export const scheduleAppointmentReminders = async (
-  appointment: Appointment
+  appointment: Appointment,
+  db: Prisma.TransactionClient | typeof prisma = prisma
 ) => {
   const scheduledAt = previousDayReminderAt(appointment.scheduledAt);
   const status = scheduledAt <= new Date() ? "omitido" : "pendiente";
   const lastError =
     status === "omitido" ? "Created after the prior-day reminder window" : null;
 
-  await prisma.$transaction([
-    prisma.appointmentReminder.upsert({
-      where: {
-        appointmentId_reminderType_recipient: {
-          appointmentId: appointment.id,
-          reminderType: "recordatorio_24h",
-          recipient: "paciente"
-        }
-      },
-      update: {},
-      create: {
+  await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
         appointmentId: appointment.id,
         reminderType: "recordatorio_24h",
-        recipient: "paciente",
-        scheduledAt,
-        status,
-        lastError
+        recipient: "paciente"
       }
-    }),
-    prisma.appointmentReminder.upsert({
-      where: {
-        appointmentId_reminderType_recipient: {
-          appointmentId: appointment.id,
-          reminderType: "recordatorio_24h",
-          recipient: "grupo_psicologas"
-        }
-      },
-      update: {},
-      create: {
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "recordatorio_24h",
+      recipient: "paciente",
+      scheduledAt,
+      status,
+      lastError
+    }
+  });
+  // The dispatcher omits this first payment notice if the balance is settled.
+  await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
         appointmentId: appointment.id,
         reminderType: "recordatorio_24h",
-        recipient: "grupo_psicologas",
-        scheduledAt,
-        status,
-        lastError
+        recipient: "grupo_psicologas"
       }
-    }),
-    // The dispatcher omits this first payment notice if the balance is settled.
-    prisma.appointmentReminder.upsert({
-      where: {
-        appointmentId_reminderType_recipient: {
-          appointmentId: appointment.id,
-          reminderType: "pago_pendiente",
-          recipient: "paciente"
-        }
-      },
-      update: {},
-      create: {
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "recordatorio_24h",
+      recipient: "grupo_psicologas",
+      scheduledAt,
+      status,
+      lastError
+    }
+  });
+  await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
         appointmentId: appointment.id,
         reminderType: "pago_pendiente",
-        recipient: "paciente",
-        scheduledAt,
-        status,
-        lastError
+        recipient: "paciente"
       }
-    })
-  ]);
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "pago_pendiente",
+      recipient: "paciente",
+      scheduledAt,
+      status,
+      lastError
+    }
+  });
+};
+
+export const scheduleCancellationNotice = async (
+  appointmentId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  return db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId,
+        reminderType: "cancelacion",
+        recipient: "paciente"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId,
+      reminderType: "cancelacion",
+      recipient: "paciente",
+      scheduledAt: new Date()
+    }
+  });
 };
 
 export const sendAppointmentConfirmation = async (input: {

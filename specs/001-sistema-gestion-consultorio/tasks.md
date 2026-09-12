@@ -94,23 +94,25 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 2
 
-- [ ] T025 [P] [US2] Crear prueba de contrato de autenticacion y sesion en `backend/tests/contract/auth.contract.test.ts`
-- [ ] T026 [P] [US2] Crear prueba de contrato de endpoints administrativos de citas en `backend/tests/contract/appointments.contract.test.ts`
-- [ ] T027 [P] [US2] Crear prueba E2E movil de login y agenda diaria en `frontend/tests/e2e/admin-agenda.spec.ts`
-- [ ] T081 [P] [US2] Crear pruebas de contrato e integración que rechacen cualquier `username` o rol distinto de `admin`, sin emitir cookie y con auditoría de denegación, en `backend/tests/contract/auth.contract.test.ts` y `backend/tests/integration/admin-identity-access.integration.test.ts`
+- [x] T025 [P] [US2] Crear prueba de contrato de autenticacion y sesion en `backend/tests/contract/auth.contract.test.ts`
+- [x] T026 [P] [US2] Crear prueba de contrato de endpoints administrativos de citas en `backend/tests/contract/appointments.contract.test.ts`
+- [x] T027 [P] [US2] Crear prueba E2E movil de login y agenda diaria en `frontend/tests/e2e/admin-agenda.spec.ts`
+- [x] T081 [P] [US2] Crear pruebas de contrato e integración que rechacen cualquier `username` o rol distinto de `admin`, sin emitir cookie y con auditoría de denegación, en `backend/tests/contract/auth.contract.test.ts` y `backend/tests/integration/admin-identity-access.integration.test.ts`
 
 ### Implementacion para Historia de Usuario 2
 
-- [ ] T028 [P] [US2] Implementar controllers y rutas de login, logout y sesion activa con credenciales `username` y contraseña en `backend/src/modules/auth/auth.controller.ts`, `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/auth/auth.routes.ts`
-- [ ] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.controller.ts` y `backend/src/modules/appointments/admin-appointments.routes.ts`
-- [ ] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/ui/login-form.tsx`
-- [ ] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/agenda/daily-agenda.tsx`
-- [ ] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/agenda/appointment-form.tsx` y `frontend/components/agenda/cancel-appointment-dialog.tsx`
-- [ ] T033 [US2] Implementar proteccion de rutas, validación de identidad `admin` y expiracion de sesion en `frontend/app/admin/agenda/page.tsx`, `frontend/lib/auth/session.ts` y `frontend/middleware.ts`
-- [ ] T034 [US2] Disparar notificaciones de cancelacion desde acciones administrativas en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`
-- [ ] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/audit/audit.service.ts`
-- [ ] T082 [US2] Aplicar `authenticate` seguido de `authorizeAdminIdentity` a todas las rutas administrativas y auditar denegaciones de identidad o rol en `backend/src/middleware/authorize-admin-identity.ts`, `backend/src/app.ts` y los routers administrativos de `backend/src/modules/`
-- [ ] T083 [P] [US2] Implementar endpoint y vista móvil del directorio de psicólogos/as y pacientes, con citas y pagos pendientes en `backend/src/modules/directory/directory.controller.ts`, `backend/src/modules/directory/directory.routes.ts`, `backend/src/modules/directory/directory.service.ts`, `frontend/app/admin/directorio/page.tsx` y `frontend/components/directorio/user-directory.tsx`
+- [x] T028 [P] [US2] Implementar controllers y rutas de login, logout y sesion activa con credenciales `username` y contraseña en `backend/src/modules/auth/auth.controller.ts`, `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/auth/auth.routes.ts`
+- [x] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.controller.ts` y `backend/src/modules/appointments/admin-appointments.routes.ts`
+- [x] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/ui/login-form.tsx`
+- [x] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/agenda/daily-agenda.tsx`
+- [x] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/agenda/appointment-form.tsx` y `frontend/components/agenda/cancel-appointment-dialog.tsx`
+- [x] T033 [US2] Implementar proteccion de rutas, validación de identidad `admin` y expiracion de sesion en `frontend/app/admin/agenda/page.tsx`, `frontend/lib/auth/session.ts` y `frontend/middleware.ts`
+- [x] T034 [US2] Disparar notificaciones de cancelacion desde acciones administrativas en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`
+- [x] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/audit/audit.service.ts`
+- [x] T082 [US2] Aplicar `authenticate` seguido de `authorizeAdminIdentity` a todas las rutas administrativas y auditar denegaciones de identidad o rol en `backend/src/middleware/authorize-admin-identity.ts`, `backend/src/app.ts` y los routers administrativos de `backend/src/modules/`
+- [x] T083 [P] [US2] Implementar endpoint y vista móvil del directorio de psicólogos/as y pacientes, con citas y pagos pendientes en `backend/src/modules/directory/directory.controller.ts`, `backend/src/modules/directory/directory.routes.ts`, `backend/src/modules/directory/directory.service.ts`, `frontend/app/admin/directorio/page.tsx` y `frontend/components/directorio/user-directory.tsx`
+
+**Notas de cierre US2**: los controllers se mantienen como módulos de rutas con games inyectables (patrón serverless de este repo). Archivos efectivos: `auth.routes.ts`, `appointments.routes.ts` (creación admin, reagendamiento y cancelación) en `backend/src/modules/appointments/`, `directory.*` y `authorize-admin-identity.ts` (factory `createAuthorizeAdminIdentity(audit)`). La protección de rutas usa layout cliente + `AdminGuard`/`useAdminSession` en `frontend/app/admin/layout.tsx`, saltando `/admin/login`, y no `middleware.ts` (Next 16 usa `proxy.ts`; el backend conserva toda la autorización). El E2E T027 requiere base sembrada con `ADMIN_SEED_PASSWORD` e instalación de navegadores Playwright para ejecutarse.
 
 **Punto de control**: Las Historias de Usuario 1 y 2 deben funcionar de forma independiente
 

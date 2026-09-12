@@ -3,7 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { authenticate } from "../../middleware/authenticate";
-import { authorizeAdmin } from "../../middleware/authorize-admin";
+import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identity";
 import { asyncHandler, AppError } from "../../middleware/error-handler";
 import { completeAppointmentWithAudit } from "../appointments/appointments.service";
 import {
@@ -61,7 +61,8 @@ export const createTherapistAdminRoutes = (
 ) => {
   const router = Router();
   const authenticateRequest = dependencies.authenticate ?? authenticate;
-  const authorizeRequest = dependencies.authorizeAdmin ?? authorizeAdmin;
+  const authorizeRequest =
+    dependencies.authorizeAdmin ?? authorizeAdminIdentity;
   const createProfile =
     dependencies.createClinicalProfileWithAudit ??
     createClinicalProfileWithAudit;

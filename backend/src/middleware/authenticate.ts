@@ -75,6 +75,7 @@ export const authenticate: RequestHandler = async (request, response, next) => {
       expiresAt: session.expiresAt,
       user: {
         id: session.user.id,
+        username: session.user.username ?? "",
         email: session.user.email,
         fullName: session.user.fullName,
         role: session.user.role

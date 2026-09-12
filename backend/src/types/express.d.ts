@@ -9,6 +9,7 @@ declare global {
         expiresAt: Date;
         user: {
           id: string;
+          username: string;
           email: string;
           fullName: string;
           role: UserRole;

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { AdminGuard } from "../../../lib/auth/use-admin-session";
 import {
   completeAppointment,
   listAdminAppointments,
@@ -42,35 +41,33 @@ export default function AdminAppointmentsPage() {
   };
 
   return (
-    <AdminGuard>
-      <main className="mx-auto max-w-3xl p-4">
-        <h1 className="mb-4 text-2xl font-semibold">Citas por completar</h1>
-        {error ? <p className="mb-2 text-red-700">{error}</p> : null}
-        {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
+    <main className="mx-auto max-w-3xl p-4">
+      <h1 className="mb-4 text-2xl font-semibold">Citas por completar</h1>
+      {error ? <p className="mb-2 text-red-700">{error}</p> : null}
+      {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
 
-        <ul className="flex flex-col gap-2">
-          {appointments.map((appointment) => (
-            <li
-              key={appointment.id}
-              className="flex items-center justify-between rounded border p-3"
+      <ul className="flex flex-col gap-2">
+        {appointments.map((appointment) => (
+          <li
+            key={appointment.id}
+            className="flex items-center justify-between rounded border p-3"
+          >
+            <div>
+              <p className="font-medium">{appointment.patientName}</p>
+              <p className="text-sm text-gray-600">
+                {new Date(appointment.scheduledAt).toLocaleString("es-MX")} ·{" "}
+                {appointment.therapistName} · {appointment.status}
+              </p>
+            </div>
+            <button
+              className="rounded bg-emerald-600 px-3 py-1 text-white"
+              onClick={() => handleComplete(appointment)}
             >
-              <div>
-                <p className="font-medium">{appointment.patientName}</p>
-                <p className="text-sm text-gray-600">
-                  {new Date(appointment.scheduledAt).toLocaleString("es-MX")} ·{" "}
-                  {appointment.therapistName} · {appointment.status}
-                </p>
-              </div>
-              <button
-                className="rounded bg-emerald-600 px-3 py-1 text-white"
-                onClick={() => handleComplete(appointment)}
-              >
-                Completar cita
-              </button>
-            </li>
-          ))}
-        </ul>
-      </main>
-    </AdminGuard>
+              Completar cita
+            </button>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }

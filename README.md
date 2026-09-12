@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones de convergencia de esta fase, `T091` a `T095` y la segunda pasada `T115` a `T126` (Phase 23), están cerradas y verificadas con gates.
+Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp** y la **Fase comercial 6: Historia de Usuario 2 - Gestionar la agenda y las citas desde el panel** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones de convergencia `T091` a `T095`, `T115` a `T126` (Phase 23) y la implementación completa de `US2` (`T025`-`T035`, `T081`-`T083`) están cerradas y verificadas con gates.
 
 En este punto existe:
 
@@ -31,14 +31,18 @@ En este punto existe:
 - la API administrativa responde `400 validation_error` para parámetros de ruta no-UUID
 - worker bajo demanda de recordatorios en `backend/src/jobs/process-reminders.job.ts` (`npm run reminders:worker`), sin scheduler externo aún
 - pruebas de contrato del webhook, pruebas de integracion del flujo de agendamiento (cita, confirmacion y auditoria), pruebas unitarias de la ventana de recordatorios y un gate opt-in de integración con PostgreSQL real (`RUN_POSTGRES_INTEGRATION`)
+- **Panel `admin` (US2)**: login real con `username` + contraseña scrypt y cookie HttpOnly en `POST /api/v1/auth/login`, sesión activa en `GET /api/v1/auth/me` y logout en `POST /api/v1/auth/logout`, todo auditable y transaccional (`createAdminSessionWithAudit`)
+- guard de identidad inyectable `createAuthorizeAdminIdentity(audit)` aplicado a las rutas administrativas, rechazando cualquier usuario distinto de `admin` sin cookie y con auditoría de denegación (constraints `users_single_admin_key` / `users_access_profile_check`)
+- endpoints administrativos de citas en `GET /api/v1/appointments`, `POST /api/v1/appointments`, `PATCH /api/v1/appointments/:id` y `POST /api/v1/appointments/:id/cancel`, con DTO de calendario (`startsAt`, `paymentStatus`, fin de cita), mapeo `400/404/409/422` y notificaciones `scheduleCancellationNotice`
+- módulo de directorio en `GET /api/v1/directory` con psicólogas/os y pacientes (citas y pagos en los próximos 30 días)
+- frontend del panel: layout con `AdminGuard` (protege rutas salvo `/admin/login`), páginas de login, agenda (vistas día/semana/mes con `EVENT_COLOR_MAP` y leyenda de colores con contadores), directorio, dashboard, formulario de cita y diálogo de cancelación; la raíz `/` redirige a `/admin/agenda`
+- prueba E2E móvil de Playwright en `frontend/tests/e2e/admin-agenda.spec.ts` (login + agenda diaria + leyenda + logout) y suite de contrato/integración/unitarias de US2 en el backend
 
 En este punto todavia no existe:
 
-- login funcional con credenciales; `/api/v1/auth/login` es shell y devuelve `501` hasta `T028`
-- panel administrativo funcional de agenda/pagos (asignación de psicóloga, agenda, pagos)
-- landing publica funcional
-- scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta a demanda); tampoco cancelaciones, pagos, FAQ y consultas de estado por WhatsApp
-- pruebas E2E; las pruebas automatizadas actuales cubren contrato, integracion, unitarias (ventana de recordatorios) y restricciones de migracion
+- pagos desde el panel (anticipo/completo), agenda de pagos ni landing publica funcional
+- scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta a demanda); tampoco cancelaciones por WhatsApp, FAQ y consultas de estado por WhatsApp
+- ejecución de la suite E2E automatizada en CI; requiere navegadores Playwright instalados y base sembrada (ver sección de comandos)
 
 ## Estructura actual
 
@@ -63,6 +67,7 @@ En este punto todavia no existe:
 │   │       ├── audit/
 │   │       ├── auth/
 │   │       ├── chatbot/
+│   │       ├── directory/
 │   │       ├── patients/
 │   │       ├── reminders/
 │   │       └── therapists/
@@ -74,9 +79,12 @@ En este punto todavia no existe:
 ├── frontend/
 │   ├── .env.example
 │   ├── app/
+│   ├── components/
 │   ├── lib/
+│   ├── tests/e2e/
 │   ├── next.config.ts
 │   ├── package.json
+│   ├── playwright.config.ts
 │   └── tsconfig.json
 ├── docs/
 ├── specs/
@@ -157,7 +165,20 @@ Levantar frontend compilado:
 npm run start:frontend
 ```
 
-El servidor de Next.js inicia en `http://localhost:3000`. Verificado: `/admin`, `/admin/therapists`, `/admin/patients` y `/admin/appointments` responden `200`; la ruta publica responde `404` hasta implementar la landing en US6.
+El servidor de Next.js inicia en `http://localhost:3000`. Verificado con build: `/`, `/admin`, `/admin/agenda`, `/admin/directorio`, `/admin/login`, `/admin/patients`, `/admin/therapists` y `/admin/appointments` compilan; `/` redirige a `/admin/agenda` y las rutas del panel requieren sesión `admin` (redirigen a `/admin/login`).
+
+Suite E2E del panel (requiere navegadores de Playwright y una base sembrada con la cuenta `admin`):
+
+```bash
+# 1) Sembrar la cuenta admin (la clave debe coincidir con ADMIN_E2E_PASSWORD)
+$env:ADMIN_SEED_PASSWORD = "e2e-admin-password-1234"
+npm run db:seed --workspace backend
+# 2) Instalar navegadores (primera vez)
+npx playwright install --workspace frontend --with-deps   # Linux/macOS
+npx playwright install                                     # Windows
+# 3) Ejecutar (levanta backend y frontend automáticamente)
+npm run test:e2e --workspace frontend
+```
 
 Gate de integración con PostgreSQL real (reglas de sesión y recordatorios):
 
@@ -187,7 +208,8 @@ npm run reminders:worker --workspace backend
 - `npm run start:backend` requiere haber ejecutado `npm run build`.
 - `npm run start:frontend` requiere haber ejecutado `npm run build`.
 - Sin `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`, el adaptador de WhatsApp simula el envio fuera de produccion; en produccion ambas credenciales son obligatorias.
-- El frontend arranca como shell y no tiene pagina publica ni panel funcional todavia.
+- El panel es funcional, pero la asignación de psicóloga a pacientes sigue requiriendo el listado legado de `therapists`/`patients`; el directorio las presenta solamente en modo lectura.
+- La suite E2E de Playwright no corre en CI: exige navegadores instalados, base sembrada (`ADMIN_SEED_PASSWORD`) y sesión `admin` real.
 - Las migraciones se aplicaron y verificaron contra un PostgreSQL 16 real mediante el gate `RUN_POSTGRES_INTEGRATION` (incluida `20261101000000_convergence_hardening`); la configuracion de destino y credenciales de produccion sigue pendiente.
 - `npm audit` no reporta vulnerabilidades conocidas en las dependencias instaladas.
 

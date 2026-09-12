@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { AdminGuard } from "../../../lib/auth/use-admin-session";
 import {
   createTherapistProfile,
   listTherapistProfiles,
@@ -59,68 +58,66 @@ export default function AdminTherapistsPage() {
   };
 
   return (
-    <AdminGuard>
-      <main className="mx-auto max-w-3xl p-4">
-        <h1 className="mb-4 text-2xl font-semibold">Perfiles clínicos</h1>
-        {error ? <p className="mb-2 text-red-700">{error}</p> : null}
-        {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
+    <main className="mx-auto max-w-3xl p-4">
+      <h1 className="mb-4 text-2xl font-semibold">Perfiles clínicos</h1>
+      {error ? <p className="mb-2 text-red-700">{error}</p> : null}
+      {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
 
-        <form
-          className="mb-6 flex flex-col gap-2 rounded border p-3"
-          onSubmit={handleCreate}
+      <form
+        className="mb-6 flex flex-col gap-2 rounded border p-3"
+        onSubmit={handleCreate}
+      >
+        <h2 className="font-medium">Crear perfil clínico</h2>
+        <label className="flex flex-col gap-1">
+          Nombre completo
+          <input
+            className="rounded border px-2 py-1"
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+            minLength={2}
+            maxLength={120}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          Correo (opcional)
+          <input
+            className="rounded border px-2 py-1"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </label>
+        <button
+          type="submit"
+          className="self-start rounded bg-emerald-600 px-3 py-1 text-white"
         >
-          <h2 className="font-medium">Crear perfil clínico</h2>
-          <label className="flex flex-col gap-1">
-            Nombre completo
-            <input
-              className="rounded border px-2 py-1"
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              minLength={2}
-              maxLength={120}
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Correo (opcional)
-            <input
-              className="rounded border px-2 py-1"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <button
-            type="submit"
-            className="self-start rounded bg-emerald-600 px-3 py-1 text-white"
-          >
-            Crear perfil
-          </button>
-        </form>
+          Crear perfil
+        </button>
+      </form>
 
-        <ul className="flex flex-col gap-2">
-          {therapists.map((therapist) => (
-            <li
-              key={therapist.id}
-              className="flex items-center justify-between rounded border p-3"
+      <ul className="flex flex-col gap-2">
+        {therapists.map((therapist) => (
+          <li
+            key={therapist.id}
+            className="flex items-center justify-between rounded border p-3"
+          >
+            <div>
+              <p className="font-medium">{therapist.fullName}</p>
+              <p className="text-sm text-gray-600">{therapist.email}</p>
+              <p className="text-sm text-gray-600">
+                {therapist.isActive ? "Activo" : "Inactivo"}
+              </p>
+            </div>
+            <button
+              className="rounded border px-3 py-1"
+              onClick={() => handleToggle(therapist)}
             >
-              <div>
-                <p className="font-medium">{therapist.fullName}</p>
-                <p className="text-sm text-gray-600">{therapist.email}</p>
-                <p className="text-sm text-gray-600">
-                  {therapist.isActive ? "Activo" : "Inactivo"}
-                </p>
-              </div>
-              <button
-                className="rounded border px-3 py-1"
-                onClick={() => handleToggle(therapist)}
-              >
-                {therapist.isActive ? "Desactivar" : "Activar"}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </main>
-    </AdminGuard>
+              {therapist.isActive ? "Desactivar" : "Activar"}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }

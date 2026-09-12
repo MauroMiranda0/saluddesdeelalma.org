@@ -39,6 +39,38 @@ export const createAdminSession = async (input: {
   return { session, token };
 };
 
+export const createAdminSessionWithAudit = async (input: {
+  userId: string;
+  audit: AuditCreateInput;
+  ipAddress?: string;
+  userAgent?: string;
+}) => {
+  const jwtId = createJwtId();
+  const expiresAt = getSessionExpiry();
+  const session = await prisma.$transaction(async (transaction) => {
+    const created = await transaction.adminSession.create({
+      data: {
+        userId: input.userId,
+        jwtId,
+        expiresAt,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent
+      },
+      include: { user: true }
+    });
+    await transaction.auditLog.create({
+      data: { ...auditData(input.audit), entityId: created.id }
+    });
+    return created;
+  });
+  const token = await signAdminSessionToken(
+    { userId: input.userId, sessionId: session.id, jwtId },
+    expiresAt
+  );
+
+  return { session, token };
+};
+
 export const validateAdminSessionToken = async (token: string) => {
   const payload = await verifyAdminSessionToken(token).catch(() => null);
 

@@ -406,3 +406,66 @@ El runner de test usa PGlite como base embebida para contrato, integración y un
 - La oferta mostrada ya es reservable y evita prometer horarios ocupados.
 - Los horarios se calculan por modalidad `individual` (60 min) para la vista previa; la cita final valida su propio tipo/duración.
 - Un mensaje urgente nunca se reserva automáticamente aunque pida agendar.
+
+## 2026-09-11 - Panel administrativo: identidad `admin` con scrypt y auditoría (US2)
+
+**Contexto**
+
+El panel requiere la única sesión admisible del MVP: la cuenta `admin` con rol `admin`, `panel_login_enabled` y `is_active`, validando `username` + contraseña. Los intentos no admin deben rechazarse sin emitir cookie y con auditoría de denegación.
+
+**Decisión**
+
+El login usa `password.service.ts` con `scrypt` nativo (`scrypt$<salt>$<hash>`, mismo formato del seed). `identifyAdminForLogin` autentica por `username` y contraseña y además exige, vía `authorizeAdminIdentity`, que el usuario sea exactamente el admin panel del directorio de usuarios. El middleware de identidad es una factoría inyectable `createAuthorizeAdminIdentity(audit)` con instancia por defecto; los routers administrativos la reciben como dependencia inyectable. El registro de la sesión (`createAdminSessionWithAudit`) y su auditoría viven en una misma transacción Prisma, de modo que un fallo de auditoría revierte la sesión.
+
+**Consecuencias**
+
+- Las contraseñas se verifican con `timingSafeEqual` sobre hashes scrypt, sin texto plano ni bcrypt.
+- Los fallos de credenciales o identidad devuelven `401 Unauthorized` sin cookie y quedan auditados.
+- Los tests de contrato inyectan un guard con auditoría falsa; la integración usa PGlite + constraints `users_single_admin_key`/`users_access_profile_check`.
+
+## 2026-09-11 - Panel administrativo: mutaciones de citas desde rutas injectables (US2/T028-T035, T082)
+
+**Contexto**
+
+El panel necesita listar citas por rango, crearlas, reagendarlas y cancelarlas, reutilizando el motor de dominio de US1 y visibilizando el estado de pago del usuario paciente.
+
+**Decisión**
+
+`appointments.routes.ts` expone `GET /appointments?from=&to=`, `POST /appointments`, `PATCH /appointments/:appointmentId` (reagendar) y `POST /appointments/:appointmentId/cancel`. La creación usa `resolvePanelPatient` (existe o se crea), asigna `createdByUserId` desde la sesión admin, detecta conflictos de horario (`AppointmentConflictError` → 409) y exige psicóloga asignada al paciente (`TherapistAssignmentRequiredError` → 409). Reagendar fuera de horario regular setea `isManualException`. El DTO de calendario `appointmentCalendarDto` incluye `scheduledAt` por `startsAt`, `paymentStatus` y fines de cita y se sirve directamente en las rutas. El módulo `directory` (repository/service/routes) y estos routers se montan bajo `API_PREFIX`, todos detrás de `authenticate` + `authorizeAdminIdentity`.
+
+**Consecuencias**
+
+- Contrato unificado: `400 validation_error`, `404 not_found`, `409` conflictos y `422 schedule_error`.
+- El panel programa recordatorios en la transacción de creación (sin confirmación WhatsApp inmediata desde admin) y `scheduleCancellationNotice` al cancelar, clasificando `a_tiempo`/`tardia` con `cancellationNoticeFor`.
+- Endpoints legados de `therapists.routes.ts` y `GET /admin/appointments` quedan tras el mismo guard.
+
+## 2026-09-11 - Panel administrativo: paleta semántica y precedencia de colores (US2/T031)
+
+**Contexto**
+
+La agenda del panel exige distinguir visualmente el motivo del color de una cita: cancelación, confirmación pendiente, pago pendiente, terapeuta asignado y tipo personal, en un esquema único ya definido.
+
+**Decisión**
+
+Un único `EVENT_COLOR_MAP` centraliza los 7 tokens del contrato (naranja cumpleaños, gris cancelada, ámbar por confirmar, verde pago pendiente, lavanda Jocelyn, uva Jenny, rosa personal) con pares `bg`/`text` y `solid` para badges. `appointmentKindOf` resuelve la categoría por precedencia: `cancelada` → `por_confirmar` → `pendiente_pago`/`anticipo` (pago no liquidado) → terapeuta (por nombre) → `personal`. `eventsForWindow` fusiona citas con cumpleaños del directorio.
+
+**Consecuencias**
+
+- La agenda (mes/semana/día), la leyenda con contadores y el dashboard usan el mismo origen de verdad.
+- La precedencia garantiza que el estado operativo del día (cancelación o pago) domine al color de la psicóloga.
+
+## 2026-09-11 - Panel administrativo: protección de rutas en el frontend (US2/T030, T033)
+
+**Contexto**
+
+El frontend necesita bloquear el panel salvo login. Next 16 sustituye `middleware.ts` por `proxy.ts`, y el proyecto decidió no adelantar infra proxy; toda la autorización vive en la API.
+
+**Decisión**
+
+Un layout cliente en `frontend/app/admin/layout.tsx` usa `usePathname` para saltar el guard en `/admin/login` y, en el resto, monta `AdminGuard` + `AdminNav`. `useAdminSession` carga la sesión vía `GET /auth/me`; sin sesión o con `401` redirige con `router.replace("/admin/login")`. La cuenta raíz `/` redirige a `/admin/agenda`.
+
+**Consecuencias**
+
+- Sin `proxy.ts` ni duplicidad de Estado del host: el backend sigue siendo la única autoridad.
+- Las páginas admin existentes (`appointments`, `patients`, `therapists`) ya no se auto-envuelven en `AdminGuard`.
+- El E2E `admin-agenda.spec.ts` verifica redirect anónimo, login, vista diaria con leyenda y logout.
