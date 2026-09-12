@@ -31,6 +31,7 @@ Archivo: `backend/.env.example`
 - `WHATSAPP_VERIFY_TOKEN`
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` (destino interno; requiere proveedor compatible con grupos)
 - `AI_PROVIDER_API_KEY`
 
 ### Frontend
@@ -77,7 +78,7 @@ npm run test --workspace backend
 Resultado esperado:
 
 - El webhook valida el challenge de Meta y acepta eventos de mensajes.
-- El flujo de agendamiento valida datos, disponibilidad, derivacion clinica, transparencia y la confirmacion obligatoria.
+- El flujo de agendamiento valida tipo/duración de sesión, horario de inicio y fin, derivacion clinica, transparencia y la confirmacion obligatoria.
 - Se verifican la orquestacion de cita, confirmacion y auditoria, ademas de las migraciones inicial y de reglas de negocio en PostgreSQL embebido.
 - La base de datos rechaza un segundo `admin` y habilitar el login de panel a un perfil de directorio.
 
@@ -147,6 +148,8 @@ Resultado esperado:
 - `/api/v1/auth/login` existe solo como shell y devuelve `501`; la implementacion real corresponde a `T028`.
 - `/api/v1/auth/me` y `/api/v1/auth/logout` requieren una cookie de sesion valida, que se emitira cuando exista login funcional.
 - El adaptador de WhatsApp simula envios fuera de produccion si faltan `WHATSAPP_ACCESS_TOKEN` o `WHATSAPP_PHONE_NUMBER_ID`; produccion exige ambas credenciales.
+- La migración `20260911000000_therapist_session_rules` requiere PostgreSQL real con `btree_gist`; debe ejecutarse y validar el soporte del destino grupal antes de producción.
+- Las citas nuevas requieren una psicóloga asignada por `admin`; individual dura 60 minutos y pareja/familiar 90 minutos.
 - El panel administrativo, las cancelaciones, pagos, recordatorios del dia previo, FAQ y consultas de estado siguen pendientes de sus historias correspondientes.
 - Las pruebas unitarias y E2E se agregan en fases posteriores.
 - No se ha ejecutado una migracion contra PostgreSQL real desde esta guia.

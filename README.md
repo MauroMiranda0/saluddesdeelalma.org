@@ -15,6 +15,7 @@ En este punto existe:
 - rutas shell de health y auth en `/health`, `/api/v1/health` y `/api/v1/auth/*`
 - Prisma schema base y migracion inicial para admin, pacientes, citas, pagos, recordatorios, chat y auditoria
 - migracion de reglas de negocio para `users`, perfiles de directorio, cancelaciones y destinatarios de recordatorio
+- evolución de reglas clínicas: perfiles de psicóloga, asignación paciente-psicóloga, sesiones de 60/90 minutos y restricción de traslapes por intervalo
 - seed idempotente de Jocelyn como única cuenta activa `admin` y prueba de integración de las restricciones de acceso
 - infraestructura de sesiones administrativas con JWT, cookie HttpOnly y expiracion por inactividad
 - middleware de autenticacion, autorizacion admin y auditoria de denegaciones
@@ -22,7 +23,7 @@ En este punto existe:
 - validadores Zod para paciente, cita, pago y chatbot
 - webhook de WhatsApp en `/api/v1/webhooks/whatsapp`, con verificacion de Meta y aceptacion asincrona de mensajes de texto
 - flujo determinista de disponibilidad, agendamiento, derivacion clinica y transparencia sobre el asistente digital
-- persistencia de pacientes, citas y mensajes de chat; las reservas de WhatsApp generan confirmacion inmediata y auditoria
+- persistencia de tipo/duración de cita y recordatorios independientes para paciente y grupo interno; la asignación inicial aún requiere el panel administrativo
 - pruebas de contrato del webhook y pruebas de integracion del flujo de agendamiento, incluyendo persistencia de cita, confirmacion y auditoria
 
 En este punto todavia no existe:
@@ -30,7 +31,7 @@ En este punto todavia no existe:
 - login funcional con credenciales; `/api/v1/auth/login` es shell y devuelve `501` hasta `T028`
 - panel administrativo funcional de agenda/pagos
 - landing publica funcional
-- recordatorios del dia previo, cancelaciones, pagos, FAQ y consultas de estado por WhatsApp
+- job de despacho de recordatorios, cancelaciones, pagos, FAQ y consultas de estado por WhatsApp
 - pruebas unitarias y E2E; las pruebas automatizadas actuales cubren contrato, integracion y restricciones de migracion
 
 ## Estructura actual

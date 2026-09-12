@@ -59,7 +59,7 @@ const applyInitialMigration = async (database: PGlite) => {
 
 test("WhatsApp booking message produces complete booking details", () => {
   const details = parseBookingDetails(
-    "Quiero agendar. Nombre: Ana Pérez; nacimiento: 1990-01-15; cita: 2026-09-14 17:00; modalidad: presencial"
+    "Quiero agendar. Nombre: Ana Pérez; nacimiento: 1990-01-15; cita: 2026-09-14 17:00; modalidad: presencial; tipo: individual"
   );
 
   assert.equal(classifyIntent("Quiero agendar una cita"), "book");
@@ -70,6 +70,7 @@ test("WhatsApp booking message produces complete booking details", () => {
     assert.equal(details.birthdate, "1990-01-15");
     assert.equal(details.scheduledAt, "2026-09-14T23:00:00.000Z");
     assert.equal(details.modality, "presencial");
+    assert.equal(details.therapyType, "individual");
   }
 });
 
@@ -155,6 +156,14 @@ test("WhatsApp booking only accepts regular Mexico City hourly slots", () => {
       assertWhatsAppAppointmentSchedule(new Date("2026-09-13T23:00:00.000Z")),
     AppointmentScheduleError
   );
+  assert.throws(
+    () =>
+      assertWhatsAppAppointmentSchedule(
+        new Date("2026-09-14T02:30:00.000Z"),
+        90
+      ),
+    AppointmentScheduleError
+  );
 });
 
 test("WhatsApp booking flow creates an appointment, confirmation, and audit record", async () => {
@@ -169,7 +178,7 @@ test("WhatsApp booking flow creates an appointment, confirmation, and audit reco
     {
       id: "wamid.booking-flow",
       from: "5215550000000",
-      text: "Quiero agendar. Nombre: Ana Pérez; nacimiento: 1990-01-15; cita: 2026-09-14 17:00; modalidad: presencial",
+      text: "Quiero agendar. Nombre: Ana Pérez; nacimiento: 1990-01-15; cita: 2026-09-14 17:00; modalidad: presencial; tipo: individual",
       receivedAt: new Date("2026-09-10T12:00:00.000Z")
     },
     {

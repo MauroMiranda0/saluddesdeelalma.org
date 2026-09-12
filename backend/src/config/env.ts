@@ -25,6 +25,10 @@ const envSchema = z.object({
     .default("development-whatsapp-verify-token"),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_PSYCHOLOGISTS_GROUP_ID: z.string().min(1).optional(),
+  REMINDER_TIMEZONE: z
+    .literal("America/Mexico_City")
+    .default("America/Mexico_City"),
   AI_PROVIDER_API_KEY: z.string().optional(),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
@@ -49,9 +53,12 @@ if (
 if (
   parsedEnv.data.NODE_ENV === "production" &&
   (!parsedEnv.data.WHATSAPP_ACCESS_TOKEN ||
-    !parsedEnv.data.WHATSAPP_PHONE_NUMBER_ID)
+    !parsedEnv.data.WHATSAPP_PHONE_NUMBER_ID ||
+    !parsedEnv.data.WHATSAPP_PSYCHOLOGISTS_GROUP_ID)
 ) {
-  throw new Error("WhatsApp credentials must be configured in production");
+  throw new Error(
+    "WhatsApp credentials and psychology group destination must be configured in production"
+  );
 }
 
 if (

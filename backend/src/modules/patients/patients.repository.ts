@@ -8,6 +8,15 @@ export const findPatientByWhatsAppPhone = (whatsappPhone: string) => {
   return prisma.patient.findUnique({ where: { whatsappPhone } });
 };
 
+export const findPatientWithTherapistByWhatsAppPhone = (
+  whatsappPhone: string
+) => {
+  return prisma.patient.findUnique({
+    where: { whatsappPhone },
+    include: { assignedTherapist: true }
+  });
+};
+
 export const createPatient = async (input: PatientInput) => {
   return prisma.$transaction(async (transaction) => {
     const user = await transaction.user.create({

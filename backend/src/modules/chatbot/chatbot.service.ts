@@ -3,8 +3,8 @@ import { audit } from "../audit/audit.service";
 import {
   AppointmentConflictError,
   AppointmentScheduleError,
-  createWhatsAppAppointment,
-  findNextAvailableSlots
+  TherapistAssignmentRequiredError,
+  createWhatsAppAppointment
 } from "../appointments/appointments.service";
 import { sendAppointmentConfirmation } from "../reminders/reminders.service";
 import {
@@ -84,10 +84,9 @@ const sendAvailability = async (input: {
   intent: "availability" | "book";
   gateway: WhatsAppGateway;
 }) => {
-  const slots = await findNextAvailableSlots();
   await sendResponse({
     ...input,
-    text: bookingDetailsPrompt(slots)
+    text: bookingDetailsPrompt([])
   });
 };
 
@@ -205,6 +204,7 @@ export const processIncomingWhatsAppMessage = async (
           },
           scheduledAt: details.scheduledAt,
           modality: details.modality,
+          therapyType: details.therapyType,
           createdVia: "whatsapp",
           isManualException: false
         });
@@ -233,7 +233,8 @@ export const processIncomingWhatsAppMessage = async (
     } catch (error) {
       if (
         error instanceof AppointmentConflictError ||
-        error instanceof AppointmentScheduleError
+        error instanceof AppointmentScheduleError ||
+        error instanceof TherapistAssignmentRequiredError
       ) {
         await processingDependencies.audit({
           actorChannel: "whatsapp",

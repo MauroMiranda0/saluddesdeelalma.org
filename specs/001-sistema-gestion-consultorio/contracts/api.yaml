@@ -75,19 +75,57 @@ components:
         preferredModality:
           type: string
           enum: [online, presencial]
+        assignedTherapistId:
+          type: string
+          format: uuid
+          nullable: true
+    Therapist:
+      type: object
+      required: [id, fullName, isActive]
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        isActive:
+          type: boolean
     Appointment:
       type: object
       required:
-        [id, patient, scheduledAt, modality, status, createdVia, paymentStatus]
+        [
+          id,
+          patient,
+          therapist,
+          scheduledAt,
+          endsAt,
+          therapyType,
+          durationMinutes,
+          modality,
+          status,
+          createdVia,
+          paymentStatus
+        ]
       properties:
         id:
           type: string
           format: uuid
         patient:
           $ref: "#/components/schemas/Patient"
+        therapist:
+          $ref: "#/components/schemas/Therapist"
         scheduledAt:
           type: string
           format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        therapyType:
+          type: string
+          enum: [individual, pareja, familiar]
+        durationMinutes:
+          type: integer
+          enum: [60, 90]
         modality:
           type: string
           enum: [online, presencial]
@@ -150,10 +188,17 @@ components:
           format: uuid
         reminderType:
           type: string
-          enum: [confirmacion, recordatorio_24h, cancelacion, pago_pendiente]
+          enum:
+            [
+              confirmacion,
+              recordatorio_24h,
+              cancelacion,
+              pago_pendiente,
+              pago_pendiente_post_cita
+            ]
         recipient:
           type: string
-          enum: [paciente, admin]
+          enum: [paciente, grupo_psicologas]
         scheduledAt:
           type: string
           format: date-time
@@ -264,7 +309,8 @@ paths:
           application/json:
             schema:
               type: object
-              required: [patient, scheduledAt, modality, createdVia]
+              required:
+                [patient, scheduledAt, modality, therapyType, createdVia]
               properties:
                 patient:
                   type: object
@@ -283,6 +329,9 @@ paths:
                 modality:
                   type: string
                   enum: [online, presencial]
+                therapyType:
+                  type: string
+                  enum: [individual, pareja, familiar]
                 createdVia:
                   type: string
                   enum: [panel, system]
@@ -297,7 +346,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Appointment"
         "409":
-          description: Horario ya ocupado
+          description: El intervalo solicitado se traslapa con una cita activa de la psicóloga asignada
           content:
             application/json:
               schema:
@@ -328,6 +377,9 @@ paths:
                 modality:
                   type: string
                   enum: [online, presencial]
+                therapyType:
+                  type: string
+                  enum: [individual, pareja, familiar]
                 status:
                   type: string
                   enum: [programada, confirmada, completada]

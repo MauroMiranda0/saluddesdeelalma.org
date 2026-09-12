@@ -243,3 +243,15 @@ La prueba inicial de US1 comprobaba el esquema de persistencia insertando regist
 - La prueba verifica la coordinacion real del caso de uso sin requerir una base de datos externa.
 - El contrato de produccion conserva las dependencias predeterminadas; la inyeccion solo se usa para pruebas.
 - La integridad de migraciones y relaciones se sigue comprobando con PostgreSQL embebido.
+
+## 2026-09-11 - Continuidad clínica y agenda por intervalos
+
+**Decisión**
+
+Se incorporan perfiles clínicos sin login, asignación de paciente por `admin`, tipos `individual` (60 min), `pareja` (90 min) y `familiar` (90 min). PostgreSQL protege las citas activas con una exclusión por psicóloga e intervalo, independientemente de la modalidad. Las confirmaciones se entregan al paciente y al destino interno configurado; los avisos de pago son exclusivos del paciente, antes y después de la sesión si aplica.
+
+**Consecuencias**
+
+- Las citas y pacientes históricos quedan sin asignación hasta que `admin` los regularice; no se infiere una psicóloga.
+- El grupo interno requiere compatibilidad verificada del proveedor de WhatsApp antes de operar en producción.
+- El panel pendiente debe incorporar asignación/reasignación y mostrar tipo, duración y fin de cada cita.

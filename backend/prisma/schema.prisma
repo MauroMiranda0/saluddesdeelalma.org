@@ -23,6 +23,12 @@ enum Modality {
   presencial
 }
 
+enum TherapyType {
+  individual
+  pareja
+  familiar
+}
+
 enum PatientStatus {
   activo
   inactivo
@@ -62,6 +68,7 @@ enum ReminderType {
   recordatorio_24h
   cancelacion
   pago_pendiente
+  pago_pendiente_post_cita
 }
 
 enum ReminderStatus {
@@ -74,7 +81,7 @@ enum ReminderStatus {
 
 enum ReminderRecipient {
   paciente
-  admin
+  grupo_psicologas
 }
 
 enum ConversationIntent {
@@ -144,11 +151,25 @@ model User {
   updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
   sessions          AdminSession[]
   patientProfile    Patient?
-  appointments      Appointment[]
+  therapistProfile  TherapistProfile?
+  appointmentsCreated Appointment[] @relation("AppointmentCreator")
   payments          Payment[]
   auditLogs         AuditLog[]
 
   @@map("users")
+}
+
+model TherapistProfile {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String        @unique @map("user_id") @db.Uuid
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User          @relation(fields: [userId], references: [id])
+  patients     Patient[]
+  appointments Appointment[]
+
+  @@map("therapist_profiles")
 }
 
 model AdminSession {
@@ -179,9 +200,11 @@ model Patient {
   email             String?            @db.VarChar(255)
   notes             String?
   status            PatientStatus      @default(activo)
+  assignedTherapistId String?           @map("assigned_therapist_id") @db.Uuid
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   user              User               @relation(fields: [userId], references: [id])
+  assignedTherapist TherapistProfile?  @relation(fields: [assignedTherapistId], references: [id])
   appointments      Appointment[]
   payments          Payment[]
   conversations     ChatConversation[]
@@ -205,15 +228,22 @@ model Appointment {
   createdVia        AppointmentCreatedVia @map("created_via")
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  therapistId       String                @map("therapist_id") @db.Uuid
+  therapyType       TherapyType           @map("therapy_type")
+  durationMinutes   Int                   @map("duration_minutes")
+  endsAt            DateTime              @map("ends_at") @db.Timestamptz(6)
+  completedAt       DateTime?             @map("completed_at") @db.Timestamptz(6)
   patient           Patient               @relation(fields: [patientId], references: [id])
-  createdBy         User?                 @relation(fields: [createdByUserId], references: [id])
+  therapist         TherapistProfile      @relation(fields: [therapistId], references: [id])
+  createdBy         User?                 @relation("AppointmentCreator", fields: [createdByUserId], references: [id])
   payments          Payment[]
   reminders         AppointmentReminder[]
 
   @@index([patientId])
   @@index([scheduledAt])
-  /// La migracion inicial agrega un indice unico parcial sobre scheduled_at
-  /// para citas activas porque Prisma no modela indices parciales.
+  @@index([therapistId, scheduledAt])
+  /// La migracion de reglas clinicas agrega una restriccion de exclusion por
+  /// intervalo activo porque Prisma no modela restricciones EXCLUDE.
   @@map("appointments")
 }
 

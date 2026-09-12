@@ -1,11 +1,16 @@
 import { Prisma } from "@prisma/client";
 
+import { prisma } from "../../lib/prisma";
 import type { CreateAppointmentInput } from "../../lib/validators/appointment";
-import { findOrCreatePatient } from "../patients/patients.service";
+import {
+  findOrCreatePatient,
+  findPatientWithAssignedTherapist
+} from "../patients/patients.service";
 import {
   createAppointmentRecord,
-  findActiveAppointmentsFrom
+  findActiveAppointmentsForTherapist
 } from "./appointments.repository";
+import { createPostCompletionPaymentReminder } from "../reminders/reminders.service";
 
 const mexicoTimeZone = "America/Mexico_City";
 const hourFormatter = new Intl.DateTimeFormat("en-US", {
@@ -18,6 +23,11 @@ const hourFormatter = new Intl.DateTimeFormat("en-US", {
 
 export class AppointmentConflictError extends Error {}
 export class AppointmentScheduleError extends Error {}
+export class TherapistAssignmentRequiredError extends Error {}
+
+export const therapyDurationMinutes = (
+  therapyType: CreateAppointmentInput["therapyType"]
+) => (therapyType === "individual" ? 60 : 90);
 
 const localTimeParts = (scheduledAt: Date) => {
   const parts = hourFormatter.formatToParts(scheduledAt);
@@ -31,38 +41,64 @@ const localTimeParts = (scheduledAt: Date) => {
   };
 };
 
-export const assertWhatsAppAppointmentSchedule = (scheduledAt: Date) => {
+export const assertWhatsAppAppointmentSchedule = (
+  scheduledAt: Date,
+  durationMinutes = 60
+) => {
   const { weekday, hour, minute } = localTimeParts(scheduledAt);
+  const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
+  const end = localTimeParts(endsAt);
 
   if (
     weekday === "Sat" ||
     weekday === "Sun" ||
     hour < 9 ||
-    hour > 21 ||
-    minute !== 0
+    minute !== 0 ||
+    end.weekday !== weekday ||
+    end.hour > 21 ||
+    (end.hour === 21 && end.minute !== 0)
   ) {
     throw new AppointmentScheduleError(
-      "WhatsApp appointments are available Monday through Friday from 09:00 to 21:00 on the hour"
+      "WhatsApp appointments must fit Monday through Friday from 09:00 to 21:00 in 60 or 90 minute blocks"
     );
   }
 };
 
 const isActiveAppointmentConflict = (error: unknown) =>
   error instanceof Prisma.PrismaClientKnownRequestError &&
-  error.code === "P2002";
+  (error.code === "P2002" ||
+    (error.code === "P2010" && error.meta?.code === "23P01"));
 
 export const createWhatsAppAppointment = async (
   input: CreateAppointmentInput
 ) => {
   const scheduledAt = new Date(input.scheduledAt);
-  assertWhatsAppAppointmentSchedule(scheduledAt);
+  const durationMinutes = therapyDurationMinutes(input.therapyType);
+  assertWhatsAppAppointmentSchedule(scheduledAt, durationMinutes);
 
   const patient = await findOrCreatePatient(input.patient);
+  const patientWithTherapist = await findPatientWithAssignedTherapist(
+    patient.whatsappPhone
+  );
+
+  if (
+    !patientWithTherapist?.assignedTherapistId ||
+    !patientWithTherapist.assignedTherapist?.isActive
+  ) {
+    throw new TherapistAssignmentRequiredError(
+      "An admin must assign an active therapist before booking this patient"
+    );
+  }
+  const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
 
   try {
     const appointment = await createAppointmentRecord({
       patientId: patient.id,
+      therapistId: patientWithTherapist.assignedTherapistId,
       scheduledAt,
+      endsAt,
+      therapyType: input.therapyType,
+      durationMinutes,
       modality: input.modality,
       isManualException: false,
       locationLabel: input.locationLabel,
@@ -95,13 +131,14 @@ const mexicoDate = (date: Date) => {
   return { year: value("year"), month: value("month"), day: value("day") };
 };
 
-export const findNextAvailableSlots = async (count = 3) => {
+export const findNextAvailableSlots = async (
+  therapistId: string,
+  therapyType: CreateAppointmentInput["therapyType"],
+  count = 3
+) => {
   const now = new Date();
-  const occupied = new Set(
-    (await findActiveAppointmentsFrom(now)).map((appointment) =>
-      appointment.scheduledAt.toISOString()
-    )
-  );
+  const occupied = await findActiveAppointmentsForTherapist(therapistId, now);
+  const durationMinutes = therapyDurationMinutes(therapyType);
   const slots: Date[] = [];
   const { year, month, day } = mexicoDate(now);
   const firstDay = new Date(Date.UTC(year, month - 1, day));
@@ -119,7 +156,7 @@ export const findNextAvailableSlots = async (count = 3) => {
       continue;
     }
 
-    for (let hour = 9; hour <= 21 && slots.length < count; hour += 1) {
+    for (let hour = 9; hour <= 20 && slots.length < count; hour += 1) {
       const slot = new Date(
         Date.UTC(
           dayAtUtc.getUTCFullYear(),
@@ -129,11 +166,34 @@ export const findNextAvailableSlots = async (count = 3) => {
         )
       );
 
-      if (slot > now && !occupied.has(slot.toISOString())) {
+      const endsAt = new Date(slot.getTime() + durationMinutes * 60_000);
+      const end = localTimeParts(endsAt);
+      const overlaps = occupied.some(
+        (appointment) =>
+          slot < appointment.endsAt && endsAt > appointment.scheduledAt
+      );
+
+      if (
+        slot > now &&
+        end.weekday !== "Sat" &&
+        end.weekday !== "Sun" &&
+        (end.hour < 21 || (end.hour === 21 && end.minute === 0)) &&
+        !overlaps
+      ) {
         slots.push(slot);
       }
     }
   }
 
   return slots;
+};
+
+export const completeAppointment = async (appointmentId: string) => {
+  // Completion is the only event that schedules the priority post-session notice.
+  const appointment = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: { status: "completada", completedAt: new Date() }
+  });
+  await createPostCompletionPaymentReminder(appointment.id);
+  return appointment;
 };

@@ -13,11 +13,13 @@ export const appointmentCreatedViaSchema = z.enum([
   "panel",
   "system"
 ]);
+export const therapyTypeSchema = z.enum(["individual", "pareja", "familiar"]);
 
 export const createAppointmentSchema = z.object({
   patient: patientSchema,
   scheduledAt: z.iso.datetime(),
   modality: modalitySchema,
+  therapyType: therapyTypeSchema,
   createdVia: appointmentCreatedViaSchema,
   isManualException: z.boolean().default(false),
   locationLabel: z.string().max(255).optional(),
@@ -27,6 +29,7 @@ export const createAppointmentSchema = z.object({
 export const updateAppointmentSchema = z.object({
   scheduledAt: z.iso.datetime().optional(),
   modality: modalitySchema.optional(),
+  therapyType: therapyTypeSchema.optional(),
   status: appointmentStatusSchema.optional(),
   cancelReason: z.string().max(500).optional()
 });

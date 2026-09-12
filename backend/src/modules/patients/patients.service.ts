@@ -1,7 +1,8 @@
 import type { PatientInput } from "../../lib/validators/patient";
 import {
   createPatient,
-  findPatientByWhatsAppPhone
+  findPatientByWhatsAppPhone,
+  findPatientWithTherapistByWhatsAppPhone
 } from "./patients.repository";
 
 export const normalizeWhatsAppPhone = (phone: string) =>
@@ -18,3 +19,8 @@ export const findOrCreatePatient = async (input: PatientInput) => {
 
   return existing ?? createPatient(normalizedInput);
 };
+
+export const findPatientWithAssignedTherapist = (whatsappPhone: string) =>
+  findPatientWithTherapistByWhatsAppPhone(
+    normalizeWhatsAppPhone(whatsappPhone)
+  );

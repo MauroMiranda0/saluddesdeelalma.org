@@ -20,7 +20,7 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ## Correspondencia con Cronograma Comercial
 
-- **Fase 4: Integración de pagos y recordatorios**: reúne las tareas de `US3` y `US4`; su alcance obligatorio incluye la política de cancelación de 24 horas, la ventana de envío 18:00–19:00 `America/Mexico_City` y un recordatorio independiente para paciente y Jocelyn.
+- **Fase 4: Integración de pagos y recordatorios**: reúne las tareas de `US3` y `US4`; su alcance obligatorio incluye la política de cancelación de 24 horas, la ventana de envío 18:00–19:00 `America/Mexico_City`, aviso privado de pago antes y después de la cita y trazabilidad independiente para paciente/grupo interno.
 - **Fase 6: Panel administrativo**: corresponde a `US2` más las tareas transversales de autenticación y directorio. La única sesión admisible en el MVP es la cuenta activa `admin` con rol `admin`.
 - Los encabezados históricos por historia de usuario se conservan para no renumerar las tareas existentes ni invalidar sus referencias.
 
@@ -149,7 +149,7 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 4
 
-- [ ] T045 [P] [US4] Crear prueba de integración de programación, reintento y envío idempotente de recordatorios para paciente y Jocelyn en `backend/tests/integration/reminders.integration.test.ts`
+- [ ] T045 [P] [US4] Crear prueba de integración de programación, reintento y envío idempotente de recordatorios para paciente y grupo interno en `backend/tests/integration/reminders.integration.test.ts`
 - [ ] T046 [P] [US4] Crear prueba de contrato del endpoint de recordatorios en `backend/tests/contract/reminders.contract.test.ts`
 - [ ] T084 [P] [US4] Crear pruebas unitarias de zona horaria y bordes 18:00 inclusivo / 19:00 exclusivo del día previo en `backend/tests/unit/reminder-window.test.ts`
 - [ ] T085 [P] [US4] Crear pruebas de clasificación de cancelación a tiempo y tardía, incluido el límite exacto de 24 horas y ausencia de cobro automático, en `backend/tests/unit/cancellation-policy.test.ts`
@@ -349,11 +349,11 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T070 Centralizar autorizacion de rol admin y auditoria de denegaciones en `backend/src/middleware/authorize-admin.ts`, `backend/src/middleware/authenticate.ts`, `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
 - [x] T071 Configurar soporte CORS y cookies para frontend y backend separados en `backend/src/app.ts`, `backend/src/config/env.ts`, `backend/.env.example`, `backend/package.json` y `frontend/.env.example`
 - [x] T072 Documentar indices SQL manuales no representables por Prisma en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260904000000_initial/migration.sql`
-- [X] T073 Completar consistencia local de Prisma Migrate agregando `backend/prisma/migrations/migration_lock.toml` y validacion de schema en `backend/package.json`
-- [X] T074 Agregar scripts verificables de ciclo de vida en `package.json`, `backend/package.json` y `frontend/package.json`
-- [X] T075 Endurecer manejo de cookies de sesion separando opciones de set/clear y tratando cookies malformadas como 401 auditado en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/auth.routes.ts` y `backend/src/middleware/authenticate.ts`
-- [X] T076 Reforzar validacion de sesion verificando coincidencia entre `sub` del JWT y `admin_sessions.user_id` en `backend/src/modules/auth/session.service.ts`
-- [X] T077 Limpiar artefactos generados ignorados y agregar higiene de workspace en `.gitignore` y `package.json`
+- [x] T073 Completar consistencia local de Prisma Migrate agregando `backend/prisma/migrations/migration_lock.toml` y validacion de schema en `backend/package.json`
+- [x] T074 Agregar scripts verificables de ciclo de vida en `package.json`, `backend/package.json` y `frontend/package.json`
+- [x] T075 Endurecer manejo de cookies de sesion separando opciones de set/clear y tratando cookies malformadas como 401 auditado en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/auth.routes.ts` y `backend/src/middleware/authenticate.ts`
+- [x] T076 Reforzar validacion de sesion verificando coincidencia entre `sub` del JWT y `admin_sessions.user_id` en `backend/src/modules/auth/session.service.ts`
+- [x] T077 Limpiar artefactos generados ignorados y agregar higiene de workspace en `.gitignore` y `package.json`
 
 ---
 
@@ -361,9 +361,9 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 **Proposito**: Remediar brechas detectadas al auditar las fases de preparacion y fundacional antes de iniciar US1.
 
-- [X] T087 Aplicar el formato configurado por Prettier a los archivos de configuracion, backend y frontend para cerrar T004 y hacer que `npm run format:check` finalice sin errores per T004 (partial)
-- [X] T088 Instalar Prisma CLI y Prisma Client en el workspace `backend` para habilitar la validacion del esquema y cerrar T008/T009 per T008, T009 (missing)
-- [X] T089 Configurar `prisma:validate` y `prisma:generate` para cargar `backend/.env.example` en validacion local sin versionar secretos per T009, T074 (partial)
+- [x] T087 Aplicar el formato configurado por Prettier a los archivos de configuracion, backend y frontend para cerrar T004 y hacer que `npm run format:check` finalice sin errores per T004 (partial)
+- [x] T088 Instalar Prisma CLI y Prisma Client en el workspace `backend` para habilitar la validacion del esquema y cerrar T008/T009 per T008, T009 (missing)
+- [x] T089 Configurar `prisma:validate` y `prisma:generate` para cargar `backend/.env.example` en validacion local sin versionar secretos per T009, T074 (partial)
 
 ---
 
@@ -390,3 +390,16 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 **Proposito**: Remediar la cobertura incompleta del flujo de agendamiento detectada en la segunda auditoria de US1.
 
 - [x] T095 Ejecutar `processIncomingWhatsAppMessage` en la prueba de integracion y verificar que orquesta la persistencia de la cita, confirmacion y auditoria en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per T016, Constitution IV (partial)
+
+---
+
+## Fase 15: Reglas clínicas y notificaciones operativas
+
+**Propósito**: Eliminar la deuda de agenda única, duración implícita y destinatarios de recordatorio antes de continuar el panel.
+
+- [x] T096 Crear perfiles clínicos, asignación paciente-psicóloga, tipo/duración 60/90 min y exclusión PostgreSQL por intervalo activo en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260911000000_therapist_session_rules/migration.sql`.
+- [x] T097 Actualizar el flujo de WhatsApp para capturar tipo de sesión, validar el fin de jornada y exigir una psicóloga asignada en `backend/src/modules/chatbot/`, `backend/src/modules/appointments/` y `backend/src/lib/validators/appointment.ts`.
+- [x] T098 Registrar confirmaciones individuales al paciente y copia mínima al destino interno, más filas de aviso previo y posterior de pago, en `backend/src/modules/reminders/reminders.service.ts`.
+- [ ] T099 Implementar UI y endpoints de `admin` para crear perfiles clínicos, asignar/reasignar pacientes y completar citas, con auditoría.
+- [x] T100 Implementar el dispatcher recurrente que entregue recordatorios previos en ventana, omita saldo liquidado y envíe el aviso posterior al completar la cita.
+- [ ] T101 Crear pruebas de migración PostgreSQL real para exclusión de intervalos, asignación, idempotencia de ambos destinos, privacidad del grupo y avisos de pago.

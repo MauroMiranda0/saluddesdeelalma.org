@@ -3,6 +3,7 @@ export type BookingDetails = {
   birthdate?: string;
   scheduledAt?: string;
   modality?: "online" | "presencial";
+  therapyType?: "individual" | "pareja" | "familiar";
 };
 
 export type SupportedIntent = "availability" | "book" | "handoff" | "unknown";
@@ -21,11 +22,11 @@ export const isAutomationQuestion = (text: string) =>
   automationQuestionPattern.test(text);
 
 export const classifyIntent = (text: string): SupportedIntent => {
-  if (containsSensitiveClinicalContent(text)) {
-    return "handoff";
-  }
   if (bookingPattern.test(text)) {
     return "book";
+  }
+  if (containsSensitiveClinicalContent(text)) {
+    return "handoff";
   }
   if (availabilityPattern.test(text)) {
     return "availability";
@@ -77,12 +78,20 @@ export const parseBookingDetails = (text: string): BookingDetails => {
     : /\bpresencial\b/i.test(text)
       ? "presencial"
       : undefined;
+  const therapyType = /\bpareja\b/i.test(text)
+    ? "pareja"
+    : /\bfamiliar\b/i.test(text)
+      ? "familiar"
+      : /\bindividual\b/i.test(text)
+        ? "individual"
+        : undefined;
 
   return {
     fullName: name,
     birthdate,
     scheduledAt: parseMexicoLocalDateTime(localScheduledAt),
-    modality
+    modality,
+    therapyType
   };
 };
 
@@ -93,5 +102,6 @@ export const hasCompleteBookingDetails = (
     details.fullName &&
     details.birthdate &&
     details.scheduledAt &&
-    details.modality
+    details.modality &&
+    details.therapyType
   );

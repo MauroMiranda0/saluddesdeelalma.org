@@ -26,32 +26,32 @@ Construir el MVP desde cero como una aplicacion web full-stack separada en `fron
 
 **Constraints**: mobile-first; sin BaaS; JWT + sesion propia con expiracion por inactividad de 30 minutos; solo la cuenta activa `admin` con rol `admin` puede iniciar sesion o usar la API administrativa; auditoria obligatoria de accesos y acciones criticas; datos clinicos minimizados a resumen administrativo; chatbot no diagnostica; sabados solo como excepcion manual; sin portal de pacientes ni pasarela de pagos en este MVP
 
-**Scale/Scope**: una sola psicologa, una sola agenda, una sola ubicacion, cientos de pacientes y miles de mensajes/citas al ano; alcance MVP enfocado en agenda, pagos, recordatorios, landing y chatbot administrativo
+**Scale/Scope**: una cuenta `admin`, múltiples perfiles clínicos sin login y agendas independientes por psicóloga; cientos de pacientes y miles de mensajes/citas al año.
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 ### Pre-Research Gate
 
-| Gate | Status | Notes |
-|---|---|---|
-| Mobile-first, calm UX | PASS | El frontend se limita a landing y panel con prioridad movil, accesibilidad WCAG AA y paleta verde/sepia definida por la constitucion. |
-| Backend propio y control total | PASS | La logica critica, webhooks, recordatorios y autenticacion viven en `backend/` con Express; no se delegan funciones criticas a un BaaS. |
-| PostgreSQL + Prisma | PASS | La persistencia queda definida sobre PostgreSQL 16 y Prisma Migrate. |
-| Seguridad y acceso por identidad y rol | PASS | El plan exige JWT en cookie segura, sesion propia con inactividad de 30 minutos, rutas protegidas y la identidad exacta `admin` con rol `admin`; toda denegación queda en `audit_logs`. |
-| Politica de cancelacion y recordatorios | PASS | La confirmación incluye el aviso de 24 h; el cron usa `America/Mexico_City`, opera solo de 18:00 a 18:59 el día previo y persiste un envío para paciente y otro para Jocelyn. |
-| Privacidad y auditabilidad | PASS | Los mensajes clinicos se minimizan a resumen administrativo; accesos exitosos/fallidos y acciones criticas quedan auditados. |
-| Persona y limites del chatbot | PASS | El bot opera con tono definido, transparencia, derivacion clinica y guardrails para evitar diagnostico o recomendaciones. |
-| Quality gates | PASS | El plan contempla pruebas unitarias, integracion, UAT y seguridad antes del cierre de fase. |
+| Gate                                    | Status | Notes                                                                                                                                                                                   |
+| --------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mobile-first, calm UX                   | PASS   | El frontend se limita a landing y panel con prioridad movil, accesibilidad WCAG AA y paleta verde/sepia definida por la constitucion.                                                   |
+| Backend propio y control total          | PASS   | La logica critica, webhooks, recordatorios y autenticacion viven en `backend/` con Express; no se delegan funciones criticas a un BaaS.                                                 |
+| PostgreSQL + Prisma                     | PASS   | La persistencia queda definida sobre PostgreSQL 16 y Prisma Migrate.                                                                                                                    |
+| Seguridad y acceso por identidad y rol  | PASS   | El plan exige JWT en cookie segura, sesion propia con inactividad de 30 minutos, rutas protegidas y la identidad exacta `admin` con rol `admin`; toda denegación queda en `audit_logs`. |
+| Politica de cancelacion y recordatorios | PASS   | La confirmación incluye el aviso de 24 h; el cron usa `America/Mexico_City`, opera solo de 18:00 a 18:59 el día previo y persiste destinos separados para paciente y grupo interno.     |
+| Privacidad y auditabilidad              | PASS   | Los mensajes clinicos se minimizan a resumen administrativo; accesos exitosos/fallidos y acciones criticas quedan auditados.                                                            |
+| Persona y limites del chatbot           | PASS   | El bot opera con tono definido, transparencia, derivacion clinica y guardrails para evitar diagnostico o recomendaciones.                                                               |
+| Quality gates                           | PASS   | El plan contempla pruebas unitarias, integracion, UAT y seguridad antes del cierre de fase.                                                                                             |
 
 ### Post-Design Re-Check
 
-| Gate | Status | Notes |
-|---|---|---|
-| Artefactos de diseno completos | PASS | `research.md`, `data-model.md`, `contracts/api.yaml` y `quickstart.md` cubren stack, datos, interfaces y validacion. |
-| Sin contradicciones funcionales bloqueantes | PASS | Las aclaraciones de identidad, privacidad, sesion y verificacion quedaron reflejadas en los artefactos de diseno. |
-| Complejidad justificada | PASS | Se mantiene una estructura minima de dos aplicaciones y sin paquete compartido adicional en MVP. |
+| Gate                                        | Status | Notes                                                                                                                |
+| ------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| Artefactos de diseno completos              | PASS   | `research.md`, `data-model.md`, `contracts/api.yaml` y `quickstart.md` cubren stack, datos, interfaces y validacion. |
+| Sin contradicciones funcionales bloqueantes | PASS   | Las aclaraciones de identidad, privacidad, sesion y verificacion quedaron reflejadas en los artefactos de diseno.    |
+| Complejidad justificada                     | PASS   | Se mantiene una estructura minima de dos aplicaciones y sin paquete compartido adicional en MVP.                     |
 
 ## Project Structure
 
@@ -132,10 +132,10 @@ backend/
 2. **Autenticacion administrativa**: login con usuario y contraseña, cookie `HttpOnly` segura con JWT firmado y una tabla `admin_sessions` para imponer expiracion por inactividad de 30 minutos, revocacion y auditoria. El servicio autentica únicamente `username = 'admin'`, `role = 'admin'`, activo y con login de panel habilitado. Los perfiles de psicólogos/as y pacientes se muestran en el directorio sin poder obtener una sesión.
 3. **Motor conversacional**: usar orquestacion rule-first. La IA solo ayuda a clasificar intenciones y redactar respuestas dentro de prompts acotados; las acciones de agenda, cancelacion, pagos y verificacion siempre pasan por servicios deterministas del backend.
 4. **Integracion WhatsApp**: integrar primero con WhatsApp Business Cloud API mediante un adaptador `WhatsAppGateway`; el dominio no depende del proveedor concreto y puede cambiar despues sin reescribir reglas de negocio.
-5. **Disponibilidad y dobles reservas**: bloquear doble reserva con una restriccion unica parcial sobre citas activas y validacion transaccional en servicio de agendamiento.
+5. **Disponibilidad y traslapes**: perfiles clínicos explícitos, asignación paciente-psicóloga y restricción `EXCLUDE` PostgreSQL por psicóloga/rango activo `[scheduled_at, ends_at)`. El servidor deriva 60 min para individual y 90 min para pareja/familiar; modalidad no modifica el conflicto.
 6. **Excepcion sabatina**: el bot no ofrece sabados en automatico; solo el panel permite marcar una cita fuera de horario regular como excepcion manual.
 7. **Pagos y comprobantes**: los pagos se modelan como eventos vinculados a la cita. El comprobante se guarda como referencia segura opcional y estado de validacion, no como modulo documental completo.
-8. **Recordatorios**: al crear una cita, persistir la confirmación inmediata y dos filas de recordatorio del día previo (paciente y Jocelyn), programadas para las 18:00 de `America/Mexico_City`. Un job recurrente cada 5 minutos solo reclama, envía o reintenta esas filas entre 18:00:00 y 18:59:59; usa reclamación atómica, idempotencia y máximo tres intentos dentro de la ventana. Si la cita se crea después de su ventana previa, los dos recordatorios quedan `omitido` con motivo auditable.
+8. **Recordatorios**: al crear una cita, persistir confirmación individual al paciente y copia al grupo interno, más los avisos previos de cita/pago. El aviso prioritario de pago se crea al completar la cita si no hay pago completo validado. El grupo nunca recibe pagos o datos clínicos y su compatibilidad con el proveedor se valida antes de producción.
 9. **Privacidad de chat**: no persistir payloads clinicos completos; guardar solo resumen administrativo breve, metadatos y `wa_message_id` cuando haya contenido sensible.
 10. **Observabilidad**: logs estructurados con `pino`, correlacion por `request_id` y eventos de auditoria separados de logs tecnicos.
 
@@ -148,7 +148,7 @@ La numeración de las historias en `tasks.md` se conserva para mantener sus IDs.
 - Registrar anticipos, pagos completos y saldos pendientes desde el panel de `admin`.
 - Incluir en la plantilla de confirmación de WhatsApp la leyenda obligatoria de cancelación con al menos 24 horas de anticipación.
 - Calcular y guardar la clasificación `a_tiempo` o `tardia` al cancelar, sin realizar cargos automáticos.
-- Crear dos recordatorios por cita activa para el día siguiente: uno para paciente y otro para Jocelyn.
+- Crear confirmación y recordatorio por cita activa para paciente y grupo interno, con estados independientes; los avisos de saldo solo van al paciente.
 - Ejecutar `process-reminders` cada cinco minutos, con guardia horaria `18:00 <= hora local < 19:00` en `America/Mexico_City`; fuera de ese intervalo no puede enviar ni reintentar.
 - Aprobar pruebas de zona horaria, bordes de ventana, idempotencia, destinatarios y fallos de proveedor.
 

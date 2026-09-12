@@ -14,7 +14,7 @@ El cronograma original ubica el Dia 10 en autenticacion del panel y manejo de pa
 
 - Se preparo la estructura del proyecto para la aplicacion, el servidor y la base de datos.
 - Se definieron reglas para registrar pacientes, citas, mensajes y acciones importantes.
-- Se incorporaron controles para evitar dos citas activas en el mismo horario.
+- Se incorporaron reglas de psicóloga asignada, duración y controles para evitar intervalos traslapados en línea o presencial.
 - Se realizaron revisiones y pruebas para confirmar que el flujo actual funciona de forma consistente.
 
 ### Flujo inicial de citas por WhatsApp
@@ -22,8 +22,8 @@ El cronograma original ubica el Dia 10 en autenticacion del panel y manejo de pa
 - La persona puede solicitar una cita por WhatsApp.
 - El sistema puede mostrar horarios disponibles.
 - Para confirmar una cita, solicita nombre y fecha de nacimiento; el numero de WhatsApp se obtiene del mensaje recibido.
-- La persona elige si la sesion sera en linea o presencial.
-- El sistema registra la cita y envía una confirmacion con fecha, hora, modalidad y politica de cancelacion con al menos 24 horas de anticipacion.
+- La persona elige si la sesion sera en linea o presencial y si es individual (60 min), de pareja (90 min) o familiar (90 min).
+- El sistema registra la cita únicamente con la psicóloga asignada y envía una confirmacion individual con fecha, hora, duración, modalidad y politica de cancelacion.
 - Las solicitudes, citas y confirmaciones quedan registradas para seguimiento interno.
 
 ### Recordatorios solicitados por la cliente
@@ -31,9 +31,9 @@ El cronograma original ubica el Dia 10 en autenticacion del panel y manejo de pa
 Los recordatorios forman parte del servicio solicitado y se incluyen en este avance como funcionalidad aprobada para la siguiente etapa:
 
 - Al agendar, la persona ya recibe una confirmacion inmediata.
-- El dia previo a la cita, el paciente y Jocelyn deben recibir un recordatorio independiente.
+- El dia previo a la cita, el paciente y el grupo interno de psicólogas deben recibir un recordatorio independiente.
 - Esos recordatorios deben enviarse entre las 18:00 y las 19:00, hora de Ciudad de Mexico.
-- Tambien se incorporaran avisos de cancelacion y recordatorios de pago pendiente.
+- Si hay saldo, el paciente recibe un aviso privado junto con el recordatorio previo y otro prioritario al concluir la cita.
 
 Los recordatorios programados todavia no estan activos; se mencionan aqui para confirmar que el cambio solicitado despues del primer avance ya forma parte del alcance acordado.
 
@@ -69,7 +69,7 @@ flowchart TD
     I -->|Si| K[Se registra paciente y cita]
     K --> L[Se registra el seguimiento interno]
     L --> M[Se envia confirmacion inmediata con politica de 24 horas]
-    M -. Pendiente .-> O[Recordatorio para paciente y Jocelyn el dia previo entre 18:00 y 19:00]
+    M -. Pendiente .-> O[Recordatorio para paciente y grupo interno el dia previo entre 18:00 y 19:00]
 ```
 
 ## Validaciones solicitadas a la cliente
@@ -91,14 +91,14 @@ La siguiente entrega sera el panel privado para que Jocelyn pueda:
 - Mover citas a otro horario.
 - Cancelar citas y notificar al paciente.
 
-Despues se habilitaran los recordatorios automaticos para paciente y Jocelyn, junto con los avisos de cancelacion y pago pendiente.
+Despues se habilitaran el dispatcher de recordatorios para paciente y grupo interno, junto con los avisos de cancelacion y pago pendiente.
 
 ## Alcance aun pendiente
 
 - Panel administrativo funcional y acceso privado para Jocelyn.
 - Conexion a la cuenta real de WhatsApp del consultorio. Mientras no se configure, los envios se simulan fuera de produccion.
 - Pagos, anticipos y comprobantes.
-- Recordatorios automaticos aprobados para paciente y Jocelyn, avisos de cancelacion y avisos de pago pendiente.
+- Recordatorios automáticos aprobados para paciente y grupo interno, avisos de cancelación y avisos de pago pendiente.
 - Consultas de pacientes sobre cita o pago.
 - Landing publica del consultorio.
 - Pruebas de uso con la cliente desde su celular y puesta en produccion.
