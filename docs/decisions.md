@@ -255,3 +255,154 @@ Se incorporan perfiles clínicos sin login, asignación de paciente por `admin`,
 - Las citas y pacientes históricos quedan sin asignación hasta que `admin` los regularice; no se infiere una psicóloga.
 - El grupo interno requiere compatibilidad verificada del proveedor de WhatsApp antes de operar en producción.
 - El panel pendiente debe incorporar asignación/reasignación y mostrar tipo, duración y fin de cada cita.
+
+## 2026-09-11 - Endurecimiento de invariantes de agenda en PostgreSQL (convergencia)
+
+**Contexto**
+
+La convergencia detectó que el trigger de citas permitía `therapist_id` nulo, mientras la capa de aplicación ya exigía una psicóloga activa asignada. La segunda pasada (`T116`) cerró el hueco a nivel de base de datos y endureció el listado administrativo ante filas históricas sin terapeuta.
+
+**Decisión**
+
+La migración `20261101000000_convergence_hardening` reemplaza la función del trigger para rechazar con SQLSTATE `23514` las citas con `therapist_id` nulo o que no correspondan a la psicóloga activa asignada al paciente. El listado administrativo de citas usa `therapist?.user?.fullName ?? null` en lugar de desreferenciar la fila.
+
+**Alternativas consideradas**
+
+- Dejar únicamente la validación en la capa de aplicación.
+- Rechazar en el trigger solo el `therapist_id` nulo sin validar la psicóloga activa.
+- Corregir los datos históricos con una migración de datos.
+
+**Consecuencias**
+
+- La restricción sobrevive a cualquier camino de escritura, incluidos los que omitan la validación de aplicación.
+- Las filas históricas se listan con `fullName` nulo en lugar de fallar.
+- Toda migración futura que toque el trigger debe conservar el comportamiento.
+
+## 2026-09-11 - Deslizamiento de sesión administrativa en cada petición (convergencia)
+
+**Contexto**
+
+La renovación por inactividad solo ocurría en `/auth/me`; una petición a cualquier otra ruta administrativa no desplazaba la ventana, y además la cookie de `/me` se emitía sin opciones de sesión (conservaba clear). Descubierto en `T117`/`T118`.
+
+**Decisión**
+
+El middleware `authenticate` desliza la sesión en cada petición autenticada: actualiza `last_activity_at`/`expiry` con el tiempo de inactividad, firma un nuevo JWT con el mismo `jwt_id` y reescribe la cookie con las opciones de set. `/auth/me` conserva su refresco auditable (doble actualización, por diseño), y el clear vuelve a usarse solo en logout.
+
+**Alternativas consideradas**
+
+- Deslizar solo en `/auth/me`.
+- Renovar únicamente la cookie sin volver a firmar el token.
+- Usar sesiones opacas sin JWT.
+
+**Consecuencias**
+
+- La expiración de inactividad se cumple en toda la API administrativa.
+- Cada petición autenticada escribe en `admin_sessions` (más carga de BD, aceptada por el alcance).
+- `/auth/me` realiza dos slides por petición (uno silencioso del middleware y uno auditable del handler).
+
+## 2026-09-11 - Ventana fija y guard de día calendario para los recordatorios del día previo (convergencia)
+
+**Contexto**
+
+`T119`/`T120`: el despacho de recordatorios del día previo dependía solo de la hora y no verificaba el día calendario ni que la cita fuese aún futura, y la programación quedaba atada al resultado del envío inmediato de la confirmación.
+
+**Decisión**
+
+Los recordatorios `recordatorio_24h` y `pago_pendiente` se envían únicamente entre las 18:00 y 19:00 `America/Mexico_City` del día calendario anterior a una cita futura (`isPriorDayReminderDue`); las filas rezagadas se marcan `omitido` con causa "Outside the prior-day reminder window". La programación (`scheduleAppointmentReminders`) se ejecuta en el `finally` de la confirmación, independiente del resultado del envío.
+
+**Alternativas consideradas**
+
+- Confiar en la hora programada de la fila para saber cuándo enviar.
+- Reprogramar (devolver la fila a `pendiente`) en lugar de omitir.
+- Enviar el recordatorio en la transacción de creación de la cita.
+
+**Consecuencias**
+
+- El criterio usa el día calendario de Ciudad de México, no el reloj de la máquina.
+- Las ejecuciones tardías del worker no envían avisos fuera de tiempo; la fila queda omitida y auditable.
+- La confirmación sigue existiendo aunque el envío de confirmación falle.
+
+## 2026-09-11 - Confirmación grupal sin destino configurado como `omitido` (convergencia)
+
+**Contexto**
+
+`T123`: cuando `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` no está configurado, el envío grupal de confirmación lanzaba un error que interrumpía la confirmación del paciente.
+
+**Decisión**
+
+La confirmación envía al paciente normalmente y, si el destino grupal no está configurado, marca la fila grupal como `omitido` con `lastError: "Group destination is not configured"` sin lanzar.
+
+**Alternativas consideradas**
+
+- Reintentar el envío grupal en cada ciclo hasta configurar el destino.
+- Fallar la confirmación completa.
+
+**Consecuencias**
+
+- El paciente nunca queda sin confirmación por un destino interno pendiente.
+- La operación del consultorio debe configurar el destino antes de producir para no perder avisos internos.
+- El despachador (`dispatchDueReminders`) mantiene un camino propio: marca `fallido` si falta el destino; diferencia intencional y documentada.
+
+## 2026-09-11 - `400 validation_error` para parámetros de ruta no-UUID (convergencia)
+
+**Contexto**
+
+`T124`: la API administrativa respondía `404 not_found` ante parámetros de ruta inválidos, contradiciendo el formato de error de validación del contrato.
+
+**Decisión**
+
+`assertUuidParam` lanza `AppError(400, "validation_error", "Invalid identifier")` para los ids de ruta, y el test de contrato verifica `PATCH /therapists/not-a-uuid` y `POST /appointments/not-a-uuid/complete`.
+
+**Alternativas consideradas**
+
+- Mantener `404` para cualquier id inválido.
+- Devolver `422`.
+
+**Consecuencias**
+
+- `404` vuelve a significar recurso inexistente; `400` indica parámetro malformado.
+- Es consistente con el resto de validaciones Zod del contrato.
+
+## 2026-09-11 - Gate de integración con PostgreSQL real (convergencia)
+
+**Contexto**
+
+Las reglas con `btree_gist` (exclusión de traslapes) y los triggers de negocio no se pueden verificar con PGlite, que no incluye la extensión. Las pruebas se saltaban sin cubrir la semántica real.
+
+**Decisión**
+
+El runner de test usa PGlite como base embebida para contrato, integración y unitarias, y un gate opt-in `RUN_POSTGRES_INTEGRATION=true` activa `*.postgres.integration.test.ts` contra PostgreSQL 16 real (`postgres:16-alpine`, puerto 54321) con las migraciones aplicadas vía `prisma migrate deploy`.
+
+**Alternativas consideradas**
+
+- Solo PGlite sin gate real.
+- Ejecutar siempre el gate en cada corredor (requiere infraestructura permanente).
+- Probar las reglas con SQL directo sin Prisma.
+
+**Consecuencias**
+
+- El gate exige Docker/PostgreSQL disponible; sin él, la suite verdea con esos escenarios omitidos.
+- Los invariantes críticas (exclusión, triggers, rollbacks) quedan verificados contra Postgres real.
+- `DATABASE_URL` del gate debe apuntar a una base dedicada desechable.
+
+## 2026-09-11 - Disponibilidad con slots reales y clasificación clínica previa (convergencia)
+
+**Contexto**
+
+`T121`/`T115`: la respuesta de disponibilidad construía el template con una lista vacía (`bookingDetailsPrompt([])`), y `classifyIntent` evaluaba el patrón de reserva antes que el contenido clínico sensible.
+
+**Decisión**
+
+`sendAvailability` resuelve el paciente por teléfono, y si tiene psicóloga activa asignada ofrece los 3 siguientes espacios de `findNextAvailableSlots(psicóloga, individual)` en el template (quien no tenga asignación recibe el pedido de datos genérico). `classifyIntent` evalúa el contenido clínico sensible antes que el patrón de reserva (handoff prioritario), con prueba de regresión para mensajes combinados ("me siento muy mal y quiero agendar").
+
+**Alternativas consideradas**
+
+- Ofrecer solo mensajes genéricos sin horarios.
+- Calcular slots contra una modalidad fija (60 min) sin importar el tipo final.
+- Mantener el orden previo de intents.
+
+**Consecuencias**
+
+- La oferta mostrada ya es reservable y evita prometer horarios ocupados.
+- Los horarios se calculan por modalidad `individual` (60 min) para la vista previa; la cita final valida su propio tipo/duración.
+- Un mensaje urgente nunca se reserva automáticamente aunque pida agendar.
