@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp** y la **Fase comercial 6: Historia de Usuario 2 - Gestionar la agenda y las citas desde el panel** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones de convergencia `T091` a `T095`, `T115` a `T126` (Phase 23) y la implementación completa de `US2` (`T025`-`T035`, `T081`-`T083`) están cerradas y verificadas con gates.
+Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp**, la **Fase comercial 6: Historia de Usuario 2 - Gestionar la agenda y las citas desde el panel** y las convergencias **Phase 23** a **Phase 26** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones `T091`-`T095`, `T115`-`T141`, la implementación completa de `US2` (`T025`-`T035`, `T081`-`T083`) y la cancelación de citas por WhatsApp con verificación de identidad (`T140`-`T141`) están cerradas y verificadas con gates.
 
 En este punto existe:
 
@@ -25,12 +25,14 @@ En este punto existe:
 - webhook de WhatsApp en `/api/v1/webhooks/whatsapp`, con verificacion de Meta y aceptacion asincrona de mensajes de texto
 - flujo determinista de disponibilidad, agendamiento, derivacion clinica y transparencia sobre el asistente digital; la evaluación clínica ocurre antes que el flujo de reserva (handoff prioritario)
 - la respuesta de disponibilidad ofrece horarios concretos (3 slots siguientes) cuando el paciente tiene psicóloga activa asignada
+- cancelación por WhatsApp: intent `cancel` reconocido tras la revisión clínica y antes que la reserva; resuelve el paciente por su número registrado y exige nombre y fecha de nacimiento coincidentes antes de cancelar la próxima cita activa, con auditoría de la cancelación y de las denegaciones (`appointment_cancellation_denied`) y oferta de reagendar
 - persistencia de tipo/duración de cita y recordatorios independientes para paciente y grupo interno; la asignación inicial aún requiere el panel administrativo
 - recordatorios del día previo programados a las 18:00 `America/Mexico_City`, con guard de día calendario anterior y cita aún futura; filas rezagadas se marcan omitidas; la programación es independiente del envío de confirmación
 - confirmación grupal marcada `omitido` si el destino interno no está configurado, sin interrumpir la cabida del paciente
+- los recordatorios creados al agendar/confirmar se persisten dentro de la misma transacción que la cita
 - la API administrativa responde `400 validation_error` para parámetros de ruta no-UUID
-- worker bajo demanda de recordatorios en `backend/src/jobs/process-reminders.job.ts` (`npm run reminders:worker`), sin scheduler externo aún
-- pruebas de contrato del webhook, pruebas de integracion del flujo de agendamiento (cita, confirmacion y auditoria), pruebas unitarias de la ventana de recordatorios y un gate opt-in de integración con PostgreSQL real (`RUN_POSTGRES_INTEGRATION`)
+- worker de recordatorios configurable: arranca con el backend si `ENABLE_REMINDER_WORKER=true` (default `false`) o bajo demanda con `npm run reminders:worker` (entradas `backend/src/jobs/process-reminders.job.ts` y `backend/src/jobs/reminders-worker.entry.ts`), sin scheduler externo aún
+- pruebas de contrato del webhook, pruebas de integracion del flujo de agendamiento y de cancelación (clasificación del intent, verificación de identidad, flujo completo y denegación auditable), pruebas unitarias de la ventana de recordatorios y un gate opt-in de integración con PostgreSQL real (`RUN_POSTGRES_INTEGRATION`)
 - **Panel `admin` (US2)**: login real con `username` + contraseña scrypt y cookie HttpOnly en `POST /api/v1/auth/login`, sesión activa en `GET /api/v1/auth/me` y logout en `POST /api/v1/auth/logout`, todo auditable y transaccional (`createAdminSessionWithAudit`)
 - guard de identidad inyectable `createAuthorizeAdminIdentity(audit)` aplicado a las rutas administrativas, rechazando cualquier usuario distinto de `admin` sin cookie y con auditoría de denegación (constraints `users_single_admin_key` / `users_access_profile_check`)
 - endpoints administrativos de citas en `GET /api/v1/appointments`, `POST /api/v1/appointments`, `PATCH /api/v1/appointments/:id` y `POST /api/v1/appointments/:id/cancel`, con DTO de calendario (`startsAt`, `paymentStatus`, fin de cita), mapeo `400/404/409/422` y notificaciones `scheduleCancellationNotice`
@@ -41,7 +43,7 @@ En este punto existe:
 En este punto todavia no existe:
 
 - pagos desde el panel (anticipo/completo), agenda de pagos ni landing publica funcional
-- scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta a demanda); tampoco cancelaciones por WhatsApp, FAQ y consultas de estado por WhatsApp
+- scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta bajo demanda); tampoco FAQ y consultas de estado por WhatsApp (US5)
 - ejecución de la suite E2E automatizada en CI; requiere navegadores Playwright instalados y base sembrada (ver sección de comandos)
 
 ## Estructura actual
@@ -170,13 +172,15 @@ El servidor de Next.js inicia en `http://localhost:3000`. Verificado con build: 
 Suite E2E del panel (requiere navegadores de Playwright y una base sembrada con la cuenta `admin`):
 
 ```bash
-# 1) Sembrar la cuenta admin (la clave debe coincidir con ADMIN_E2E_PASSWORD)
-$env:ADMIN_SEED_PASSWORD = "e2e-admin-password-1234"
+# 1) Definir la misma clave en semilla y E2E (no se versiona ninguna contraseña)
+$env:ADMIN_SEED_PASSWORD = "clave-de-prueba-segura"
+$env:ADMIN_E2E_PASSWORD = $env:ADMIN_SEED_PASSWORD
+# 2) Sembrar la cuenta admin
 npm run db:seed --workspace backend
-# 2) Instalar navegadores (primera vez)
-npx playwright install --workspace frontend --with-deps   # Linux/macOS
-npx playwright install                                     # Windows
-# 3) Ejecutar (levanta backend y frontend automáticamente)
+# 3) Instalar navegadores (primera vez)
+npx playwright install --with-deps   # Linux/macOS
+npx playwright install               # Windows
+# 4) Ejecutar (levanta backend y frontend automáticamente)
 npm run test:e2e --workspace frontend
 ```
 
@@ -197,7 +201,7 @@ npm run test --workspace backend
 # 4) Finalizado: docker rm -f sda-pg-test
 ```
 
-Worker de recordatorios bajo demanda (ejecuta el despacho y repite cada 5 minutos; requiere base de datos y credenciales de WhatsApp):
+Worker de recordatorios (ejecuta el despacho y repite cada 5 minutos; requiere base de datos y credenciales de WhatsApp). Arranca con el backend si `ENABLE_REMINDER_WORKER=true`, o bajo demanda:
 
 ```bash
 npm run reminders:worker --workspace backend
@@ -211,6 +215,8 @@ npm run reminders:worker --workspace backend
 - El panel es funcional, pero la asignación de psicóloga a pacientes sigue requiriendo el listado legado de `therapists`/`patients`; el directorio las presenta solamente en modo lectura.
 - La suite E2E de Playwright no corre en CI: exige navegadores instalados, base sembrada (`ADMIN_SEED_PASSWORD`) y sesión `admin` real.
 - Las migraciones se aplicaron y verificaron contra un PostgreSQL 16 real mediante el gate `RUN_POSTGRES_INTEGRATION` (incluida `20261101000000_convergence_hardening`); la configuracion de destino y credenciales de produccion sigue pendiente.
+- La cancelación por WhatsApp exige un número registrado y nombre + fecha de nacimiento coincidentes; sin esos datos la petición se rechaza y audita sin exponer información.
+- `ENABLE_REMINDER_WORKER` está deshabilitado por defecto; producción debe activarlo o ejecutar el worker de forma externa. El arranque en producción valida `SESSION_IDLE_TIMEOUT_MINUTES=30`.
 - `npm audit` no reporta vulnerabilidades conocidas en las dependencias instaladas.
 
 ## Referencias

@@ -469,3 +469,65 @@ Un layout cliente en `frontend/app/admin/layout.tsx` usa `usePathname` para salt
 - Sin `proxy.ts` ni duplicidad de Estado del host: el backend sigue siendo la única autoridad.
 - Las páginas admin existentes (`appointments`, `patients`, `therapists`) ya no se auto-envuelven en `AdminGuard`.
 - El E2E `admin-agenda.spec.ts` verifica redirect anónimo, login, vista diaria con leyenda y logout.
+
+## 2026-09-12 - Recordatorios atómicos del agendamiento y worker configurable (Phase 25/T133-T135)
+
+**Contexto**
+
+Las filas de recordatorio programadas al agendar o confirmar debían ser un efecto consistente de la cita, no un paso separable que pudiera quedar a medias. Además el worker no debía auto-enviar por defecto en desarrollo ni al arrancar el backend sin configurarlo, y el build compila a CommonJS.
+
+**Decisión**
+
+La programación y confirmación de recordatorios se ejecutan dentro de la misma transacción Prisma que persiste la cita: si la cita no se guarda, tampoco sus recordatorios. El arranque del worker depende de `ENABLE_REMINDER_WORKER` (`z.enum(["true","false"])`, default `false`) en `server.ts`, y existe una entrada dedicada `backend/src/jobs/reminders-worker.entry.ts` invocable con `npm run reminders:worker`. La validación de entorno de producción exige además `SESSION_IDLE_TIMEOUT_MINUTES=30`.
+
+**Alternativas consideradas**
+
+- Crear recordatorios en un paso posterior sin transacción.
+- Arrancar el worker implícitamente con el backend.
+
+**Consecuencias**
+
+- No quedan citas con recordatorios huérfanos ni recordatorios sin cita.
+- Por defecto el backend no envía nada; producción debe activar la variable o ejecutar el worker aparte.
+
+## 2026-09-12 - Cancelación por WhatsApp con verificación completa de identidad (Phase 26/T140-T141)
+
+**Contexto**
+
+`FR-004` exige cancelar citas por WhatsApp y desde el panel. El chatbot agendaba, ofrecía disponibilidad y derivaba clínica, pero no cancelaba. El usuario optó por una verificación con número registrado, nombre y fecha de nacimiento antes de cancelar.
+
+**Decisión**
+
+Se agregó el intent `cancel`, reconocido con `cancellationPattern` (`\bcancel\w*\b|anular|anulaci[oó]n|ya no podr[ée] (asistir|ir)|no podr[ée] (asistir|ir a la cita)`), evaluado después de la revisión clínica y antes que el intent de reserva. El flujo resuelve el paciente por su número de WhatsApp registrado y exige que nombre y fecha de nacimiento coincidan (`parseCancellationDetails` + `matchesPatientIdentity`; la fecha se compara con `toISOString().slice(0,10)`). Si coinciden, cancela la próxima cita activa (`findNextActiveAppointmentForPatient`: estados `programada|confirmada`, cita futura) mediante `cancelAppointmentWithAudit`, vincula la conversación con el `patientId` y confirma ofreciendo reagendar. La petición incompleta o con identidad fallida se audita como `appointment_cancellation_denied`. El enum de `ConversationIntent` ya incluía `cancel`, por lo que no hubo migración; el multi-turno reactiva el intent con `currentIntent`.
+
+**Alternativas consideradas**
+
+- Cancelar solo con el número registrado (descartada por elección del usuario).
+- Cancelar sin verificación alguna.
+- Aplazar la decisión a US5.
+
+**Consecuencias**
+
+- Ninguna mutación por WhatsApp ocurre sin identidad verificada; las denegaciones quedan auditables.
+- La verificación adelanta solo la semántica de identidad de US5 para la mutación de cancelación.
+- La cancelación del panel (`POST /api/v1/appointments/:id/cancel`) permanece en la sesión administrativa, sin verificación del paciente.
+
+## 2026-09-12 - Inyección ampliada en el orquestador de WhatsApp sin romper contratos (Phase 26)
+
+**Contexto**
+
+Al incorporar la cancelación, `processIncomingWhatsAppMessage` necesitaba persistir el mensaje de salida del chatbot y resolver/cancelar la cita verificada, sin duplicar lógica ni romper el patrón de inyección para pruebas ya usado en US1.
+
+**Decisión**
+
+Se extendió el mismo esquema: `sendResponse` recibe `saveOutboundMessage`, y la cancelación inyecta `findVerifiedCancellableAppointment` y `cancelAppointmentWithAudit`. Las instancias por defecto (persistencia real) se conservan en producción; las pruebas de integración inyectan implementaciones controladas y verifican el ciclo completo.
+
+**Alternativas consideradas**
+
+- Acoplar el módulo `chatbot` a los repositorios directamente.
+- Duplicar el flujo de cancelación en otro módulo.
+
+**Consecuencias**
+
+- El contrato de producción no cambia; la inyección sigue siendo exclusivamente para pruebas.
+- Las pruebas controladas (PGlite/embebida) y el gate PostgreSQL cubren la integración real.

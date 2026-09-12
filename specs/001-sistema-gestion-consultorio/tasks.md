@@ -495,3 +495,12 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T137 [M] Exigir `ADMIN_E2E_PASSWORD` por entorno en las pruebas E2E del panel sin credencial plana por defecto en `frontend/tests/e2e/admin-agenda.spec.ts`. per DoD sin secretos, Constitution II (contradicts)
 - [x] T138 [L] Eliminar codigo muerto backend y frontend: `backend/src/middleware/authorize-admin.ts`, `formatTime`/`formatDayLabel` y el re-export en `frontend/lib/admin/calendar.ts` y `frontend/components/admin/agenda/agenda-calendar.tsx`, `isSessionExpired` en `frontend/lib/auth/use-admin-session.tsx`, `badge`/`chip` de `eventStyles` en `frontend/lib/admin/event-colors.ts`, la prop inerte `onEventSelect` en la agenda y `startOfDay` duplicado en `frontend/app/admin/page.tsx`. per DoD: sin codigo muerto (partial)
 - [x] T139 [L] Alinear `specs/001-sistema-gestion-consultorio/quickstart.md` con el estado posterior a Phase 24: login administrativo funcional, reagendamiento/cancelaciones por panel, worker de recordatorios configurable y redireccion `/` a `/admin/agenda` hasta US6. per T067 (partial)
+
+---
+
+## Phase 26: Convergence
+
+**Proposito**: Cerrar el gap de FR-004 detectado en la tercera auditoria: la cancelacion de citas por WhatsApp con verificacion de identidad del paciente.
+
+- [x] T140 [M] [US1] Implementar cancelacion de cita por WhatsApp con verificacion de identidad (numero registrado + nombre y fecha de nacimiento coincidentes) que cancela la proxima cita activa, audita el resultado y confirma al paciente con oferta de reagendar, en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/response-templates.ts` y `backend/src/modules/appointments/appointments.repository.ts`. per FR-004 (partial)
+- [x] T141 [P] [US1] Crear pruebas de clasificacion del intent `cancel` (sobre `book`/`handoff`), verificacion de identidad fallida sin exponer datos y flujo de cancelacion con auditoria y confirmacion, en `backend/tests/integration/whatsapp-booking.integration.test.ts`. per FR-004, FR-023, FR-024 (partial)

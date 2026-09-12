@@ -16,7 +16,9 @@ import {
   containsSensitiveClinicalContent,
   hasCompleteBookingDetails,
   isAutomationQuestion,
-  parseBookingDetails
+  matchesPatientIdentity,
+  parseBookingDetails,
+  parseCancellationDetails
 } from "../../src/modules/chatbot/chatbot.intents.js";
 import { automationDisclosureResponse } from "../../src/modules/chatbot/response-templates.js";
 import {
@@ -298,4 +300,150 @@ test("WhatsApp booking persistence keeps the appointment, confirmation, and audi
       audit_action: "appointment_created"
     }
   ]);
+});
+
+test("cancellation intent is classified before booking and clinical content still wins", () => {
+  assert.equal(classifyIntent("Quiero cancelar mi cita"), "cancel");
+  assert.equal(classifyIntent("Necesito cancelarla por favor"), "cancel");
+  assert.equal(
+    classifyIntent("Me siento muy mal y quiero cancelar mi cita"),
+    "handoff"
+  );
+});
+
+test("cancellation details parse the patient name and birthdate and match identity", () => {
+  const details = parseCancellationDetails(
+    "Quiero cancelar. Nombre: Ana Pérez; nacimiento: 1990-01-15"
+  );
+
+  assert.deepEqual(details, {
+    fullName: "Ana Pérez",
+    birthdate: "1990-01-15"
+  });
+  assert.equal(
+    matchesPatientIdentity(
+      {
+        fullName: "Ana Pérez",
+        birthdate: new Date("1990-01-15T00:00:00.000Z")
+      },
+      "ana pérez",
+      "1990-01-15"
+    ),
+    true
+  );
+  assert.equal(
+    matchesPatientIdentity(
+      {
+        fullName: "Ana Pérez",
+        birthdate: new Date("1990-01-15T00:00:00.000Z")
+      },
+      "Ana Pérez",
+      "1991-01-15"
+    ),
+    false
+  );
+  assert.equal(
+    matchesPatientIdentity(
+      { fullName: "Ana Pérez", birthdate: null },
+      "Ana Pérez",
+      "1990-01-15"
+    ),
+    false
+  );
+});
+
+test("WhatsApp cancellation flow verifies identity and confirms the cancelled appointment", async () => {
+  let updatedIntent = "";
+  let updatedPatientId = "";
+  let outboundText = "";
+  let cancelReason = "";
+  let cancelAuditAction = "";
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.cancel-flow",
+      from: "5215550000000",
+      text: "Quiero cancelar. Nombre: Ana Pérez; nacimiento: 1990-01-15",
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    {
+      gateway: { sendText: async () => ({ messageId: "wamid.outbound" }) }
+    },
+    {
+      saveIncomingMessage: async () =>
+        ({ id: "conversation-1", currentIntent: "cancel" }) as never,
+      updateConversation: async (_conversationId, input) => {
+        updatedIntent = input.intent;
+        updatedPatientId = input.patientId ?? "";
+        return {} as never;
+      },
+      saveOutboundMessage: async (input) => {
+        outboundText = input.contentText;
+        return {} as never;
+      },
+      findVerifiedCancellableAppointment: async () =>
+        ({
+          status: "cancellable",
+          patient: { id: "patient-1" },
+          appointment: {
+            id: "appointment-1",
+            scheduledAt: new Date("2026-09-14T23:00:00.000Z")
+          }
+        }) as never,
+      cancelAppointmentWithAudit: async (input) => {
+        cancelReason = input.reason;
+        cancelAuditAction = input.audit.action;
+        return {
+          id: "appointment-1",
+          patient: { id: "patient-1", fullName: "Ana Pérez" },
+          scheduledAt: new Date("2026-09-14T23:00:00.000Z"),
+          therapyType: "individual",
+          durationMinutes: 60,
+          modality: "presencial"
+        } as never;
+      },
+      audit: async () => {}
+    }
+  );
+
+  assert.equal(updatedIntent, "cancel");
+  assert.equal(updatedPatientId, "patient-1");
+  assert.equal(cancelAuditAction, "appointment_cancelled");
+  assert.match(cancelReason, /verificación/i);
+  assert.match(outboundText, /quedó cancelada/i);
+  assert.match(outboundText, /reagendar/i);
+});
+
+test("WhatsApp cancellation is denied without matching identity and the attempt is audited", async () => {
+  let deniedAuditAction = "";
+  let outboundText = "";
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.cancel-denied",
+      from: "5215550000000",
+      text: "Quiero cancelar. Nombre: Otra Persona; nacimiento: 1990-01-15",
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    {
+      gateway: { sendText: async () => ({ messageId: "wamid.outbound" }) }
+    },
+    {
+      saveIncomingMessage: async () =>
+        ({ id: "conversation-1", currentIntent: "cancel" }) as never,
+      updateConversation: async () => ({}) as never,
+      findVerifiedCancellableAppointment: async () =>
+        ({ status: "denied" }) as never,
+      audit: async (input) => {
+        deniedAuditAction = input.action;
+      },
+      saveOutboundMessage: async (input) => {
+        outboundText = input.contentText;
+        return {} as never;
+      }
+    }
+  );
+
+  assert.equal(deniedAuditAction, "appointment_cancellation_denied");
+  assert.match(outboundText, /no pudimos confirmar/i);
 });

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type ConversationIntent } from "@prisma/client";
 
 import { prisma } from "../../lib/prisma";
 
@@ -7,7 +7,7 @@ type IncomingMessage = {
   waMessageId: string;
   contentText: string;
   receivedAt: Date;
-  intent: "availability" | "book" | "handoff" | "unknown";
+  intent: "availability" | "book" | "cancel" | "handoff" | "unknown";
   containsSensitiveClinicalContent: boolean;
 };
 
@@ -72,7 +72,7 @@ export const saveIncomingMessage = async (input: IncomingMessage) => {
 export const updateConversation = (
   conversationId: string,
   input: {
-    intent: "availability" | "book" | "handoff" | "unknown";
+    intent: ConversationIntent;
     patientId?: string;
     state?: "abierta" | "derivada";
     lastMessageAt: Date;
@@ -92,7 +92,7 @@ export const saveOutboundMessage = (input: {
   conversationId: string;
   waMessageId: string;
   contentText: string;
-  intent: "availability" | "book" | "handoff" | "unknown";
+  intent: "availability" | "book" | "cancel" | "handoff" | "unknown";
 }) =>
   prisma.chatMessage.create({
     data: {

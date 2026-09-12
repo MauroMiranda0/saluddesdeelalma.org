@@ -74,3 +74,24 @@ export const therapyTypeLabel = (therapyType: TherapyType) =>
     : therapyType === "pareja"
       ? "de pareja"
       : "familiar";
+
+export const cancellationVerificationPrompt =
+  "Con gusto le ayudo a cancelar su cita. Para confirmar su identidad, por favor responda: Nombre: ...; nacimiento: AAAA-MM-DD.";
+
+export const cancellationVerificationFailedResponse =
+  "No pudimos confirmar sus datos. Para proteger su información, la cancelación se atiende desde el número registrado y con nombre y fecha de nacimiento coincidentes; por favor verifíquelo con la psicóloga.";
+
+export const cancellationNotFoundResponse =
+  "No encontramos una cita activa por cancelar. Si desea agendar o reagendar una sesión, con gusto le ayudo.";
+
+export const cancellationConfirmedText = (
+  appointment: Pick<
+    Appointment,
+    "scheduledAt" | "therapyType" | "durationMinutes" | "modality"
+  > & { patient: Pick<Patient, "fullName"> }
+) =>
+  `Listo, ${appointment.patient.fullName}. Su cita ${therapyTypeLabel(
+    appointment.therapyType
+  )} programada para ${dateFormatter.format(
+    appointment.scheduledAt
+  )} quedó cancelada. Si desea reagendar o agendar una nueva sesión, escríbanos por este medio y con gusto la apoyamos.`;

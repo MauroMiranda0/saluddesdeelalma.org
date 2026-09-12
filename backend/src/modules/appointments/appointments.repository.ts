@@ -121,3 +121,17 @@ export const findActiveAppointmentsForTherapist = (
     select: { scheduledAt: true, endsAt: true }
   });
 };
+
+export const findNextActiveAppointmentForPatient = (
+  patientId: string,
+  from: Date
+) => {
+  return prisma.appointment.findFirst({
+    where: {
+      patientId,
+      scheduledAt: { gte: from },
+      status: { in: ["programada", "confirmada"] }
+    },
+    orderBy: { scheduledAt: "asc" }
+  });
+};
