@@ -25,6 +25,7 @@ import {
 import { AgendaFilters } from "../../../components/admin/agenda/agenda-filters";
 import { AppointmentForm } from "../../../components/admin/agenda/appointment-form";
 import { CancelDialog } from "../../../components/admin/agenda/cancel-dialog";
+import { RescheduleDialog } from "../../../components/admin/agenda/reschedule-dialog";
 
 const monthsAhead = (date: Date, offset: number) => {
   return new Date(date.getFullYear(), date.getMonth() + offset, 1);
@@ -57,6 +58,8 @@ export default function AdminAgendaPage() {
   const [cancelling, setCancelling] = useState<AdminAppointmentEvent | null>(
     null
   );
+  const [rescheduling, setRescheduling] =
+    useState<AdminAppointmentEvent | null>(null);
 
   const load = useCallback(
     async (requestedView: AgendaView, requestedDate: Date) => {
@@ -128,6 +131,11 @@ export default function AdminAgendaPage() {
     void load(view, visibleDate);
   };
 
+  const handleRescheduled = () => {
+    setRescheduling(null);
+    void load(view, visibleDate);
+  };
+
   const handleCreated = () => {
     setShowForm(false);
     void load(view, visibleDate);
@@ -140,7 +148,7 @@ export default function AdminAgendaPage() {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800"
+          className="rounded bg-forest px-3 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep"
         >
           + Nueva cita
         </button>
@@ -183,8 +191,8 @@ export default function AdminAgendaPage() {
               onClick={() => setView(option)}
               className={`rounded px-3 py-1 text-sm font-medium ${
                 view === option
-                  ? "bg-emerald-700 text-white"
-                  : "text-gray-600 hover:bg-emerald-50"
+                  ? "bg-forest text-white"
+                  : "text-gray-600 hover:bg-forest/10"
               }`}
             >
               {option === "dia"
@@ -220,6 +228,11 @@ export default function AdminAgendaPage() {
               setCancelling(event.appointment);
             }
           }}
+          onEventReschedule={(event) => {
+            if (event.kind === "appointment" && event.appointment) {
+              setRescheduling(event.appointment);
+            }
+          }}
         />
       )}
 
@@ -236,6 +249,14 @@ export default function AdminAgendaPage() {
           appointment={cancelling}
           onCancelled={handleCancelled}
           onClose={() => setCancelling(null)}
+        />
+      )}
+
+      {rescheduling && (
+        <RescheduleDialog
+          appointment={rescheduling}
+          onRescheduled={handleRescheduled}
+          onClose={() => setRescheduling(null)}
         />
       )}
     </div>

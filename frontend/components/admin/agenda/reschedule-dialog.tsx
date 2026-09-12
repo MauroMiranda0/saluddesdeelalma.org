@@ -4,14 +4,23 @@ import { useState } from "react";
 
 import { ApiError } from "../../../lib/api/client";
 import {
-  createAdminAppointment,
-  type DirectoryPatient
+  rescheduleAdminAppointment,
+  type AdminAppointmentEvent
 } from "../../../lib/admin/api";
 
-type AppointmentFormProps = {
-  patients: DirectoryPatient[];
-  onCreated: () => void;
+type RescheduleDialogProps = {
+  appointment: AdminAppointmentEvent;
+  onRescheduled: () => void;
   onClose: () => void;
+};
+
+const toLocalInput = (iso: string) => {
+  const date = new Date(iso);
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const toIsoFromLocalInput = (value: string) => {
@@ -20,26 +29,28 @@ const toIsoFromLocalInput = (value: string) => {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 };
 
-export const AppointmentForm = ({
-  patients,
-  onCreated,
+export const RescheduleDialog = ({
+  appointment,
+  onRescheduled,
   onClose
-}: AppointmentFormProps) => {
-  const [patientId, setPatientId] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
-  const [modality, setModality] = useState<"online" | "presencial">("online");
+}: RescheduleDialogProps) => {
+  const [scheduledAt, setScheduledAt] = useState(
+    toLocalInput(appointment.scheduledAt)
+  );
+  const [modality, setModality] = useState<"online" | "presencial">(
+    appointment.modality
+  );
   const [therapyType, setTherapyType] = useState<
     "individual" | "pareja" | "familiar"
-  >("individual");
-  const [isManualException, setIsManualException] = useState(false);
+  >(appointment.therapyType);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     const iso = toIsoFromLocalInput(scheduledAt);
 
-    if (!patientId || !iso) {
-      setError("Selecciona un paciente y una fecha y hora válidas.");
+    if (!iso) {
+      setError("Selecciona una fecha y hora válidas.");
       return;
     }
 
@@ -47,57 +58,33 @@ export const AppointmentForm = ({
     setError(null);
 
     try {
-      await createAdminAppointment({
-        patientId,
+      await rescheduleAdminAppointment(appointment.id, {
         scheduledAt: iso,
         modality,
-        therapyType,
-        isManualException
+        therapyType
       });
-      onCreated();
+      onRescheduled();
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : "No se pudo crear la cita."
+          : "No se pudo mover la cita."
       );
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-5 shadow-lg">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Nueva cita</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">Mover cita</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          {appointment.patientName} ·{" "}
+          {appointment.therapistName ?? "Sin terapeuta"}
+        </p>
 
         <label className="mb-1 block text-xs font-medium text-gray-500">
-          Paciente
-        </label>
-        <select
-          value={patientId}
-          onChange={(event) => setPatientId(event.target.value)}
-          className="mb-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="">Seleccionar paciente…</option>
-          {patients.map((patient) => (
-            <option key={patient.id} value={patient.id}>
-              {patient.fullName}
-            </option>
-          ))}
-        </select>
-
-        <label className="mb-1 block text-xs font-medium text-gray-500">
-          Fecha y hora
+          Nueva fecha y hora
         </label>
         <input
           type="datetime-local"
@@ -142,15 +129,6 @@ export const AppointmentForm = ({
           </div>
         </div>
 
-        <label className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-          <input
-            type="checkbox"
-            checked={isManualException}
-            onChange={(event) => setIsManualException(event.target.checked)}
-          />
-          Excepción manual (fuera de horario regular)
-        </label>
-
         {error && (
           <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
@@ -164,7 +142,7 @@ export const AppointmentForm = ({
             disabled={submitting}
             className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
           >
-            Cancelar
+            Regresar
           </button>
           <button
             type="button"
@@ -172,7 +150,7 @@ export const AppointmentForm = ({
             disabled={submitting}
             className="rounded bg-forest px-4 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-60"
           >
-            {submitting ? "Guardando…" : "Guardar cita"}
+            {submitting ? "Moviendo…" : "Confirmar cambio"}
           </button>
         </div>
       </div>

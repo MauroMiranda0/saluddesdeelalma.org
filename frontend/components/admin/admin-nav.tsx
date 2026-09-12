@@ -33,7 +33,7 @@ export const AdminNav = () => {
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
         <Link href="/admin" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-sm font-bold text-white">
             SdA
           </span>
           <span className="text-sm font-semibold text-gray-800">
@@ -51,8 +51,8 @@ export const AdminNav = () => {
                 href={item.href}
                 className={`rounded-full px-3 py-1 text-sm ${
                   active
-                    ? "bg-emerald-700 text-white"
-                    : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-800"
+                    ? "bg-forest text-white"
+                    : "text-gray-600 hover:bg-forest/10 hover:text-forest"
                 }`}
               >
                 {item.label}

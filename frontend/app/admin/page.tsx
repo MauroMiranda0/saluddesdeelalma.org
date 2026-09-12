@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
         <div className="flex gap-2">
           <Link
             href="/admin/agenda"
-            className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800"
+            className="rounded bg-forest px-3 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep"
           >
             Ir a la agenda
           </Link>
@@ -119,7 +119,7 @@ export default function AdminDashboardPage() {
           <Link
             key={card.label}
             href={card.href}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-emerald-300"
+            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-harmony"
           >
             <p className="text-3xl font-bold text-gray-800">{card.value}</p>
             <p className="text-sm text-gray-500">{card.label}</p>

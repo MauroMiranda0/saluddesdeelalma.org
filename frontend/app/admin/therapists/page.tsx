@@ -90,7 +90,7 @@ export default function AdminTherapistsPage() {
         </label>
         <button
           type="submit"
-          className="self-start rounded bg-emerald-600 px-3 py-1 text-white"
+          className="self-start rounded bg-forest px-3 py-1 text-white"
         >
           Crear perfil
         </button>

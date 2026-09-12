@@ -56,7 +56,7 @@ export const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     return (
       <main className="mx-auto max-w-3xl p-4">
         <p className="flex items-center justify-center gap-2 rounded border border-gray-200 bg-white p-4 text-sm text-gray-500">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-emerald-600" />
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-forest" />
           Comprobando sesión…
         </p>
       </main>

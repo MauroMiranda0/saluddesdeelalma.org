@@ -221,22 +221,21 @@ export const processIncomingWhatsAppMessage = async (
           modality: details.modality,
           therapyType: details.therapyType,
           createdVia: "whatsapp",
-          isManualException: false
+          isManualException: false,
+          audit: {
+            actorChannel: "whatsapp",
+            action: "appointment_created",
+            entityType: "appointment",
+            result: "success",
+            metadata: { createdVia: "whatsapp" },
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent
+          }
         });
       await processingDependencies.updateConversation(conversation.id, {
         intent,
         patientId: patient.id,
         lastMessageAt: message.receivedAt
-      });
-      await processingDependencies.audit({
-        actorChannel: "whatsapp",
-        action: "appointment_created",
-        entityType: "appointment",
-        entityId: appointment.id,
-        result: "success",
-        metadata: { createdVia: "whatsapp" },
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent
       });
       await processingDependencies.sendAppointmentConfirmation({
         appointment,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { LoginForm } from "../../../components/admin/login-form";
 
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function AdminLoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[--background] p-4">
-      <LoginForm />
+      <Suspense>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }

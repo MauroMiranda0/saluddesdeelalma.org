@@ -55,6 +55,14 @@ const appointmentSummary = (appointment: {
     appointment.scheduledAt
   )}, modalidad ${modalityLabel(appointment.modality)}`;
 
+export const cancellationNoticeText = (appointment: { scheduledAt: Date }) =>
+  `Le escribimos para informarle que su cita del ${new Intl.DateTimeFormat(
+    "es-MX",
+    { timeZone: env.REMINDER_TIMEZONE, dateStyle: "full", timeStyle: "short" }
+  ).format(
+    appointment.scheduledAt
+  )} fue cancelada. Si desea reagendar, escríbanos por este medio y con gusto la apoyamos.`;
+
 export const dispatchDueReminders = async (input?: {
   now?: Date;
   gateway?: WhatsAppGateway;
@@ -67,7 +75,12 @@ export const dispatchDueReminders = async (input?: {
       scheduledAt: { lte: now },
       attemptsCount: { lt: 3 },
       reminderType: {
-        in: ["recordatorio_24h", "pago_pendiente", "pago_pendiente_post_cita"]
+        in: [
+          "recordatorio_24h",
+          "pago_pendiente",
+          "pago_pendiente_post_cita",
+          "cancelacion"
+        ]
       }
     },
     include: {
@@ -81,14 +94,16 @@ export const dispatchDueReminders = async (input?: {
   });
 
   for (const reminder of due) {
+    const isCancellationReminder = reminder.reminderType === "cancelacion";
     const isPriorDayReminder =
       reminder.reminderType === "recordatorio_24h" ||
       reminder.reminderType === "pago_pendiente";
     const hasFullPayment = reminder.appointment.payments.length > 0;
 
     if (
-      reminder.appointment.status === "cancelada" ||
-      (reminder.reminderType !== "recordatorio_24h" && hasFullPayment)
+      !isCancellationReminder &&
+      (reminder.appointment.status === "cancelada" ||
+        (reminder.reminderType !== "recordatorio_24h" && hasFullPayment))
     ) {
       await prisma.appointmentReminder.update({
         where: { id: reminder.id },
@@ -132,8 +147,9 @@ export const dispatchDueReminders = async (input?: {
       continue;
     }
 
-    const text =
-      reminder.reminderType === "pago_pendiente_post_cita"
+    const text = isCancellationReminder
+      ? cancellationNoticeText(reminder.appointment)
+      : reminder.reminderType === "pago_pendiente_post_cita"
         ? "Gracias por asistir a su sesión. Le recordamos amablemente que su saldo continúa pendiente."
         : reminder.reminderType === "pago_pendiente"
           ? "Le recordamos que, si aplica, el saldo de su sesión puede liquidarse el día de la cita."

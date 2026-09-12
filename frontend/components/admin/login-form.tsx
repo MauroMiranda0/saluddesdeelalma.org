@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError } from "../../lib/api/client";
@@ -8,6 +8,7 @@ import { loginAdminSession } from "../../lib/auth/session";
 
 export const LoginForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,12 @@ export const LoginForm = () => {
         username: username.trim(),
         password
       });
-      router.replace("/admin/agenda");
+      const next = searchParams.get("next");
+      if (next?.startsWith("/") && !next.startsWith("//")) {
+        router.replace(next);
+      } else {
+        router.replace("/admin/agenda");
+      }
       router.refresh();
     } catch (requestError) {
       setError(
@@ -48,7 +54,7 @@ export const LoginForm = () => {
       className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
     >
       <div className="mb-5 text-center">
-        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700 text-lg font-bold text-white">
+        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-forest text-lg font-bold text-white">
           SdA
         </span>
         <h1 className="text-lg font-semibold text-gray-800">
@@ -64,7 +70,7 @@ export const LoginForm = () => {
         autoComplete="username"
         value={username}
         onChange={(event) => setUsername(event.target.value)}
-        className="mb-3 w-full rounded border border-gray-300 px-2 py-2 text-sm focus:border-emerald-600 focus:outline-none"
+        className="mb-3 w-full rounded border border-gray-300 px-2 py-2 text-sm focus:border-forest focus:outline-none"
         placeholder="admin"
       />
 
@@ -77,7 +83,7 @@ export const LoginForm = () => {
           type={showPassword ? "text" : "password"}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded border border-gray-300 px-2 py-2 pr-10 text-sm focus:border-emerald-600 focus:outline-none"
+          className="w-full rounded border border-gray-300 px-2 py-2 pr-10 text-sm focus:border-forest focus:outline-none"
           placeholder="••••••••"
         />
         <button
@@ -101,7 +107,7 @@ export const LoginForm = () => {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded bg-emerald-700 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+        className="w-full rounded bg-forest py-2 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-60"
       >
         {submitting ? "Entrando…" : "Iniciar sesión"}
       </button>

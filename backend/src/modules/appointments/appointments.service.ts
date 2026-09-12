@@ -12,13 +12,13 @@ import {
   type AuditCreateInput
 } from "../audit/audit.repository";
 import {
-  createAppointmentRecord,
   findActiveAppointmentsForTherapist,
   findAppointmentForAdmin,
   listAppointmentsInRange
 } from "./appointments.repository";
 import {
   createPostCompletionPaymentReminder,
+  previousDayReminderAt,
   scheduleAppointmentReminders,
   scheduleCancellationNotice
 } from "../reminders/reminders.service";
@@ -83,7 +83,7 @@ const isActiveAppointmentConflict = (error: unknown) =>
     (error.code === "P2010" && error.meta?.code === "23P01"));
 
 export const createWhatsAppAppointment = async (
-  input: CreateAppointmentInput
+  input: CreateAppointmentInput & { audit?: AuditCreateInput }
 ) => {
   const scheduledAt = new Date(input.scheduledAt);
   const durationMinutes = therapyDurationMinutes(input.therapyType);
@@ -93,11 +93,9 @@ export const createWhatsAppAppointment = async (
   const patientWithTherapist = await findPatientWithAssignedTherapist(
     patient.whatsappPhone
   );
+  const therapistId = patientWithTherapist?.assignedTherapistId;
 
-  if (
-    !patientWithTherapist?.assignedTherapistId ||
-    !patientWithTherapist.assignedTherapist?.isActive
-  ) {
+  if (!therapistId || !patientWithTherapist?.assignedTherapist?.isActive) {
     throw new TherapistAssignmentRequiredError(
       "An admin must assign an active therapist before booking this patient"
     );
@@ -105,18 +103,31 @@ export const createWhatsAppAppointment = async (
   const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
 
   try {
-    const appointment = await createAppointmentRecord({
-      patientId: patient.id,
-      therapistId: patientWithTherapist.assignedTherapistId,
-      scheduledAt,
-      endsAt,
-      therapyType: input.therapyType,
-      durationMinutes,
-      modality: input.modality,
-      isManualException: false,
-      locationLabel: input.locationLabel,
-      meetingLink: input.meetingLink,
-      createdVia: "whatsapp"
+    const appointment = await prisma.$transaction(async (transaction) => {
+      const created = await transaction.appointment.create({
+        data: {
+          patientId: patient.id,
+          therapistId,
+          scheduledAt,
+          endsAt,
+          therapyType: input.therapyType,
+          durationMinutes,
+          modality: input.modality,
+          isManualException: false,
+          locationLabel: input.locationLabel,
+          meetingLink: input.meetingLink,
+          createdVia: "whatsapp"
+        }
+      });
+
+      if (input.audit) {
+        await createAuditLogInTransaction(transaction, {
+          ...input.audit,
+          entityId: created.id
+        });
+      }
+
+      return created;
     });
 
     return { appointment, patient };
@@ -505,6 +516,22 @@ export const rescheduleAppointmentWithAudit = async (input: {
             user: { select: { fullName: true } }
           }
         }
+      }
+    });
+    // Realign the prior-day reminders to the new date within the same
+    // transaction so moving an appointment does not leave stale windows.
+    await transaction.appointmentReminder.updateMany({
+      where: {
+        appointmentId: current.id,
+        reminderType: { in: ["recordatorio_24h", "pago_pendiente"] }
+      },
+      data: {
+        scheduledAt: previousDayReminderAt(scheduledAt),
+        status: "pendiente",
+        attemptsCount: 0,
+        sentAt: null,
+        providerMessageId: null,
+        lastError: null
       }
     });
     await createAuditLogInTransaction(transaction, {

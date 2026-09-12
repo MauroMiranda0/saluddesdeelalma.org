@@ -60,7 +60,7 @@ export default function AdminAppointmentsPage() {
               </p>
             </div>
             <button
-              className="rounded bg-emerald-600 px-3 py-1 text-white"
+              className="rounded bg-forest px-3 py-1 text-white"
               onClick={() => handleComplete(appointment)}
             >
               Completar cita

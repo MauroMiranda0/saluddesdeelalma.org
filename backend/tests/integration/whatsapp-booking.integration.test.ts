@@ -199,6 +199,7 @@ test("WhatsApp booking flow creates an appointment, confirmation, and audit reco
       },
       createWhatsAppAppointment: async (input) => {
         appointmentPhone = input.patient.whatsappPhone;
+        auditAction = input.audit?.action ?? "";
         return {
           appointment: { id: "appointment-1" } as never,
           patient: { id: "patient-1" } as never
@@ -207,9 +208,6 @@ test("WhatsApp booking flow creates an appointment, confirmation, and audit reco
       updateConversation: async (_conversationId, input) => {
         updatedPatientId = input.patientId ?? "";
         return {} as never;
-      },
-      audit: async (input) => {
-        auditAction = input.action;
       },
       sendAppointmentConfirmation: async (input) => {
         confirmationAppointmentId = input.appointment.id;

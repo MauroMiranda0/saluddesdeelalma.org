@@ -103,7 +103,7 @@ export const UserDirectory = () => {
               key={therapist.id}
               className="flex items-center gap-3 rounded border border-gray-200 bg-white p-3"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lavender-100 text-sm font-semibold text-lavender-800">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/15 text-sm font-semibold text-forest">
                 {therapist.fullName
                   .split(" ")
                   .slice(0, 2)
@@ -122,7 +122,7 @@ export const UserDirectory = () => {
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                   therapist.isActive
-                    ? "bg-emerald-100 text-emerald-800"
+                    ? "bg-forest/15 text-forest"
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
@@ -156,7 +156,7 @@ export const UserDirectory = () => {
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                       patient.status === "activo"
-                        ? "bg-emerald-100 text-emerald-800"
+                        ? "bg-forest/15 text-forest"
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >

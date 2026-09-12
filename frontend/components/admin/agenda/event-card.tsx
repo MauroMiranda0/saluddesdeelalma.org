@@ -11,13 +11,15 @@ type EventCardProps = {
   variant?: "month" | "week" | "day";
   onCancel?: (event: CalendarEvent) => void;
   onSelect?: (event: CalendarEvent) => void;
+  onReschedule?: (event: CalendarEvent) => void;
 };
 
 export const EventCard = ({
   event,
   variant = "month",
   onCancel,
-  onSelect
+  onSelect,
+  onReschedule
 }: EventCardProps) => {
   const kind =
     event.kind === "appointment" && event.appointment
@@ -63,18 +65,35 @@ export const EventCard = ({
         <span className="text-[11px] font-medium opacity-90">
           {event.appointment?.scheduledAt ? formatShort(event.startsAt) : ""}
         </span>
-        {isCancellable && onCancel && (
-          <button
-            type="button"
-            onClick={(click) => {
-              click.stopPropagation();
-              onCancel(event);
-            }}
-            className="rounded px-1 text-[10px] font-semibold opacity-0 transition-opacity hover:bg-white/60 focus:opacity-100 group-hover:opacity-100"
-            style={{ color: styles.card.color }}
-          >
-            Cancelar
-          </button>
+        {isCancellable && (onCancel || onReschedule) && (
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            {onReschedule && (
+              <button
+                type="button"
+                onClick={(click) => {
+                  click.stopPropagation();
+                  onReschedule(event);
+                }}
+                className="rounded px-1 text-[10px] font-semibold hover:bg-white/60 focus:opacity-100"
+                style={{ color: styles.card.color }}
+              >
+                Mover
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={(click) => {
+                  click.stopPropagation();
+                  onCancel(event);
+                }}
+                className="rounded px-1 text-[10px] font-semibold hover:bg-white/60 focus:opacity-100"
+                style={{ color: styles.card.color }}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

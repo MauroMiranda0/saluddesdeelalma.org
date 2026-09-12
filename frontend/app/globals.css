@@ -1,12 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  --color-harmony: #6b8f71;
+  --color-forest: #3c5a44;
+  --color-forest-deep: #2e4434;
+  --color-sepia: #a67c52;
+  --color-arena: #d9cbb3;
+  --color-gold: #c2a878;
+}
+
 :root {
   color-scheme: light;
-  --background: #f7f3ec;
-  --foreground: #24372f;
-  --muted: #6f7f73;
-  --surface: #fffaf2;
-  --accent: #3c7a5d;
+  --background: #6b8f71;
+  --foreground: #2e4434;
+  --muted: #5c7a63;
+  --surface: #d9cbb3;
+  --accent: #a67c52;
 }
 
 * {

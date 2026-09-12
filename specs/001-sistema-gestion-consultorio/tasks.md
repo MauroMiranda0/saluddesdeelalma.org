@@ -470,3 +470,14 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T124 Devolver 400 `validation_error` para parámetros de ruta no-UUID en la API administrativa, en lugar de 404 `not_found`, en `backend/src/modules/therapists/therapists.routes.ts`. per contracts/api.yaml, forma de error de validación (contradicts)
 - [x] T125 Ejecutar `npm run format` sobre los archivos reportados por `npm run format:check` y verificar que el gate finalice sin errores. per T004, T087, T094, Constitution IV (contradicts)
 - [x] T126 Eliminar o usar las constantes sin uso en `backend/tests/contract/admin-clinical.contract.test.ts` para que `npm run lint` finalice sin errores. per T004 (contradicts)
+
+---
+
+## Phase 24: Convergence
+
+- [x] T127 Crear la cita de WhatsApp y su auditoría de forma atómica (transacción única o rechazo si la auditoría falla) y cubrir el fallo inyectado del repositorio en `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/appointments/appointments.service.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts`. per Constitution III, FR-016, T109 (contradicts)
+- [x] T128 Aplicar la paleta oficial verde/sepia (`#6B8F71`, `#3C5A44`, `#A67C52`, `#D9CBB3`, `#C2A878`) a la apariencia del frontend, reemplazar los hexes y clases ajenas, y corregir las clases `lavender-*` inexistentes en `frontend/app/globals.css`, `frontend/app/admin/*` y `frontend/components/admin/*`. per Constitution I (contradicts)
+- [x] T129 Despachar los avisos de cancelación (`cancelacion`) en el worker para que el paciente reciba el aviso y la oferta de reagendar, preservando la supresión de otros avisos en citas canceladas, en `backend/src/modules/reminders/reminder-dispatcher.ts`. per FR-008, US2/AC2, T034 (partial)
+- [x] T130 Realinear los recordatorios del día previo (`recordatorio_24h`, `pago_pendiente`) a la nueva fecha dentro de la transacción de reagendamiento, en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`. per FR-007 (partial)
+- [x] T131 Implementar la UI móvil para mover/reagendar citas conectando `onEventSelect` de `frontend/components/admin/agenda/agenda-calendar.tsx` y `rescheduleAdminAppointment`, con nuevo diálogo en `frontend/app/admin/agenda/page.tsx` y `frontend/components/admin/agenda/reschedule-dialog.tsx`. per US2/AC2, FR-012 (partial)
+- [x] T132 Redirigir a `/admin/login` cuando una petición autenticada devuelva `401` o expire la sesión durante el uso, centralizando el manejo en `frontend/lib/api/client.ts` y consolidando `isSessionExpired` sin exponer datos administrativos. per FR-019, US2/AC6, SC-012 (partial)
