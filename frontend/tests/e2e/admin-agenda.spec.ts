@@ -4,10 +4,15 @@ import { expect, test } from "@playwright/test";
 // Requiere:
 //   1. Base de datos sembrada con el usuario admin:
 //      ADMIN_SEED_PASSWORD=<clave> npm run db:seed
-//   2. La misma clave en la variable ADMIN_E2E_PASSWORD (o "e2e-admin-password-1234"
-//      por defecto). El valor por defecto cumple el mínimo de 16 caracteres de la semilla.
-const ADMIN_PASSWORD =
-  process.env.ADMIN_E2E_PASSWORD ?? "e2e-admin-password-1234";
+//   2. La misma clave en la variable ADMIN_E2E_PASSWORD (se desecha la prueba
+//      sin ella para no versionar credenciales planas).
+const ADMIN_PASSWORD = process.env.ADMIN_E2E_PASSWORD;
+
+if (!ADMIN_PASSWORD) {
+  throw new Error(
+    "ADMIN_E2E_PASSWORD must be set to run the admin E2E tests; use the same value as ADMIN_SEED_PASSWORD."
+  );
+}
 
 test("Acceso anónimo redirige al login", async ({ page }) => {
   await page.goto("/admin");

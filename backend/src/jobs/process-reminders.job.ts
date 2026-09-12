@@ -1,6 +1,8 @@
 import { logger } from "../lib/logger";
 import { dispatchDueReminders } from "../modules/reminders/reminder-dispatcher";
 
+const INTERVAL_MS = 5 * 60_000;
+
 const run = async () => {
   try {
     await dispatchDueReminders();
@@ -9,5 +11,7 @@ const run = async () => {
   }
 };
 
-void run();
-setInterval(() => void run(), 5 * 60_000);
+export const startReminderWorker = () => {
+  void run();
+  setInterval(() => void run(), INTERVAL_MS);
+};

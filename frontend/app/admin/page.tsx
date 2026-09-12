@@ -7,17 +7,12 @@ import {
   listAppointmentsRange,
   type AdminAppointmentEvent
 } from "../../lib/admin/api";
+import { startOfDay } from "../../lib/admin/calendar";
 import {
   appointmentKindOf,
   EVENT_COLOR_MAP,
   eventStyles
 } from "../../lib/admin/event-colors";
-
-const startOfDay = (date: Date) => {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start;
-};
 
 export default function AdminDashboardPage() {
   const [today, setToday] = useState<AdminAppointmentEvent[]>([]);

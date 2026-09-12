@@ -9,8 +9,6 @@ import {
   buildWeekDays,
   dayKeyOf,
   formatFullDayLabel,
-  formatMonthLabel,
-  formatTime,
   startOfWeek
 } from "../../../lib/admin/calendar";
 import type { CalendarEvent } from "../../../lib/admin/calendar";
@@ -23,7 +21,6 @@ type AgendaCalendarProps = {
   visibleDate: Date;
   events: CalendarEvent[];
   active: Set<AgendaEventKind>;
-  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
 };
@@ -39,7 +36,6 @@ export const AgendaCalendar = ({
   visibleDate,
   events,
   active,
-  onEventSelect,
   onEventCancel,
   onEventReschedule
 }: AgendaCalendarProps) => {
@@ -53,7 +49,6 @@ export const AgendaCalendar = ({
       <MonthView
         dates={buildMonthGrid(visibleDate)}
         events={visible}
-        onEventSelect={onEventSelect}
         onEventCancel={onEventCancel}
         onEventReschedule={onEventReschedule}
       />
@@ -64,7 +59,6 @@ export const AgendaCalendar = ({
       <WeekView
         weekStart={startOfWeek(visibleDate)}
         events={visible}
-        onEventSelect={onEventSelect}
         onEventCancel={onEventCancel}
         onEventReschedule={onEventReschedule}
       />
@@ -75,7 +69,6 @@ export const AgendaCalendar = ({
     <DayView
       day={visibleDate}
       events={visible}
-      onEventSelect={onEventSelect}
       onEventCancel={onEventCancel}
       onEventReschedule={onEventReschedule}
     />
@@ -90,13 +83,11 @@ const eventSort = (a: CalendarEvent, b: CalendarEvent) =>
 const MonthView = ({
   dates,
   events,
-  onEventSelect,
   onEventCancel,
   onEventReschedule
 }: {
   dates: Date[];
   events: CalendarEvent[];
-  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
 }) => {
@@ -157,7 +148,6 @@ const MonthView = ({
                   key={event.id}
                   event={event}
                   variant="month"
-                  onSelect={onEventSelect}
                   onCancel={onEventCancel}
                   onReschedule={onEventReschedule}
                 />
@@ -173,13 +163,11 @@ const MonthView = ({
 const WeekView = ({
   weekStart,
   events,
-  onEventSelect,
   onEventCancel,
   onEventReschedule
 }: {
   weekStart: Date;
   events: CalendarEvent[];
-  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
 }) => {
@@ -249,7 +237,6 @@ const WeekView = ({
                   key={event.id}
                   event={event}
                   variant="week"
-                  onSelect={onEventSelect}
                   onCancel={onEventCancel}
                   onReschedule={onEventReschedule}
                 />
@@ -265,13 +252,11 @@ const WeekView = ({
 const DayView = ({
   day,
   events,
-  onEventSelect,
   onEventCancel,
   onEventReschedule
 }: {
   day: Date;
   events: CalendarEvent[];
-  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
 }) => {
@@ -310,7 +295,6 @@ const DayView = ({
                     key={event.id}
                     event={event}
                     variant="day"
-                    onSelect={onEventSelect}
                     onCancel={onEventCancel}
                     onReschedule={onEventReschedule}
                   />
@@ -323,5 +307,3 @@ const DayView = ({
     </div>
   );
 };
-
-export { formatMonthLabel, formatTime };

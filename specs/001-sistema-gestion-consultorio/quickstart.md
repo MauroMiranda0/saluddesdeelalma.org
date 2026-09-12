@@ -2,9 +2,7 @@
 
 ## Estado actual
 
-Esta guia refleja el cierre de la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp**, despues de convergencia y remediaciones `T091` a `T095` y `T115` a `T126` (segunda pasada, Phase 23).
-
-El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, shell frontend de Next.js y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y puede ofrecer horarios concretos, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital. La evaluacion clinica ocurre antes que el flujo de reserva; los recordatorios del dia previo se programan a las 18:00 `America/Mexico_City` y solo se envian el dia calendario anterior a una cita aun futura.
+Esta guia refleja el estado posterior a las convergencias de cierre de las fases comerciales de agendamiento (`US1`), panel administrativo (`US2`) y a la convergencia **Phase 24**. El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, panel administrativo movil, y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y puede ofrecer horarios concretos, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital. La evaluacion clinica ocurre antes que el flujo de reserva; los recordatorios del dia previo se programan a las 18:00 `America/Mexico_City` y solo se envian el dia calendario anterior a una cita aun futura. El login del panel es funcional para la cuenta `admin` (usuario `admin`, rol `admin`), la sesion expira por inactividad de 30 minutos, y la agenda permite crear, cancelar y mover/reagendar citas desde el movil. La landing publica aun no existe (US6): `/` redirige a `/admin/agenda`.
 
 ## Prerrequisitos verificados para esta fase
 
@@ -28,6 +26,7 @@ Archivo: `backend/.env.example`
 - `SESSION_COOKIE_NAME`
 - `SESSION_IDLE_TIMEOUT_MINUTES`
 - `REMINDER_TIMEZONE` (requerida al implementar Fase comercial 4; valor de producción: `America/Mexico_City`)
+- `ENABLE_REMINDER_WORKER` (`true` arranca el worker de recordatorios cada 5 minutos junto con el backend; recomendado en producción, deshabilitado por defecto)
 - `WHATSAPP_VERIFY_TOKEN`
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
@@ -121,7 +120,7 @@ npm run start:frontend
 Resultado esperado:
 
 - Next.js inicia en `http://localhost:3000`.
-- La ruta publica responde `404` porque la landing se implementara en US6.
+- La ruta publica `/` redirige a `/admin/agenda` porque la landing se implementara en US6.
 
 ### 7. Validar lint
 
@@ -173,16 +172,17 @@ npm run reminders:worker --workspace backend
 
 Ejecuta `dispatchDueReminders` al arrancar y repite cada 5 minutos. Requiere base de datos y credenciales de WhatsApp; aun no esta enlazado a ningun scheduler externo.
 
-## Limites de esta fase
+## Limites de la fase
 
-- `/api/v1/auth/login` existe solo como shell y devuelve `501`; la implementacion real corresponde a `T028`.
-- `/api/v1/auth/me` y `/api/v1/auth/logout` requieren una cookie de sesion valida, que se emitira cuando exista login funcional.
+- `/api/v1/auth/login` es funcional y autentica únicamente la cuenta activa `admin` con rol `admin`; toda identidad distinta se rechaza y audita.
+- `/api/v1/auth/me` y `/api/v1/auth/logout` requieren una cookie de sesion valida emitida por el login; la sesion expira por inactividad de 30 minutos.
 - Las auditorías de denegacion incluyen `requestId`; la sesion se desliza en cada peticion autenticada y la cookie de `/auth/me` se renueva con opciones de sesion.
 - La API administrativa responde `400 validation_error` para parametros de ruta no-UUID.
 - El adaptador de WhatsApp simula envios fuera de produccion si faltan `WHATSAPP_ACCESS_TOKEN` o `WHATSAPP_PHONE_NUMBER_ID`; produccion exige ambas credenciales.
 - La migración `20260911000000_therapist_session_rules` requiere PostgreSQL real con `btree_gist`; la migración de endurecimiento `20261101000000_convergence_hardening` refuerza la restricción a nivel de trigger. Ambas se verifican con el gate de la seccion 9.
 - Las citas nuevas requieren una psicóloga asignada por `admin`; individual dura 60 minutos y pareja/familiar 90 minutos.
 - El recordatorio del dia previo se programa a las 18:00 `America/Mexico_City` y solo se envia en el dia calendario anterior a una cita aun futura (filas rezagadas se omiten). El destinatario grupal sin destino configurado se marca `omitido`.
-- El panel administrativo, las cancelaciones, pagos, FAQ y consultas de estado siguen pendientes de sus historias correspondientes; el worker de recordatorios existe bajo demanda y aun carece de scheduler.
-- Las pruebas unitarias de la ventana de recordatorios ya existen; las pruebas E2E se agregan en fases posteriores.
-- La landing publica y el panel administrativo no forman parte de esta fase.
+- El worker de recordatorios arranca con el backend si `ENABLE_REMINDER_WORKER=true` o bajo demanda con `npm run reminders:worker`; su scheduler externo se decide en produccion.
+- Pagos (`US3`), recordatorios visibles en agenda/pagos, FAQ y consultas de estado (`US5`) y la landing publica (`US6`) siguen pendientes de sus historias correspondientes; el panel de agenda, cancelaciones y reagendamiento por `admin` ya estan implementados.
+- Las pruebas unitarias de la ventana de recordatorios ya existen; las pruebas E2E del panel requieren `ADMIN_E2E_PASSWORD` y se agregan en fases posteriores.
+- La landing publica no forma parte de esta fase; `/` redirige a `/admin/agenda`.

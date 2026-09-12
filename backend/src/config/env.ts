@@ -21,7 +21,8 @@ const envSchema = z.object({
   AI_PROVIDER_API_KEY: z.string().optional(),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
-    .default("info")
+    .default("info"),
+  ENABLE_REMINDER_WORKER: z.enum(["true", "false"]).default("false")
 });
 
 type Environment = z.infer<typeof envSchema>;
@@ -39,6 +40,9 @@ export const assertProductionEnvironment = (environment: Environment) => {
   }
   if (isPlaceholder(environment.DATABASE_URL)) {
     throw new Error("DATABASE_URL must be replaced in production");
+  }
+  if (environment.SESSION_IDLE_TIMEOUT_MINUTES !== 30) {
+    throw new Error("SESSION_IDLE_TIMEOUT_MINUTES must be 30 in production");
   }
   if (isPlaceholder(environment.WHATSAPP_VERIFY_TOKEN)) {
     throw new Error("WHATSAPP_VERIFY_TOKEN must be replaced in production");

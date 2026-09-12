@@ -18,6 +18,7 @@ import {
 } from "./appointments.repository";
 import {
   createPostCompletionPaymentReminder,
+  ensureConfirmationReminders,
   previousDayReminderAt,
   scheduleAppointmentReminders,
   scheduleCancellationNotice
@@ -126,6 +127,12 @@ export const createWhatsAppAppointment = async (
           entityId: created.id
         });
       }
+
+      // Booking reminders must exist atomically with the appointment so a
+      // crash between commit and the confirmation send cannot leave a
+      // confirmed cita without scheduled prior-day reminders.
+      await ensureConfirmationReminders(created, transaction);
+      await scheduleAppointmentReminders(created, transaction);
 
       return created;
     });
@@ -280,7 +287,7 @@ type AppointmentWithRelations = {
     id: string;
     isActive: boolean;
     user: { fullName: string } | null;
-  };
+  } | null;
   payments?: PaymentSignal[];
 };
 
@@ -308,9 +315,9 @@ export const appointmentCalendarDto = (
   patientBirthdate: appointment.patient.birthdate
     ? appointment.patient.birthdate.toISOString().slice(0, 10)
     : null,
-  therapistId: appointment.therapist.id,
-  therapistName: appointment.therapist.user?.fullName ?? null,
-  therapistIsActive: appointment.therapist.isActive
+  therapistId: appointment.therapist?.id ?? null,
+  therapistName: appointment.therapist?.user?.fullName ?? null,
+  therapistIsActive: appointment.therapist?.isActive ?? false
 });
 
 export const listAppointmentsForCalendar = (from: Date, to: Date) => {

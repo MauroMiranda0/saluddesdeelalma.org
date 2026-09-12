@@ -158,6 +158,72 @@ test(
 );
 
 test(
+  "WhatsApp booking schedules all reminder rows atomically with the appointment",
+  { skip: !enabled },
+  async (t) => {
+    const created: Created = {
+      users: [],
+      patients: [],
+      appointments: [],
+      phones: []
+    };
+    registerCleanup(t, created);
+
+    const therapist = await createTherapist(created);
+    const patient = await createBookingPatient(created, therapist.id);
+    const scheduledAt = new Date("2026-10-05T15:00:00.000Z");
+
+    const { appointment } = await createWhatsAppAppointment({
+      patient: {
+        fullName: patient.fullName,
+        whatsappPhone: patient.whatsappPhone,
+        birthdate: patient.birthdate
+      },
+      scheduledAt,
+      modality: "presencial",
+      therapyType: "individual",
+      createdVia: "whatsapp",
+      audit: {
+        actorChannel: "whatsapp",
+        action: "appointment_created",
+        entityType: "appointment",
+        result: "success",
+        metadata: { createdVia: "whatsapp" },
+        ipAddress: undefined,
+        userAgent: undefined,
+        actorUserId: undefined,
+        patientId: undefined
+      }
+    });
+    created.appointments.push(appointment.id);
+
+    const rows = await prisma.appointmentReminder.findMany({
+      where: { appointmentId: appointment.id }
+    });
+    const byKey = Object.fromEntries(
+      rows.map((row) => [`${row.reminderType}:${row.recipient}`, row])
+    );
+
+    assert.deepEqual(
+      [
+        "confirmacion:paciente",
+        "confirmacion:grupo_psicologas",
+        "recordatorio_24h:paciente",
+        "recordatorio_24h:grupo_psicologas",
+        "pago_pendiente:paciente"
+      ].every((key) => byKey[key] !== undefined),
+      true
+    );
+    assert.equal(rows.length, 5);
+    assert.equal(
+      byKey["recordatorio_24h:paciente"].scheduledAt.getTime(),
+      previousDayReminderAt(scheduledAt).getTime()
+    );
+    assert.equal(byKey["recordatorio_24h:paciente"].status, "pendiente");
+  }
+);
+
+test(
   "cancellation notices are dispatched and stale reminders are omitted",
   { skip: !enabled },
   async (t) => {

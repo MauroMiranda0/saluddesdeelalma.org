@@ -89,6 +89,23 @@ test("production accepts configured non-placeholder secrets", () => {
   assert.doesNotThrow(() => assertProductionEnvironment(productionEnvironment));
 });
 
+test("production rejects an idle timeout different from 30 minutes", () => {
+  assert.throws(
+    () =>
+      assertProductionEnvironment({
+        ...productionEnvironment,
+        SESSION_IDLE_TIMEOUT_MINUTES: 45
+      }),
+    /SESSION_IDLE_TIMEOUT_MINUTES/
+  );
+  assert.doesNotThrow(() =>
+    assertProductionEnvironment({
+      ...productionEnvironment,
+      SESSION_IDLE_TIMEOUT_MINUTES: 30
+    })
+  );
+});
+
 test("DATABASE_URL must be configured", () => {
   assert.throws(() => parseEnvironment({}), /DATABASE_URL/);
 });

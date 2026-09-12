@@ -10,7 +10,6 @@ type EventCardProps = {
   event: CalendarEvent;
   variant?: "month" | "week" | "day";
   onCancel?: (event: CalendarEvent) => void;
-  onSelect?: (event: CalendarEvent) => void;
   onReschedule?: (event: CalendarEvent) => void;
 };
 
@@ -18,7 +17,6 @@ export const EventCard = ({
   event,
   variant = "month",
   onCancel,
-  onSelect,
   onReschedule
 }: EventCardProps) => {
   const kind =
@@ -32,7 +30,7 @@ export const EventCard = ({
     (event.appointment.status === "programada" ||
       event.appointment.status === "confirmada");
 
-  const content = (
+  return (
     <div
       className={
         variant === "day"
@@ -97,20 +95,6 @@ export const EventCard = ({
         )}
       </div>
     </div>
-  );
-
-  if (!onSelect) {
-    return content;
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(event)}
-      className="block w-full text-left"
-    >
-      {content}
-    </button>
   );
 };
 

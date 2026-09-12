@@ -177,44 +177,55 @@ export const scheduleCancellationNotice = async (
   });
 };
 
-export const sendAppointmentConfirmation = async (input: {
-  appointment: Appointment;
-  patient: Patient;
-  conversationId: string;
-  gateway: WhatsAppGateway;
-}) => {
-  const patientReminder = await prisma.appointmentReminder.upsert({
+export const ensureConfirmationReminders = async (
+  appointment: { id: string },
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  const patientReminder = await db.appointmentReminder.upsert({
     where: {
       appointmentId_reminderType_recipient: {
-        appointmentId: input.appointment.id,
+        appointmentId: appointment.id,
         reminderType: "confirmacion",
         recipient: "paciente"
       }
     },
     update: {},
     create: {
-      appointmentId: input.appointment.id,
+      appointmentId: appointment.id,
       reminderType: "confirmacion",
       recipient: "paciente",
       scheduledAt: new Date()
     }
   });
-  const groupReminder = await prisma.appointmentReminder.upsert({
+  const groupReminder = await db.appointmentReminder.upsert({
     where: {
       appointmentId_reminderType_recipient: {
-        appointmentId: input.appointment.id,
+        appointmentId: appointment.id,
         reminderType: "confirmacion",
         recipient: "grupo_psicologas"
       }
     },
     update: {},
     create: {
-      appointmentId: input.appointment.id,
+      appointmentId: appointment.id,
       reminderType: "confirmacion",
       recipient: "grupo_psicologas",
       scheduledAt: new Date()
     }
   });
+
+  return { patientReminder, groupReminder };
+};
+
+export const sendAppointmentConfirmation = async (input: {
+  appointment: Appointment;
+  patient: Patient;
+  conversationId: string;
+  gateway: WhatsAppGateway;
+}) => {
+  const { patientReminder, groupReminder } = await ensureConfirmationReminders(
+    input.appointment
+  );
   const text = appointmentConfirmation(input.appointment, input.patient);
 
   try {

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { ApiError } from "../api/client";
 import { getCurrentAdminSession, type AdminSession } from "./session";
 
 export type AdminSessionState =
@@ -38,9 +37,6 @@ export const useAdminSession = (): AdminSessionState => {
 
   return state;
 };
-
-export const isSessionExpired = (error: unknown) =>
-  error instanceof ApiError && error.status === 401;
 
 export const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   const state = useAdminSession();

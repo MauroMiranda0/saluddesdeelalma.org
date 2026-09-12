@@ -65,21 +65,6 @@ export const startOfDay = (date: Date) => {
   return start;
 };
 
-export const formatTime = (iso: string) => {
-  const date = new Date(iso);
-  const hour = String(date.getHours()).padStart(2, "0");
-  const minute = String(date.getMinutes()).padStart(2, "0");
-
-  return `${hour}:${minute}`;
-};
-
-export const formatDayLabel = (date: Date) => {
-  return new Intl.DateTimeFormat("es-MX", {
-    weekday: "short",
-    day: "numeric"
-  }).format(date);
-};
-
 export const formatFullDayLabel = (date: Date) => {
   return new Intl.DateTimeFormat("es-MX", {
     weekday: "long",
