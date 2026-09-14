@@ -11,4 +11,9 @@ export const patientSchema = z.object({
   notes: z.string().max(1000).optional()
 });
 
+export const createPatientSchema = patientSchema.extend({
+  therapistId: z.uuid().optional()
+});
+
 export type PatientInput = z.infer<typeof patientSchema>;
+export type CreatePatientInput = z.infer<typeof createPatientSchema>;

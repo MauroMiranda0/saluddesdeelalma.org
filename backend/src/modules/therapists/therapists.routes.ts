@@ -6,11 +6,13 @@ import { authenticate } from "../../middleware/authenticate";
 import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identity";
 import { asyncHandler, AppError } from "../../middleware/error-handler";
 import { completeAppointmentWithAudit } from "../appointments/appointments.service";
+import { createAdminPatientWithAudit } from "../patients/patients.service";
 import {
   assignPatientTherapistSchema,
   createTherapistProfileSchema,
   updateTherapistProfileSchema
 } from "../../lib/validators/therapist";
+import { createPatientSchema } from "../../lib/validators/patient";
 import {
   assignPatientTherapistWithAudit,
   createClinicalProfileWithAudit,
@@ -50,6 +52,7 @@ type TherapistAdminRouteDependencies = {
   createClinicalProfileWithAudit: typeof createClinicalProfileWithAudit;
   setClinicalProfileActiveWithAudit: typeof setClinicalProfileActiveWithAudit;
   assignPatientTherapistWithAudit: typeof assignPatientTherapistWithAudit;
+  createAdminPatientWithAudit: typeof createAdminPatientWithAudit;
   completeAppointmentWithAudit: typeof completeAppointmentWithAudit;
   listTherapistProfiles: typeof listTherapistProfiles;
   listPatientsForAdmin: typeof listPatientsForAdmin;
@@ -72,6 +75,8 @@ export const createTherapistAdminRoutes = (
   const assignTherapist =
     dependencies.assignPatientTherapistWithAudit ??
     assignPatientTherapistWithAudit;
+  const createPatientRecord =
+    dependencies.createAdminPatientWithAudit ?? createAdminPatientWithAudit;
   const completeAppointment =
     dependencies.completeAppointmentWithAudit ?? completeAppointmentWithAudit;
   const listProfiles =
@@ -169,6 +174,49 @@ export const createTherapistAdminRoutes = (
     asyncHandler(async (_request, response) => {
       const patients = await listPatients();
       response.json({ patients });
+    })
+  );
+
+  router.post(
+    "/patients",
+    authenticateRequest,
+    authorizeRequest,
+    asyncHandler(async (request, response) => {
+      const parsed = createPatientSchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        throw new AppError(
+          400,
+          "validation_error",
+          "Invalid patient data"
+        );
+      }
+
+      const { therapistId, ...patient } = parsed.data;
+      const created = await createPatientRecord({
+        patient,
+        therapistId,
+        audit: {
+          actorUserId: request.adminSession?.user.id,
+          actorChannel: "admin_panel",
+          action: "patient_created",
+          entityType: "patient",
+          result: "success",
+          metadata: { requestId: response.locals.requestId },
+          ipAddress: request.ip,
+          userAgent: request.header("user-agent")
+        }
+      });
+
+      response.status(201).json({
+        patient: {
+          id: created.id,
+          fullName: created.fullName,
+          whatsappPhone: created.whatsappPhone,
+          status: created.status,
+          assignedTherapistId: created.assignedTherapistId
+        }
+      });
     })
   );
 

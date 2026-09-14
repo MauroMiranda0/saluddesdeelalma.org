@@ -21,8 +21,9 @@ const main = async () => {
   }
 
   await prisma.user.upsert({
-    where: { username: "admin" },
+    where: { email: "admin@saluddesdeelalma.org" },
     update: {
+      username: "admin",
       email: "admin@saluddesdeelalma.org",
       fullName: "Jocelyn Gutiérrez",
       passwordHash: await createPasswordHash(password),

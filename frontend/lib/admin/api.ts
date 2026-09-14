@@ -12,6 +12,10 @@ export type AdminPatient = {
   fullName: string;
   whatsappPhone: string;
   status: "activo" | "inactivo";
+  birthdate: string | null;
+  preferredModality: "online" | "presencial" | null;
+  email: string | null;
+  notes: string | null;
   assignedTherapistId: string | null;
 };
 
@@ -104,6 +108,21 @@ export const updateTherapistProfile = (
 
 export const listAdminPatients = () => {
   return apiRequest<{ patients: AdminPatient[] }>("/admin/patients");
+};
+
+export const createAdminPatient = (input: {
+  fullName: string;
+  whatsappPhone: string;
+  birthdate: string;
+  preferredModality?: "online" | "presencial";
+  email?: string;
+  notes?: string;
+  therapistId?: string;
+}) => {
+  return apiRequest<{ patient: AdminPatient }>("/admin/patients", {
+    method: "POST",
+    body: input
+  });
 };
 
 export const assignPatientTherapist = (

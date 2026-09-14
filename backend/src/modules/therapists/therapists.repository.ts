@@ -17,6 +17,10 @@ export const listPatientsForAdmin = () => {
       fullName: true,
       whatsappPhone: true,
       status: true,
+      birthdate: true,
+      preferredModality: true,
+      email: true,
+      notes: true,
       assignedTherapistId: true
     }
   });
