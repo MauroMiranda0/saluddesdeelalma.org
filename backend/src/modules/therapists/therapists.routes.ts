@@ -6,13 +6,19 @@ import { authenticate } from "../../middleware/authenticate";
 import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identity";
 import { asyncHandler, AppError } from "../../middleware/error-handler";
 import { completeAppointmentWithAudit } from "../appointments/appointments.service";
-import { createAdminPatientWithAudit } from "../patients/patients.service";
+import {
+  createAdminPatientWithAudit,
+  setPatientStatusWithAudit
+} from "../patients/patients.service";
 import {
   assignPatientTherapistSchema,
   createTherapistProfileSchema,
   updateTherapistProfileSchema
 } from "../../lib/validators/therapist";
-import { createPatientSchema } from "../../lib/validators/patient";
+import {
+  createPatientSchema,
+  updatePatientStatusSchema
+} from "../../lib/validators/patient";
 import {
   assignPatientTherapistWithAudit,
   createClinicalProfileWithAudit,
@@ -37,12 +43,14 @@ const assertUuidParam = (value: string | undefined) => {
 
 const therapistProfileDto = (profile: {
   id: string;
+  phone: string;
   isActive: boolean;
   user: { fullName: string; email: string };
 }) => ({
   id: profile.id,
   fullName: profile.user.fullName,
   email: profile.user.email,
+  phone: profile.phone,
   isActive: profile.isActive
 });
 
@@ -53,6 +61,7 @@ type TherapistAdminRouteDependencies = {
   setClinicalProfileActiveWithAudit: typeof setClinicalProfileActiveWithAudit;
   assignPatientTherapistWithAudit: typeof assignPatientTherapistWithAudit;
   createAdminPatientWithAudit: typeof createAdminPatientWithAudit;
+  setPatientStatusWithAudit: typeof setPatientStatusWithAudit;
   completeAppointmentWithAudit: typeof completeAppointmentWithAudit;
   listTherapistProfiles: typeof listTherapistProfiles;
   listPatientsForAdmin: typeof listPatientsForAdmin;
@@ -77,6 +86,8 @@ export const createTherapistAdminRoutes = (
     assignPatientTherapistWithAudit;
   const createPatientRecord =
     dependencies.createAdminPatientWithAudit ?? createAdminPatientWithAudit;
+  const setPatientStatus =
+    dependencies.setPatientStatusWithAudit ?? setPatientStatusWithAudit;
   const completeAppointment =
     dependencies.completeAppointmentWithAudit ?? completeAppointmentWithAudit;
   const listProfiles =
@@ -114,6 +125,7 @@ export const createTherapistAdminRoutes = (
 
       const profile = await createProfile({
         fullName: parsed.data.fullName,
+        phone: parsed.data.phone,
         email: parsed.data.email,
         audit: {
           actorUserId: request.adminSession?.user.id,
@@ -185,11 +197,7 @@ export const createTherapistAdminRoutes = (
       const parsed = createPatientSchema.safeParse(request.body);
 
       if (!parsed.success) {
-        throw new AppError(
-          400,
-          "validation_error",
-          "Invalid patient data"
-        );
+        throw new AppError(400, "validation_error", "Invalid patient data");
       }
 
       const { therapistId, ...patient } = parsed.data;
@@ -244,6 +252,46 @@ export const createTherapistAdminRoutes = (
           actorUserId: request.adminSession?.user.id,
           actorChannel: "admin_panel",
           action: "patient_therapist_assigned",
+          entityType: "patient",
+          result: "success",
+          metadata: { requestId: response.locals.requestId },
+          ipAddress: request.ip,
+          userAgent: request.header("user-agent")
+        }
+      });
+
+      response.json({
+        patient: {
+          id: patient.id,
+          fullName: patient.fullName,
+          whatsappPhone: patient.whatsappPhone,
+          status: patient.status,
+          assignedTherapistId: patient.assignedTherapistId
+        }
+      });
+    })
+  );
+
+  router.patch(
+    "/patients/:patientId",
+    authenticateRequest,
+    authorizeRequest,
+    asyncHandler(async (request, response) => {
+      const patientId = requestParam(request.params.patientId)!;
+      assertUuidParam(patientId);
+      const parsed = updatePatientStatusSchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        throw new AppError(400, "validation_error", "Invalid patient state");
+      }
+
+      const patient = await setPatientStatus({
+        patientId,
+        isActive: parsed.data.isActive,
+        audit: {
+          actorUserId: request.adminSession?.user.id,
+          actorChannel: "admin_panel",
+          action: "patient_status_updated",
           entityType: "patient",
           result: "success",
           metadata: { requestId: response.locals.requestId },

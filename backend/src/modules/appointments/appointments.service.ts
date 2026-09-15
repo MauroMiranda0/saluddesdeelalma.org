@@ -18,11 +18,13 @@ import {
 } from "./appointments.repository";
 import {
   createPostCompletionPaymentReminder,
+  dispatchAppointmentConfirmation,
   ensureConfirmationReminders,
   previousDayReminderAt,
   scheduleAppointmentReminders,
   scheduleCancellationNotice
 } from "../reminders/reminders.service";
+import { whatsappGateway } from "../../integrations/whatsapp/whatsapp.gateway";
 
 const mexicoTimeZone = "America/Mexico_City";
 const hourFormatter = new Intl.DateTimeFormat("en-US", {
@@ -59,7 +61,7 @@ export const assertWhatsAppAppointmentSchedule = (
   scheduledAt: Date,
   durationMinutes = 60
 ) => {
-  const { weekday, hour, minute } = localTimeParts(scheduledAt);
+  const { weekday, hour } = localTimeParts(scheduledAt);
   const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
   const end = localTimeParts(endsAt);
 
@@ -67,13 +69,12 @@ export const assertWhatsAppAppointmentSchedule = (
     weekday === "Sat" ||
     weekday === "Sun" ||
     hour < 9 ||
-    minute !== 0 ||
     end.weekday !== weekday ||
     end.hour > 21 ||
     (end.hour === 21 && end.minute !== 0)
   ) {
     throw new AppointmentScheduleError(
-      "WhatsApp appointments must fit Monday through Friday from 09:00 to 21:00 in 60 or 90 minute blocks"
+      "WhatsApp appointments must fit Monday through Friday from 09:00 to 21:00 and end by 21:00"
     );
   }
 };
@@ -187,13 +188,18 @@ export const findNextAvailableSlots = async (
       continue;
     }
 
-    for (let hour = 9; hour <= 20 && slots.length < count; hour += 1) {
+    for (
+      let slotMinute = 9 * 60;
+      slotMinute < 21 * 60 && slots.length < count;
+      slotMinute += 15
+    ) {
       const slot = new Date(
         Date.UTC(
           dayAtUtc.getUTCFullYear(),
           dayAtUtc.getUTCMonth(),
           dayAtUtc.getUTCDate(),
-          hour + 6
+          Math.floor(slotMinute / 60) + 6,
+          slotMinute % 60
         )
       );
 
@@ -547,6 +553,73 @@ export const rescheduleAppointmentWithAudit = async (input: {
     });
     return updated;
   });
+
+  return appointment;
+};
+
+export const confirmAppointmentWithAudit = async (input: {
+  appointmentId: string;
+  audit: AuditCreateInput;
+}) => {
+  const current = await findAppointmentForAdmin(input.appointmentId);
+
+  if (!current) {
+    throw new AppointmentNotFoundError("Appointment does not exist");
+  }
+
+  if (
+    current.status === "confirmada" ||
+    current.status === "completada" ||
+    current.status === "cancelada"
+  ) {
+    throw new AppointmentNotMutableError(
+      "Only scheduled appointments can be confirmed"
+    );
+  }
+
+  const appointment = await prisma.$transaction(async (transaction) => {
+    const confirmed = await transaction.appointment.update({
+      where: { id: current.id },
+      data: { status: "confirmada" },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            fullName: true,
+            whatsappPhone: true,
+            birthdate: true
+          }
+        },
+        therapist: {
+          select: {
+            id: true,
+            isActive: true,
+            user: { select: { fullName: true } }
+          }
+        }
+      }
+    });
+    // Reservar las confirmaciones anticipadas dentro de la misma transacción
+    // para que el estado confirmada no quede sin su recordatorio.
+    await ensureConfirmationReminders(confirmed, transaction);
+    await createAuditLogInTransaction(transaction, {
+      ...input.audit,
+      entityId: confirmed.id
+    });
+    return confirmed;
+  });
+
+  // Despacho best-effort tras el commit: si el envío falla, la cita ya quedó
+  // confirmada y el estado de recordatorios registra el error.
+  try {
+    await dispatchAppointmentConfirmation({
+      appointment,
+      patient: appointment.patient,
+      gateway: whatsappGateway
+    });
+  } catch {
+    // El envío de confirmación es una grieta no crítica para la mutación.
+  }
 
   return appointment;
 };

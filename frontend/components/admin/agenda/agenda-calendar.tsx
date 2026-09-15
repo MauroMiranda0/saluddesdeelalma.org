@@ -21,8 +21,12 @@ type AgendaCalendarProps = {
   visibleDate: Date;
   events: CalendarEvent[];
   active: Set<AgendaEventKind>;
+  onDaySelect?: (day: Date) => void;
+  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
+  onEventConfirm?: (event: CalendarEvent) => void;
+  onEventComplete?: (event: CalendarEvent) => void;
 };
 
 const kindOfEvent = (event: CalendarEvent): AgendaEventKind => {
@@ -36,8 +40,12 @@ export const AgendaCalendar = ({
   visibleDate,
   events,
   active,
+  onDaySelect,
+  onEventSelect,
   onEventCancel,
-  onEventReschedule
+  onEventReschedule,
+  onEventConfirm,
+  onEventComplete
 }: AgendaCalendarProps) => {
   const visible =
     active.size === 0
@@ -49,8 +57,12 @@ export const AgendaCalendar = ({
       <MonthView
         dates={buildMonthGrid(visibleDate)}
         events={visible}
+        onDaySelect={onDaySelect}
+        onEventSelect={onEventSelect}
         onEventCancel={onEventCancel}
         onEventReschedule={onEventReschedule}
+        onEventConfirm={onEventConfirm}
+        onEventComplete={onEventComplete}
       />
     );
   }
@@ -59,8 +71,12 @@ export const AgendaCalendar = ({
       <WeekView
         weekStart={startOfWeek(visibleDate)}
         events={visible}
+        onDaySelect={onDaySelect}
+        onEventSelect={onEventSelect}
         onEventCancel={onEventCancel}
         onEventReschedule={onEventReschedule}
+        onEventConfirm={onEventConfirm}
+        onEventComplete={onEventComplete}
       />
     );
   }
@@ -69,8 +85,11 @@ export const AgendaCalendar = ({
     <DayView
       day={visibleDate}
       events={visible}
+      onEventSelect={onEventSelect}
       onEventCancel={onEventCancel}
       onEventReschedule={onEventReschedule}
+      onEventConfirm={onEventConfirm}
+      onEventComplete={onEventComplete}
     />
   );
 };
@@ -83,13 +102,21 @@ const eventSort = (a: CalendarEvent, b: CalendarEvent) =>
 const MonthView = ({
   dates,
   events,
+  onDaySelect,
+  onEventSelect,
   onEventCancel,
-  onEventReschedule
+  onEventReschedule,
+  onEventConfirm,
+  onEventComplete
 }: {
   dates: Date[];
   events: CalendarEvent[];
+  onDaySelect?: (day: Date) => void;
+  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
+  onEventConfirm?: (event: CalendarEvent) => void;
+  onEventComplete?: (event: CalendarEvent) => void;
 }) => {
   const byDay = new Map<string, CalendarEvent[]>();
 
@@ -119,11 +146,17 @@ const MonthView = ({
           const inMonth = day.getMonth() === dates[15]?.getMonth();
 
           return (
-            <div
+            <button
               key={key}
-              className={`flex min-h-24 flex-col gap-1 p-1.5 ${
+              type="button"
+              onClick={() => onDaySelect?.(day)}
+              aria-label={`Ver ${new Intl.DateTimeFormat("es-MX", {
+                day: "numeric",
+                month: "long"
+              }).format(day)}`}
+              className={`flex min-h-24 flex-col gap-1 p-1.5 text-left focus:outline-none focus:ring-2 focus:ring-forest/40 ${
                 inMonth ? "bg-white" : "bg-gray-50/60"
-              }`}
+              } ${onDaySelect ? "cursor-pointer hover:bg-forest/5" : ""}`}
             >
               <div className="flex justify-between px-0.5">
                 <span
@@ -148,11 +181,14 @@ const MonthView = ({
                   key={event.id}
                   event={event}
                   variant="month"
+                  onSelect={onEventSelect}
                   onCancel={onEventCancel}
                   onReschedule={onEventReschedule}
+                  onConfirm={onEventConfirm}
+                  onComplete={onEventComplete}
                 />
               ))}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -163,13 +199,21 @@ const MonthView = ({
 const WeekView = ({
   weekStart,
   events,
+  onDaySelect,
+  onEventSelect,
   onEventCancel,
-  onEventReschedule
+  onEventReschedule,
+  onEventConfirm,
+  onEventComplete
 }: {
   weekStart: Date;
   events: CalendarEvent[];
+  onDaySelect?: (day: Date) => void;
+  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
+  onEventConfirm?: (event: CalendarEvent) => void;
+  onEventComplete?: (event: CalendarEvent) => void;
 }) => {
   const days = buildWeekDays(weekStart);
   const byDay = new Map<string, CalendarEvent[]>();
@@ -199,15 +243,27 @@ const WeekView = ({
           const isToday = dayKeyOf(day) === todayKey;
 
           return (
-            <div key={day.toISOString()} className="px-2 py-2 text-center">
+            <button
+              key={day.toISOString()}
+              type="button"
+              onClick={() => onDaySelect?.(day)}
+              aria-label={`Ver ${new Intl.DateTimeFormat("es-MX", {
+                weekday: "long",
+                day: "numeric",
+                month: "long"
+              }).format(day)}`}
+              className={`px-2 py-2 text-center focus:outline-none focus:ring-2 focus:ring-forest/40 ${
+                onDaySelect ? "cursor-pointer hover:bg-forest/5" : ""
+              }`}
+            >
               <div
                 className={`text-[11px] font-semibold uppercase ${
                   isToday ? "text-forest" : "text-gray-500"
                 }`}
               >
-                {new Intl.DateTimeFormat("es-MX", { weekday: "short" }).format(
-                  day
-                )}
+                {new Intl.DateTimeFormat("es-MX", {
+                  weekday: "short"
+                }).format(day)}
               </div>
               <div
                 className={`text-sm font-bold ${
@@ -216,7 +272,7 @@ const WeekView = ({
               >
                 {day.getDate()}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -237,8 +293,11 @@ const WeekView = ({
                   key={event.id}
                   event={event}
                   variant="week"
+                  onSelect={onEventSelect}
                   onCancel={onEventCancel}
                   onReschedule={onEventReschedule}
+                  onConfirm={onEventConfirm}
+                  onComplete={onEventComplete}
                 />
               ))}
             </div>
@@ -252,13 +311,19 @@ const WeekView = ({
 const DayView = ({
   day,
   events,
+  onEventSelect,
   onEventCancel,
-  onEventReschedule
+  onEventReschedule,
+  onEventConfirm,
+  onEventComplete
 }: {
   day: Date;
   events: CalendarEvent[];
+  onEventSelect?: (event: CalendarEvent) => void;
   onEventCancel?: (event: CalendarEvent) => void;
   onEventReschedule?: (event: CalendarEvent) => void;
+  onEventConfirm?: (event: CalendarEvent) => void;
+  onEventComplete?: (event: CalendarEvent) => void;
 }) => {
   const byHour = new Map<number, CalendarEvent[]>();
 
@@ -295,8 +360,11 @@ const DayView = ({
                     key={event.id}
                     event={event}
                     variant="day"
+                    onSelect={onEventSelect}
                     onCancel={onEventCancel}
                     onReschedule={onEventReschedule}
+                    onConfirm={onEventConfirm}
+                    onComplete={onEventComplete}
                   />
                 ))}
               </div>

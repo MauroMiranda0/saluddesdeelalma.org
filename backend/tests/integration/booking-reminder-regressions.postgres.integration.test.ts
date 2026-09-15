@@ -47,7 +47,9 @@ const registerCleanup = (t: test.TestContext, created: Created) => {
       where: { userId: { in: created.users } }
     });
     await prisma.auditLog.deleteMany({
-      where: { patientId: { in: created.patients } }
+      where: {
+        entityId: { in: [...created.patients, ...created.appointments] }
+      }
     });
     await prisma.user.deleteMany({
       where: { id: { in: created.users } }
@@ -67,7 +69,7 @@ const createTherapist = async (created: Created) => {
   });
   created.users.push(user.id);
   const therapist = await prisma.therapistProfile.create({
-    data: { userId: user.id }
+    data: { userId: user.id, phone: "5215500000000" }
   });
   return therapist;
 };

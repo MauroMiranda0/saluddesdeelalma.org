@@ -4,6 +4,7 @@ export type TherapistProfile = {
   id: string;
   fullName: string;
   email: string;
+  phone: string;
   isActive: boolean;
 };
 
@@ -85,6 +86,7 @@ export const listTherapistProfiles = () => {
 
 export const createTherapistProfile = (input: {
   fullName: string;
+  phone: string;
   email?: string;
 }) => {
   return apiRequest<{ therapistProfile: TherapistProfile }>(
@@ -135,6 +137,13 @@ export const assignPatientTherapist = (
   );
 };
 
+export const updatePatientStatus = (patientId: string, isActive: boolean) => {
+  return apiRequest<{ patient: AdminPatient }>(`/admin/patients/${patientId}`, {
+    method: "PATCH",
+    body: { isActive }
+  });
+};
+
 export const listAdminAppointments = () => {
   return apiRequest<{ appointments: AdminAppointment[] }>(
     "/admin/appointments"
@@ -145,6 +154,13 @@ export const completeAppointment = (appointmentId: string) => {
   return apiRequest<{
     appointment: { id: string; status: string; completedAt: string | null };
   }>(`/admin/appointments/${appointmentId}/complete`, { method: "POST" });
+};
+
+export const confirmAppointment = (appointmentId: string) => {
+  return apiRequest<{ appointment: AdminAppointmentEvent }>(
+    `/appointments/${appointmentId}/confirm`,
+    { method: "POST" }
+  );
 };
 
 export const listAppointmentsRange = (from: string, to: string) => {

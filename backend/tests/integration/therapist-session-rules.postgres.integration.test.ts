@@ -129,7 +129,7 @@ test(
     const therapistUser = await createPsychologistUser("Terapeuta Uno");
     created.users.push(therapistUser.id);
     const therapist = await prisma.therapistProfile.create({
-      data: { userId: therapistUser.id }
+      data: { userId: therapistUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient("Paciente Uno", created, therapist.id);
 
@@ -184,12 +184,12 @@ test(
     const therapistAUser = await createPsychologistUser("Terapeuta A");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const therapistBUser = await createPsychologistUser("Terapeuta B");
     created.users.push(therapistBUser.id);
     const therapistB = await prisma.therapistProfile.create({
-      data: { userId: therapistBUser.id }
+      data: { userId: therapistBUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient("Paciente Dos", created, therapistA.id);
 
@@ -273,7 +273,7 @@ test(
     const therapistAUser = await createPsychologistUser("Terapeuta Inactivo");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Tres",
@@ -337,7 +337,7 @@ test(
     const therapistAUser = await createPsychologistUser("Validador");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Cuatro",
@@ -356,7 +356,9 @@ test(
     created.users.push(user.id);
 
     await assert.rejects(
-      prisma.therapistProfile.create({ data: { userId: user.id } }),
+      prisma.therapistProfile.create({
+        data: { userId: user.id, phone: "5215500000000" }
+      }),
       /therapist profile requires an admin or psychologist user/
     );
 
@@ -379,7 +381,7 @@ test(
     );
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Cinco",
@@ -427,7 +429,7 @@ test(
     const therapistAUser = await createPsychologistUser("Terapeuta Post Cita");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Seis",
@@ -471,7 +473,7 @@ test(
     const therapistAUser = await createPsychologistUser("Terapeuta Pagos");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Siete",
@@ -523,7 +525,7 @@ test(
     const therapistAUser = await createPsychologistUser("Terapeuta Rollback");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Ocho",
@@ -593,7 +595,7 @@ test(
     const therapistAUser = await createPsychologistUser("Terapeuta Grupos");
     created.users.push(therapistAUser.id);
     const therapistA = await prisma.therapistProfile.create({
-      data: { userId: therapistAUser.id }
+      data: { userId: therapistAUser.id, phone: "5215500000000" }
     });
     const patient = await createPatient(
       "Paciente Nueve",

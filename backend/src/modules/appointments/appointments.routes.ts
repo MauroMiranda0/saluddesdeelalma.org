@@ -19,6 +19,7 @@ import {
   TherapistAssignmentRequiredError,
   appointmentCalendarDto,
   cancelAppointmentWithAudit,
+  confirmAppointmentWithAudit,
   createPanelAppointmentWithAudit,
   listAppointmentsForCalendar,
   rescheduleAppointmentWithAudit
@@ -79,6 +80,7 @@ type AdminAppointmentRouteDependencies = {
   createPanelAppointmentWithAudit: typeof createPanelAppointmentWithAudit;
   rescheduleAppointmentWithAudit: typeof rescheduleAppointmentWithAudit;
   cancelAppointmentWithAudit: typeof cancelAppointmentWithAudit;
+  confirmAppointmentWithAudit: typeof confirmAppointmentWithAudit;
   listAppointmentsForCalendar: typeof listAppointmentsForCalendar;
 };
 
@@ -97,6 +99,8 @@ export const createAdminAppointmentRoutes = (
     rescheduleAppointmentWithAudit;
   const cancelAppointment =
     dependencies.cancelAppointmentWithAudit ?? cancelAppointmentWithAudit;
+  const confirmAppointment =
+    dependencies.confirmAppointmentWithAudit ?? confirmAppointmentWithAudit;
   const listAppointments =
     dependencies.listAppointmentsForCalendar ?? listAppointmentsForCalendar;
 
@@ -200,6 +204,36 @@ export const createAdminAppointmentRoutes = (
             actorUserId: request.adminSession?.user.id,
             actorChannel: "admin_panel",
             action: "appointment_rescheduled",
+            entityType: "appointment",
+            result: "success",
+            metadata: { requestId: response.locals.requestId },
+            ipAddress: request.ip,
+            userAgent: request.header("user-agent")
+          }
+        });
+
+        response.json({ appointment: appointmentCalendarDto(appointment) });
+      } catch (error) {
+        throw appointmentError(error);
+      }
+    })
+  );
+
+  router.post(
+    "/appointments/:appointmentId/confirm",
+    authenticateRequest,
+    authorizeRequest,
+    asyncHandler(async (request, response) => {
+      const appointmentId = requestParam(request.params.appointmentId)!;
+      assertUuidParam(appointmentId);
+
+      try {
+        const appointment = await confirmAppointment({
+          appointmentId,
+          audit: {
+            actorUserId: request.adminSession?.user.id,
+            actorChannel: "admin_panel",
+            action: "appointment_confirmed",
             entityType: "appointment",
             result: "success",
             metadata: { requestId: response.locals.requestId },

@@ -8,7 +8,8 @@ import { createAdminAppointmentRoutes } from "../../src/modules/appointments/app
 import type {
   createPanelAppointmentWithAudit as createAppointmentService,
   rescheduleAppointmentWithAudit as rescheduleService,
-  cancelAppointmentWithAudit as cancelService
+  cancelAppointmentWithAudit as cancelService,
+  confirmAppointmentWithAudit as confirmService
 } from "../../src/modules/appointments/appointments.service";
 import {
   AppointmentNotMutableError,
@@ -108,6 +109,7 @@ const withAdminServer = async (
   options: {
     createThrows?: boolean;
     rescheduleThrows?: boolean;
+    confirmThrows?: boolean;
   } = {}
 ) => {
   const events: { audit: AuditEvent[] } = { audit: [] };
@@ -193,7 +195,16 @@ const withAdminServer = async (
           cancelledAt: new Date("2026-09-11T10:00:00.000Z"),
           cancellationNotice: "a_tiempo"
         });
-      }) as typeof cancelService
+      }) as typeof cancelService,
+      confirmAppointmentWithAudit: (async (
+        input: Parameters<typeof confirmService>[0]
+      ) => {
+        if (options.confirmThrows) {
+          throw new AppointmentNotMutableError("not mutable");
+        }
+        captureAudit(input);
+        return fakeAppointment({ status: "confirmada" });
+      }) as typeof confirmService
     })
   );
   app.use(errorHandler);
@@ -367,6 +378,52 @@ test("an admin cancels an appointment with a reason and it is audited", async ()
     events.audit.map((event) => event.action),
     ["appointment_cancelled"]
   );
+});
+
+test("an admin confirms an appointment and it is audited", async () => {
+  const events = await withAdminServer(async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/appointments/33333333-3333-4333-8333-333333333333/confirm`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" }
+      }
+    );
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      appointment: { status: string };
+    };
+    assert.equal(body.appointment.status, "confirmada");
+  });
+
+  assert.deepEqual(
+    events.audit.map((event) => event.action),
+    ["appointment_confirmed"]
+  );
+  assert.equal(events.audit[0].entityType, "appointment");
+  assert.equal(events.audit[0].result, "success");
+});
+
+test("immutable appointments cannot be confirmed", async () => {
+  const events = await withAdminServer(
+    async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/appointments/33333333-3333-4333-8333-333333333333/confirm`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" }
+        }
+      );
+      assert.equal(response.status, 409);
+      assert.equal(
+        ((await response.json()) as { code: string }).code,
+        "conflict"
+      );
+    },
+    { confirmThrows: true }
+  );
+
+  assert.deepEqual(events.audit, []);
 });
 
 test("immutable appointments cannot be rescheduled", async () => {

@@ -7,6 +7,7 @@ import {
   createAdminAppointment,
   type DirectoryPatient
 } from "../../../lib/admin/api";
+import { DateTimePicker } from "../schedule/date-time-picker";
 
 type AppointmentFormProps = {
   patients: DirectoryPatient[];
@@ -99,12 +100,7 @@ export const AppointmentForm = ({
         <label className="mb-1 block text-xs font-medium text-gray-500">
           Fecha y hora
         </label>
-        <input
-          type="datetime-local"
-          value={scheduledAt}
-          onChange={(event) => setScheduledAt(event.target.value)}
-          className="mb-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-        />
+        <DateTimePicker value={scheduledAt} onChange={setScheduledAt} />
 
         <div className="mb-3 grid grid-cols-2 gap-2">
           <div>

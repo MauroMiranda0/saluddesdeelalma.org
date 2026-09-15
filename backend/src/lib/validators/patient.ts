@@ -15,5 +15,12 @@ export const createPatientSchema = patientSchema.extend({
   therapistId: z.uuid().optional()
 });
 
+export const updatePatientStatusSchema = z.object({
+  isActive: z.boolean()
+});
+
 export type PatientInput = z.infer<typeof patientSchema>;
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
+export type UpdatePatientStatusInput = z.infer<
+  typeof updatePatientStatusSchema
+>;

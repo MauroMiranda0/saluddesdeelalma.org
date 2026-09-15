@@ -9,33 +9,47 @@ import type { CalendarEvent } from "../../../lib/admin/calendar";
 type EventCardProps = {
   event: CalendarEvent;
   variant?: "month" | "week" | "day";
+  onSelect?: (event: CalendarEvent) => void;
   onCancel?: (event: CalendarEvent) => void;
   onReschedule?: (event: CalendarEvent) => void;
+  onConfirm?: (event: CalendarEvent) => void;
+  onComplete?: (event: CalendarEvent) => void;
 };
 
 export const EventCard = ({
   event,
   variant = "month",
+  onSelect,
   onCancel,
-  onReschedule
+  onReschedule,
+  onConfirm,
+  onComplete
 }: EventCardProps) => {
   const kind =
     event.kind === "appointment" && event.appointment
       ? appointmentKindOf(event.appointment)
       : "cumpleanios";
   const styles = eventStyles(kind);
-  const isCancellable =
-    event.kind === "appointment" &&
-    event.appointment &&
-    (event.appointment.status === "programada" ||
-      event.appointment.status === "confirmada");
+  const status = event.appointment?.status;
+  const isCancellable = status === "programada" || status === "confirmada";
+  const isConfirmable = status === "programada";
+  const isCompletable = status === "programada" || status === "confirmada";
+
+  const hasActions =
+    isCancellable && (onCancel || onReschedule || onConfirm || onComplete);
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => {
+        if (onSelect && event.kind === "appointment") {
+          onSelect(event);
+        }
+      }}
       className={
-        variant === "day"
-          ? "group flex flex-1 flex-col justify-center overflow-hidden rounded border border-gray-100 px-2 py-1 shadow-sm"
-          : "group flex flex-col overflow-hidden rounded border border-gray-100 px-2 py-1.5 shadow-sm"
+        onSelect && event.kind === "appointment"
+          ? "group flex w-full flex-col overflow-hidden rounded border border-gray-100 px-2 py-1.5 text-left shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2"
+          : "group flex w-full flex-col overflow-hidden rounded border border-gray-100 px-2 py-1.5 text-left shadow-sm"
       }
       style={styles.card}
       title={
@@ -63,40 +77,51 @@ export const EventCard = ({
         <span className="text-[11px] font-medium opacity-90">
           {event.appointment?.scheduledAt ? formatShort(event.startsAt) : ""}
         </span>
-        {isCancellable && (onCancel || onReschedule) && (
+        {hasActions && (
           <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-            {onReschedule && (
-              <button
-                type="button"
-                onClick={(click) => {
-                  click.stopPropagation();
-                  onReschedule(event);
-                }}
-                className="rounded px-1 text-[10px] font-semibold hover:bg-white/60 focus:opacity-100"
-                style={{ color: styles.card.color }}
-              >
-                Mover
-              </button>
+            {onConfirm && isConfirmable && (
+              <ActionButton
+                label="Confirmar"
+                onClick={() => onConfirm(event)}
+              />
             )}
-            {onCancel && (
-              <button
-                type="button"
-                onClick={(click) => {
-                  click.stopPropagation();
-                  onCancel(event);
-                }}
-                className="rounded px-1 text-[10px] font-semibold hover:bg-white/60 focus:opacity-100"
-                style={{ color: styles.card.color }}
-              >
-                Cancelar
-              </button>
+            {onReschedule && isCancellable && (
+              <ActionButton label="Mover" onClick={() => onReschedule(event)} />
+            )}
+            {onComplete && isCompletable && (
+              <ActionButton
+                label="Completar"
+                onClick={() => onComplete(event)}
+              />
+            )}
+            {onCancel && isCancellable && (
+              <ActionButton label="Cancelar" onClick={() => onCancel(event)} />
             )}
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 };
+
+const ActionButton = ({
+  label,
+  onClick
+}: {
+  label: string;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={(click) => {
+      click.stopPropagation();
+      onClick();
+    }}
+    className="rounded px-1 text-[10px] font-semibold hover:bg-white/60 focus:opacity-100"
+  >
+    {label}
+  </button>
+);
 
 const formatShort = (iso: string) => {
   const date = new Date(iso);

@@ -22,6 +22,7 @@ const metadataObject = (audit: AuditCreateInput) =>
 
 export const createClinicalProfileWithAudit = async (input: {
   fullName: string;
+  phone: string;
   email?: string;
   audit: AuditCreateInput;
 }) => {
@@ -37,7 +38,7 @@ export const createClinicalProfileWithAudit = async (input: {
       });
 
       const therapistProfile = await transaction.therapistProfile.create({
-        data: { userId: user.id }
+        data: { userId: user.id, phone: input.phone }
       });
 
       const email = (
@@ -54,6 +55,7 @@ export const createClinicalProfileWithAudit = async (input: {
         metadata: {
           ...metadataObject(input.audit),
           fullName: input.fullName,
+          phone: input.phone,
           email
         }
       });

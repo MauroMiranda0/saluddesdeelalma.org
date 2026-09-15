@@ -268,6 +268,47 @@ export const sendAppointmentConfirmation = async (input: {
   }
 };
 
+export const dispatchAppointmentConfirmation = async (input: {
+  appointment: Appointment;
+  patient: Pick<Patient, "whatsappPhone" | "fullName">;
+  gateway: WhatsAppGateway;
+}) => {
+  const { patientReminder, groupReminder } = await ensureConfirmationReminders(
+    input.appointment
+  );
+  const text = appointmentConfirmation(input.appointment, input.patient);
+
+  try {
+    await sendReminder({
+      reminderId: patientReminder.id,
+      to: input.patient.whatsappPhone,
+      text,
+      gateway: input.gateway
+    });
+
+    if (env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID) {
+      await sendReminder({
+        reminderId: groupReminder.id,
+        to: env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID,
+        text: groupConfirmation(input.appointment),
+        gateway: input.gateway
+      });
+    } else {
+      await prisma.appointmentReminder.update({
+        where: { id: groupReminder.id },
+        data: {
+          status: "omitido",
+          lastError: "Group destination is not configured"
+        }
+      });
+    }
+  } finally {
+    // Scheduling the prior-day reminders must not depend on the outcome of
+    // the immediate confirmation sends.
+    await scheduleAppointmentReminders(input.appointment);
+  }
+};
+
 export const createPostCompletionPaymentReminder = async (
   appointmentId: string,
   db: Prisma.TransactionClient | typeof prisma = prisma

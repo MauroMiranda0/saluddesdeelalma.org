@@ -7,6 +7,7 @@ import {
   createAdminPatient,
   listTherapistProfiles,
   listAdminPatients,
+  updatePatientStatus,
   type AdminPatient,
   type TherapistProfile
 } from "../../../lib/admin/api";
@@ -85,6 +86,20 @@ export default function AdminPatientsPage() {
       await refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo asignar");
+    }
+  };
+
+  const handleToggleStatus = async (patient: AdminPatient) => {
+    setError(null);
+    setNotice(null);
+    try {
+      await updatePatientStatus(patient.id, patient.status !== "activo");
+      setNotice("Estado del paciente actualizado y auditado.");
+      await refresh();
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "No se pudo actualizar"
+      );
     }
   };
 
@@ -193,8 +208,21 @@ export default function AdminPatientsPage() {
       <ul className="flex flex-col gap-2">
         {patients.map((patient) => (
           <li key={patient.id} className="rounded border p-3">
-            <p className="font-medium">{patient.fullName}</p>
-            <p className="text-sm text-gray-600">{patient.whatsappPhone}</p>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-medium">{patient.fullName}</p>
+                <p className="text-sm text-gray-600">{patient.whatsappPhone}</p>
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  patient.status === "activo"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {patient.status === "activo" ? "Activo" : "Inactivo"}
+              </span>
+            </div>
             {patient.birthdate ? (
               <p className="text-sm text-gray-600">
                 Nacimiento: {patient.birthdate.slice(0, 10)}
@@ -239,6 +267,12 @@ export default function AdminPatientsPage() {
                 onClick={() => handleAssign(patient)}
               >
                 Guardar asignación
+              </button>
+              <button
+                className="ml-auto rounded border px-3 py-1"
+                onClick={() => handleToggleStatus(patient)}
+              >
+                {patient.status === "activo" ? "Desactivar" : "Activar"}
               </button>
             </div>
           </li>

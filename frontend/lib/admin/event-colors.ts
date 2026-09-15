@@ -60,10 +60,10 @@ export const EVENT_COLOR_MAP: Record<AgendaEventKind, EventColorToken> = {
   consulta_jenny: {
     key: "consulta_jenny",
     label: "Consulta Jenny",
-    bg: "#FAF5FF",
-    text: "#5B21B6",
-    border: "#7C3AED",
-    solid: "#7C3AED"
+    bg: "#EDE9FE",
+    text: "#2E1065",
+    border: "#8B5CF6",
+    solid: "#4C1D95"
   },
   personal: {
     key: "personal",

@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export const createTherapistProfileSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9]{8,30}$/, "Provide a valid phone number"),
   email: z.email().optional()
 });
 

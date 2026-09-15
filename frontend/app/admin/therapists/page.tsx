@@ -12,6 +12,7 @@ import {
 export default function AdminTherapistsPage() {
   const [therapists, setTherapists] = useState<TherapistProfile[]>([]);
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -32,8 +33,13 @@ export default function AdminTherapistsPage() {
     setError(null);
     setNotice(null);
     try {
-      await createTherapistProfile({ fullName, email: email || undefined });
+      await createTherapistProfile({
+        fullName,
+        phone,
+        email: email || undefined
+      });
       setFullName("");
+      setPhone("");
       setEmail("");
       setNotice("Perfil clínico creado y auditado.");
       await refresh();
@@ -80,6 +86,18 @@ export default function AdminTherapistsPage() {
           />
         </label>
         <label className="flex flex-col gap-1">
+          Teléfono WhatsApp
+          <input
+            className="rounded border px-2 py-1"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="5215500000001"
+            minLength={8}
+            maxLength={30}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
           Correo (opcional)
           <input
             className="rounded border px-2 py-1"
@@ -104,6 +122,7 @@ export default function AdminTherapistsPage() {
           >
             <div>
               <p className="font-medium">{therapist.fullName}</p>
+              <p className="text-sm text-gray-600">{therapist.phone}</p>
               <p className="text-sm text-gray-600">{therapist.email}</p>
               <p className="text-sm text-gray-600">
                 {therapist.isActive ? "Activo" : "Inactivo"}

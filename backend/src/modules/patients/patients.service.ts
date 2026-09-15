@@ -28,6 +28,48 @@ export const findOrCreatePatient = async (input: PatientInput) => {
   return existing ?? createPatient(normalizedInput);
 };
 
+export const setPatientStatusWithAudit = async (input: {
+  patientId: string;
+  isActive: boolean;
+  audit: AuditCreateInput;
+}) => {
+  return prisma.$transaction(async (transaction) => {
+    const existing = await transaction.patient.findUnique({
+      where: { id: input.patientId },
+      select: { id: true, status: true }
+    });
+
+    if (!existing) {
+      throw new AppError(404, "not_found", "Patient not found");
+    }
+
+    const status: "activo" | "inactivo" = input.isActive
+      ? "activo"
+      : "inactivo";
+
+    if (existing.status === status) {
+      throw new AppError(400, "no_change", "Patient is already in that state");
+    }
+
+    const updated = await transaction.patient.update({
+      where: { id: input.patientId },
+      data: { status }
+    });
+
+    await createAuditLogInTransaction(transaction, {
+      ...input.audit,
+      entityId: updated.id,
+      metadata: {
+        ...metadataObject(input.audit),
+        previousStatus: existing.status,
+        status
+      }
+    });
+
+    return updated;
+  });
+};
+
 export const findPatientWithAssignedTherapist = (whatsappPhone: string) =>
   findPatientWithTherapistByWhatsAppPhone(
     normalizeWhatsAppPhone(whatsappPhone)

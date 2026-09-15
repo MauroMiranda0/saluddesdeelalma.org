@@ -11,7 +11,10 @@ import type {
   setClinicalProfileActiveWithAudit as setProfileActiveService
 } from "../../src/modules/therapists/therapists.service";
 import type { completeAppointmentWithAudit as completeService } from "../../src/modules/appointments/appointments.service";
-import type { createAdminPatientWithAudit as createPatientService } from "../../src/modules/patients/patients.service";
+import type {
+  createAdminPatientWithAudit as createPatientService,
+  setPatientStatusWithAudit as setPatientStatusService
+} from "../../src/modules/patients/patients.service";
 
 const requestSession = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -20,7 +23,7 @@ const requestSession = {
   user: {
     id: "00000000-0000-0000-0000-000000000003",
     email: "admin@saluddesdeelalma.org",
-    fullName: "Jocelyn GutiÃ©rrez",
+    fullName: "Jocelyn Gutiérrez",
     role: "admin" as const
   }
 };
@@ -35,6 +38,7 @@ const authorized: RequestHandler = (_request, _response, next) => next();
 
 const fakeProfile = (id: string) => ({
   id,
+  phone: "5211111111111",
   isActive: true,
   user: {
     fullName: "Terapeuta de Prueba",
@@ -142,6 +146,27 @@ const withAdminServer = async (run: (baseUrl: string) => Promise<void>) => {
           assignedTherapistId: input.therapistId ?? null
         };
       }) as typeof createPatientService,
+      setPatientStatusWithAudit: (async (
+        input: Parameters<typeof setPatientStatusService>[0]
+      ) => {
+        events.audit.push({
+          action: input.audit.action,
+          actorUserId: input.audit.actorUserId,
+          entityType: input.audit.entityType,
+          result: input.audit.result,
+          ipAddress: input.audit.ipAddress,
+          userAgent: input.audit.userAgent,
+          requestId: (input.audit.metadata as { requestId?: string }).requestId,
+          metadata: (input.audit.metadata ?? {}) as Record<string, unknown>
+        });
+        return {
+          id: input.patientId,
+          fullName: "Paciente de Prueba",
+          whatsappPhone: "5215500000000",
+          status: input.isActive ? ("activo" as const) : ("inactivo" as const),
+          assignedTherapistId: null
+        };
+      }) as typeof setPatientStatusService,
       completeAppointmentWithAudit: (async (
         input: Parameters<typeof completeService>[0]
       ) => {
@@ -220,6 +245,7 @@ test("admin creates a clinical profile and the creation is audited", async () =>
       },
       body: JSON.stringify({
         fullName: "Terapeuta Uno",
+        phone: "5211111111111",
         email: "uno@example.org"
       })
     });
@@ -229,10 +255,12 @@ test("admin creates a clinical profile and the creation is audited", async () =>
         id: string;
         fullName: string;
         email: string;
+        phone: string;
         isActive: boolean;
       };
     };
     assert.equal(body.therapistProfile.fullName, "Terapeuta de Prueba");
+    assert.equal(body.therapistProfile.phone, "5211111111111");
   });
 
   assert.deepEqual(
@@ -294,6 +322,29 @@ test("assigning and reassigning a patient to a therapist is audited", async () =
   assert.deepEqual(
     events.audit.map((event) => event.action),
     ["patient_therapist_assigned"]
+  );
+});
+
+test("admin deactivates a patient and it is audited", async () => {
+  const events = await withAdminServer(async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/patients/22222222-2222-4222-8222-222222222222`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ isActive: false })
+      }
+    );
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      patient: { status: string };
+    };
+    assert.equal(body.patient.status, "inactivo");
+  });
+
+  assert.deepEqual(
+    events.audit.map((event) => event.action),
+    ["patient_status_updated"]
   );
 });
 
@@ -417,6 +468,17 @@ test("invalid admin payloads are rejected with a validation error", async () => 
     assert.equal(create.status, 400);
     const createBody = (await create.json()) as { code: string };
     assert.equal(createBody.code, "validation_error");
+
+    const createMissingPhone = await fetch(`${baseUrl}/therapists`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fullName: "Terapeuta Sin Teléfono" })
+    });
+    assert.equal(createMissingPhone.status, 400);
+    assert.equal(
+      ((await createMissingPhone.json()) as { code: string }).code,
+      "validation_error"
+    );
 
     const createPatient = await fetch(`${baseUrl}/patients`, {
       method: "POST",

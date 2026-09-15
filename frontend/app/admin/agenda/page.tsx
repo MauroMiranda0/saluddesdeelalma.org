@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  completeAppointment,
   fetchDirectory,
   listAppointmentsRange,
   type AdminAppointmentEvent,
   type Directory
 } from "../../../lib/admin/api";
+import { ApiError } from "../../../lib/api/client";
 import type { AgendaEventKind } from "../../../lib/admin/event-colors";
 import { appointmentKindOf } from "../../../lib/admin/event-colors";
 import {
@@ -24,7 +26,9 @@ import {
 } from "../../../components/admin/agenda/agenda-calendar";
 import { AgendaFilters } from "../../../components/admin/agenda/agenda-filters";
 import { AppointmentForm } from "../../../components/admin/agenda/appointment-form";
+import { AppointmentActions } from "../../../components/admin/agenda/appointment-actions";
 import { CancelDialog } from "../../../components/admin/agenda/cancel-dialog";
+import { ConfirmDialog } from "../../../components/admin/agenda/confirm-dialog";
 import { RescheduleDialog } from "../../../components/admin/agenda/reschedule-dialog";
 
 const monthsAhead = (date: Date, offset: number) => {
@@ -60,6 +64,10 @@ export default function AdminAgendaPage() {
   );
   const [rescheduling, setRescheduling] =
     useState<AdminAppointmentEvent | null>(null);
+  const [confirming, setConfirming] = useState<AdminAppointmentEvent | null>(
+    null
+  );
+  const [actingOn, setActingOn] = useState<CalendarEvent | null>(null);
 
   const load = useCallback(
     async (requestedView: AgendaView, requestedDate: Date) => {
@@ -139,6 +147,35 @@ export default function AdminAgendaPage() {
   const handleCreated = () => {
     setShowForm(false);
     void load(view, visibleDate);
+  };
+
+  const handleConfirmed = () => {
+    setConfirming(null);
+    void load(view, visibleDate);
+  };
+
+  const handleCompleted = async (event: CalendarEvent) => {
+    if (event.kind !== "appointment" || !event.appointment) {
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await completeAppointment(event.appointment.id);
+      void load(view, visibleDate);
+    } catch (requestError) {
+      setError(
+        requestError instanceof ApiError
+          ? requestError.message
+          : "No se pudo completar la cita."
+      );
+    }
+  };
+
+  const openDay = (day: Date) => {
+    setVisibleDate(day);
+    setView("dia");
   };
 
   return (
@@ -223,6 +260,8 @@ export default function AdminAgendaPage() {
           visibleDate={visibleDate}
           events={events}
           active={active}
+          onDaySelect={openDay}
+          onEventSelect={setActingOn}
           onEventCancel={(event) => {
             if (event.kind === "appointment" && event.appointment) {
               setCancelling(event.appointment);
@@ -233,6 +272,12 @@ export default function AdminAgendaPage() {
               setRescheduling(event.appointment);
             }
           }}
+          onEventConfirm={(event) => {
+            if (event.kind === "appointment" && event.appointment) {
+              setConfirming(event.appointment);
+            }
+          }}
+          onEventComplete={handleCompleted}
         />
       )}
 
@@ -244,11 +289,42 @@ export default function AdminAgendaPage() {
         />
       )}
 
+      {actingOn && (
+        <AppointmentActions
+          event={actingOn}
+          onClose={() => setActingOn(null)}
+          onReschedule={(event) => {
+            if (event.kind === "appointment" && event.appointment) {
+              setRescheduling(event.appointment);
+            }
+          }}
+          onConfirm={(event) => {
+            if (event.kind === "appointment" && event.appointment) {
+              setConfirming(event.appointment);
+            }
+          }}
+          onComplete={handleCompleted}
+          onCancel={(event) => {
+            if (event.kind === "appointment" && event.appointment) {
+              setCancelling(event.appointment);
+            }
+          }}
+        />
+      )}
+
       {cancelling && (
         <CancelDialog
           appointment={cancelling}
           onCancelled={handleCancelled}
           onClose={() => setCancelling(null)}
+        />
+      )}
+
+      {confirming && (
+        <ConfirmDialog
+          appointment={confirming}
+          onConfirmed={handleConfirmed}
+          onClose={() => setConfirming(null)}
         />
       )}
 
