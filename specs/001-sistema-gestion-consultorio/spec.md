@@ -32,6 +32,11 @@
 - Q: ¿Cómo se envían confirmaciones? → A: El paciente recibe mensaje individual; el grupo interno de psicólogas recibe una copia operativa sin datos clínicos ni de pago.
 - Q: ¿Cuándo se avisa el saldo? → A: Si aplica, junto con la solicitud de confirmación entre 18:00 y 19:00 del día previo y nuevamente, con prioridad, al concluir la cita.
 
+### Session 2026-09-15
+
+- Q: ¿Qué sucede cuando el paciente envía un comprobante de pago por WhatsApp? → A: El chatbot avisa de inmediato y de forma individual a Jocelyn. El comprobante queda pendiente de validación operativa; solo Jocelyn puede registrar y confirmar el pago desde el panel.
+- Q: ¿Qué acciones de pago deben estar disponibles sin depender del chatbot? → A: Registrar pago, enviar recordatorio al paciente y confirmar pago desde la vista de pagos, todas con auditoría.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Agendar una cita por WhatsApp (Priority: P1)
@@ -79,7 +84,7 @@ La psicóloga abre su panel desde el teléfono y ve la agenda del día: citas co
 
 ### User Story 3 - Registrar anticipos y pagos de sesión (Priority: P2)
 
-La psicóloga registra el anticipo opcional del 50% al apartar una cita y liquida el pago completo el día de la sesión (en línea o presencial). Cada cita muestra su estado de pago (pendiente, anticipo, completado) y la información del comprobante queda registrada.
+La psicóloga registra el anticipo opcional del 50% al apartar una cita y liquida el pago completo el día de la sesión (en línea o presencial). Cada cita muestra su estado de pago (pendiente, anticipo, completado), la información del comprobante y los pagos pendientes de validación. Si el comprobante llega por WhatsApp, el chatbot avisa a Jocelyn para que lo revise y confirme desde el panel.
 
 **Why this priority**: Cobrar bien y sin hojas sueltas es clave para el negocio, pero depende de que exista la cita. Por eso va después de la agenda.
 
@@ -91,6 +96,9 @@ La psicóloga registra el anticipo opcional del 50% al apartar una cita y liquid
 2. **Given** una cita con anticipo **When** llega el día de la sesión **Then** la psicóloga puede registrar el pago completo en menos de 30 segundos desde el móvil.
 3. **Given** la psicóloga registra un pago **When** lo confirma **Then** el panel muestra la nueva fecha y estado del pago, con el comprobante asociado.
 4. **Given** una cita sin cobros **When** la psicóloga consulta la agenda **Then** identifica de un vistazo qué citas tienen pago pendiente.
+5. **Given** un paciente envía un comprobante por WhatsApp **When** el chatbot recibe la imagen o documento **Then** Jocelyn recibe un aviso individual y el comprobante queda pendiente de confirmación manual.
+6. **Given** un pago pendiente de validación **When** Jocelyn confirma el pago desde el panel **Then** el pago se marca como validado, se actualiza el estado de la cita y se registra la acción en auditoría.
+7. **Given** una cita con saldo pendiente **When** Jocelyn elige enviar recordatorio desde el panel **Then** el paciente recibe el aviso inmediatamente y el envío queda auditado.
 
 ---
 
@@ -152,6 +160,7 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **Cancelación sin reagendar**: la persona cancela y no desea otro horario; el sistema confirma con amabilidad y cierra sin culpar.
 - **Pago dividido**: se registra anticipo y luego liquidación en momentos diferentes; el estado avanza correctamente por etapas y el historial queda completo.
 - **Comprobante inválido o incompleto**: se registra un respaldo de pago; la psicóloga puede marcarlo como pendiente de validar sin romper el flujo.
+- **Comprobante por WhatsApp sin pago registrado**: el chatbot notifica a Jocelyn, conserva solo la referencia operativa del comprobante y no marca la cita como pagada hasta su registro y validación manual.
 - **Fallo en el envío de un recordatorio**: si un aviso no puede entregarse, el sistema lo deja marcado como fallido y la psicóloga lo ve para reenviarlo.
 - **Conversación clínica larga**: el asistente reconoce el tema, deriva a la psicóloga y ofrece agendar una sesión, sin improvisar orientación.
 - **Consulta no autorizada**: una persona intenta consultar el estado de una cita o pago desde un número no reconocido; el sistema no expone información sensible y deriva a la psicóloga.
@@ -202,13 +211,16 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **FR-030**: El sistema DEBE permitir a la cuenta `admin` visualizar un directorio de perfiles de psicólogos/as y pacientes, con sus citas y pagos pendientes, sin habilitarles autenticación o permisos administrativos.
 - **FR-031**: El sistema DEBE persistir de forma independiente el resultado de envío dirigido al paciente y al grupo interno para cada cita, sin guardar datos clínicos o de pago en el contenido grupal.
 - **FR-032**: El backend DEBE aplicar la autorización antes de acceder a Prisma y PostgreSQL; no se expone la base de datos a clientes. Si se adopta Supabase en el futuro, las mismas restricciones se implementarán además con RLS.
+- **FR-033**: El sistema DEBE mantener todo pago registrado en estado `pendiente_validacion` y todo comprobante recibido como pendiente de validación operativa hasta que Jocelyn registre y confirme el pago manualmente; el chatbot NO DEBE completar pagos automáticamente.
+- **FR-034**: El chatbot DEBE notificar por WhatsApp individual a Jocelyn cuando reciba una imagen o documento de comprobante de pago y conservar solo la referencia operativa necesaria para su revisión.
+- **FR-035**: El panel de pagos DEBE permitir a `admin` registrar un pago, enviar un recordatorio inmediato al paciente y confirmar un pago pendiente de validación, con autorización y auditoría de cada acción.
 
 ### Key Entities _(include if feature involves data)_
 
 - **Paciente**: persona que solicita o recibe el servicio. Datos esenciales: nombre, contacto de WhatsApp, fecha de nacimiento y preferencia de modalidad.
 - **Psicóloga**: perfil clínico activo sin credencial de panel. Se asigna a pacientes por `admin`.
 - **Cita**: evento de sesión con psicóloga, fecha/hora de inicio y fin, modalidad, tipo/duración, estado y clasificación de aviso de cancelación (`a_tiempo` o `tardia`). Se vincula a un paciente.
-- **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado (pendiente, pagado). Se vincula a una cita.
+- **Pago**: registro de cobro de una sesión; puede ser anticipo (50%) o pago completo, con estado (`pendiente_validacion`, `validado`, `rechazado`), referencia de comprobante y usuario que lo registró. Se vincula a una cita.
 - **Recordatorio**: aviso programado con destinatario, ventana y estado. Confirmaciones/recordatorios usan paciente y grupo interno; los avisos de pago son privados del paciente.
 - **Conversación**: intercambio del paciente con el asistente por WhatsApp. Conserva mensajes y metadatos operativos mínimos; si contiene contenido clínico, guarda solo un resumen administrativo breve y metadatos básicos para continuidad administrativa y auditoría, sin constituir expediente clínico.
 - **Usuario administrativo**: la única persona con acceso autenticado al panel en el MVP: Jocelyn mediante la cuenta activa `admin`. El directorio puede contener perfiles de psicólogos/as y pacientes sin capacidad de login.
@@ -232,6 +244,8 @@ Una persona visita la página del consultorio y encuentra la información esenci
 - **SC-012**: El 100% de las sesiones administrativas inactivas por 30 minutos exige un nuevo inicio de sesión antes de permitir acceso adicional.
 - **SC-013**: El 100% de los intentos de login o acceso administrativo de una identidad distinta de `admin` se rechaza, no crea sesión y deja una auditoría.
 - **SC-014**: El 100% de las cancelaciones conserva su clasificación temporal (`a_tiempo` o `tardia`) calculada contra la fecha de la cita.
+- **SC-015**: El 100% de los comprobantes de pago recibidos por WhatsApp genera un aviso individual trazable a Jocelyn y no cambia una cita a `completado` sin su confirmación manual.
+- **SC-016**: En UAT, Jocelyn puede registrar un pago, enviar un recordatorio y confirmar un pago pendiente desde su teléfono en menos de 30 segundos por acción.
 
 ## Assumptions
 

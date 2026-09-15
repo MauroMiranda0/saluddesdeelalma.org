@@ -18,6 +18,7 @@ const productionEnvironment = {
   WHATSAPP_VERIFY_TOKEN: "real-webhook-token",
   WHATSAPP_ACCESS_TOKEN: "real-access-token",
   WHATSAPP_PHONE_NUMBER_ID: "123456789",
+  WHATSAPP_ADMIN_PHONE: "5215500000000",
   WHATSAPP_PSYCHOLOGISTS_GROUP_ID: "provider-group-id",
   REMINDER_TIMEZONE: "America/Mexico_City" as const,
   AI_PROVIDER_API_KEY: undefined,
@@ -30,6 +31,14 @@ test("production rejects documented secret placeholders", () => {
       assertProductionEnvironment({
         ...productionEnvironment,
         WHATSAPP_ACCESS_TOKEN: "replace-with-whatsapp-access-token"
+      }),
+    /WhatsApp credentials/
+  );
+  assert.throws(
+    () =>
+      assertProductionEnvironment({
+        ...productionEnvironment,
+        WHATSAPP_ADMIN_PHONE: "replace-with-jocelyn-whatsapp-number"
       }),
     /WhatsApp credentials/
   );

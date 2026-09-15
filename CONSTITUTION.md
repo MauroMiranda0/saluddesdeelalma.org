@@ -3,8 +3,8 @@
 > **Proyecto:** Salud desde el Alma
 > **Eslogan:** "Tu bienestar, nuestro propósito"
 > **Servicio:** Psicología integral (Cuerpo, Mente, Espíritu)
-> **Versión:** 1.3
-> **Fecha:** 11 de septiembre de 2026
+> **Versión:** 1.4
+> **Fecha:** 15 de septiembre de 2026
 > **Estado:** Guía constitutiva para el ciclo de vida del proyecto
 
 Este documento es la referencia de mayor jerarquía para el desarrollo, diseño, implementación y mantenimiento del asistente digital del consultorio de psicología **Salud desde el Alma**. Todo trabajo técnico o de diseño debe alinearse con lo aquí establecido.
@@ -165,13 +165,13 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 
 1. Al agendar, el chatbot pregunta si desea apartar con el anticipo del 50%.
 2. Si acepta, comparte datos de pago (transferencia).
-3. El paciente envía el comprobante; se valida manualmente o por regla automatizada.
-4. El pago se registra como _anticipo (50%)_; el saldo queda como _pendiente de liquidar el día de la sesión_.
+3. El paciente envía el comprobante; el chatbot avisa de inmediato y de forma individual a Jocelyn para su revisión. El comprobante queda pendiente de validación; el bot nunca completa el pago por sí mismo.
+4. Jocelyn registra el pago y confirma su validación desde el panel. Al confirmar un anticipo, el saldo queda como _pendiente de liquidar el día de la sesión_.
 
 **Modalidad B — Pago completo:**
 
 1. El día de la sesión se cobra el total.
-2. El panel registra el pago como _completo_.
+2. El panel registra el pago como _pendiente de validación_ y Jocelyn lo confirma como _completo_ después de revisar el comprobante o el cobro en efectivo.
 
 > **Nota:** la gestión de pagos no requiere pasarela externa; los montos se registran directamente en la base de datos, vinculados a la cita correspondiente.
 
@@ -180,7 +180,7 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 > **Paciente:** ¿Cómo puedo pagar?
 > **Chatbot:** Sí claro 😊 Aceptamos transferencia. Le comparto los datos y me confirma una vez realizado.
 
-> **Nota de diseño del panel:** cada cita muestra estado de pago (`pendiente`, `anticipo`, `completado`) y acciones rápidas (registrar anticipo, registrar liquidación) pensadas para el uso móvil con una sola mano.
+> **Nota de diseño del panel:** cada cita muestra estado de pago (`pendiente`, `anticipo`, `completado`) y acciones rápidas independientes del bot: registrar pago, enviar recordatorio y confirmar pago. Los pagos reportados permanecen pendientes de validación hasta que Jocelyn los confirme, con una traza de auditoría pensada para uso móvil con una sola mano.
 
 ### 4.3 Recordatorios automáticos
 
@@ -191,6 +191,7 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 | Aviso de cancelación                | Cuando se cancela                                                   | WhatsApp                                                 | Confirmación de cancelación + opción de reagendar                                   |
 | Aviso previo de pago pendiente      | Junto con la solicitud de confirmación del día previo, si hay saldo | WhatsApp individual al paciente                          | Aviso amable sin exponerse al grupo interno                                         |
 | Aviso prioritario de pago pendiente | Al concluir una cita, si hay saldo                                  | WhatsApp individual al paciente                          | Aviso amable de liquidación; no se envía al grupo interno                           |
+| Comprobante recibido                | Al recibir imagen o documento de comprobante por WhatsApp           | WhatsApp individual a Jocelyn                            | Solicitud operativa de revisión; el pago queda pendiente de validación              |
 
 **Ejemplo de interacción (cancelación):**
 
@@ -258,9 +259,9 @@ payments
 ├── amount NUMERIC(10,2)
 ├── type ENUM('anticipo','completo')
 ├── method ENUM('transferencia','efectivo')
-├── status ENUM('pendiente','pagado','reembolsado')
+├── status ENUM('pendiente_validacion','validado','rechazado')
 ├── paid_at TIMESTAMPTZ
-├── proof_url TEXT (comprobante)
+├── proof_reference TEXT (referencia o comprobante)
 ├── recorded_by UUID FK → users
 
 appointment_reminders
@@ -331,8 +332,8 @@ audit_logs (auditoría de accesos y acciones críticas)
 | Tipo                             | Alcance                                                                                                                                                              |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Unitarias**                    | Lógica de negocio: cálculo de montos de pago, duración 60/90 min, horarios de inicio/fin, asignación paciente-psicóloga, choques de intervalos y reglas del chatbot. |
-| **Integración**                  | Backend Node (crear cita → generar recordatorio → registrar pago), CRUD contra PostgreSQL/Prisma, webhooks de WhatsApp, mensajería.                                  |
-| **UAT (pruebas con la usuaria)** | La psicóloga ejecuta escenarios reales desde su móvil: agendar, cancelar, registrar pago, recibir recordatorios. Se documentan con checklist.                        |
+| **Integración**                  | Backend Node (crear cita → generar recordatorio → registrar y confirmar pago), CRUD contra PostgreSQL/Prisma, webhooks de WhatsApp, mensajería.                      |
+| **UAT (pruebas con la usuaria)** | La psicóloga ejecuta escenarios reales desde su móvil: agendar, cancelar, registrar pago, enviar recordatorio, confirmar pago y recibir avisos de comprobante. Se documentan con checklist. |
 | **Seguridad**                    | Autenticación JWT y control de accesos, validación de entrada, ausencia de credenciales en el repo, SSL vigente.                                                     |
 
 ### 6.4 Criterios de aceptación por fase
@@ -341,7 +342,7 @@ audit_logs (auditoría de accesos y acciones críticas)
 
 **Fase 2 — MVP:** la cita debe poder agendarse y cancelarse desde el chatbot y desde el panel; la disponibilidad se sincroniza por psicóloga e intervalo, sin traslape entre modalidad en línea y presencial.
 
-**Fase 3 — Pagos/recordatorios:** anticipo y pago completo registrables; los recordatorios del día previo se envían al paciente y al grupo interno únicamente entre las 18:00 y 19:00, hora `America/Mexico_City`; los avisos de saldo se mantienen privados para el paciente.
+**Fase 3 — Pagos/recordatorios:** anticipo y pago completo registrables y confirmables manualmente; el comprobante recibido por WhatsApp notifica a Jocelyn y queda pendiente de validación; el panel permite enviar recordatorios manuales. Los recordatorios automáticos del día previo se envían al paciente y al grupo interno únicamente entre las 18:00 y 19:00, hora `America/Mexico_City`; los avisos de saldo se mantienen privados para el paciente.
 
 **Fase 4 — Chatbot IA:** responde FAQ, agenda, cancela y consulta pagos siguiendo el tono definido (ver §7); deriva temas clínicos a la psicóloga; es transparente si le preguntan si es un bot.
 
@@ -473,13 +474,13 @@ Duración total estimada: **29 días calendario** (inicio propuesto: **31 de ago
 
 | Día | Entregable                                                |
 | --- | --------------------------------------------------------- |
-| 15  | Registro de pagos: anticipo 50% y pago completo           |
+| 15  | Registro y confirmación manual de pagos: anticipo 50% y pago completo |
 | 16  | Estados de pago y vista en el panel                       |
 | 17  | Cron de recordatorios en Node (confirmación y 24 h antes) |
 | 18  | Recordatorios de pago pendiente y avisos de cancelación   |
 | 19  | Pruebas de envío y ajuste de plantillas WhatsApp          |
 
-**Criterio de aceptación:** anticipo y pago completo registrables; recordatorios emitidos en el horario definido; estados visibles en el panel.
+**Criterio de aceptación:** anticipo y pago completo registrables y confirmables por Jocelyn; comprobantes de WhatsApp generan su aviso individual; recordatorios automáticos y manuales quedan trazables; estados visibles en el panel.
 
 ### Fase 4 — Chatbot IA (Días 20–25)
 
@@ -548,7 +549,7 @@ Los siguientes elementos **se dejan deliberadamente para fases posteriores**:
 - Cualquier enmienda (cambio de stack, paleta, alcance, fechas o conducta del chatbot) debe **reflejarse aquí** y registrarse en el historial de versiones antes de implementarse.
 - Los PRs y entregables por fase deben verificar el cumplimiento de los criterios de aceptación definidos en §6.4.
 
-**Versión:** 1.3 | **Ratificación:** 28/08/2026 | **Última enmienda:** 11/09/2026 — Perfiles clínicos sin login, continuidad paciente-psicóloga, sesiones individual 60 min y pareja/familiar 90 min, bloqueo de intervalos intermodales y avisos al paciente más copia operativa al grupo interno. | **Próxima revisión:** al cierre de cada fase.
+**Versión:** 1.4 | **Ratificación:** 28/08/2026 | **Última enmienda:** 15/09/2026 — Pagos pendientes de validación, notificación individual a Jocelyn al recibir comprobante por WhatsApp y acciones manuales de registrar pago, enviar recordatorio y confirmar pago desde el panel. | **Próxima revisión:** al cierre de cada fase.
 
 ---
 

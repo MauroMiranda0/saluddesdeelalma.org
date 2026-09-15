@@ -9,6 +9,7 @@ type IncomingMessage = {
   receivedAt: Date;
   intent: "availability" | "book" | "cancel" | "handoff" | "unknown";
   containsSensitiveClinicalContent: boolean;
+  metadata?: Prisma.InputJsonValue;
 };
 
 export const hasChatMessage = async (waMessageId: string) =>
@@ -52,7 +53,7 @@ export const saveIncomingMessage = async (input: IncomingMessage) => {
         containsSensitiveClinicalContent:
           input.containsSensitiveClinicalContent,
         intent: input.intent,
-        metadata: {}
+        metadata: input.metadata ?? {}
       }
     });
   } catch (error) {

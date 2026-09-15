@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Esta guia refleja el estado posterior a las convergencias de cierre de las fases comerciales de agendamiento (`US1`), panel administrativo (`US2`) y a las convergencias **Phase 24**, **Phase 25** y **Phase 26**. El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, panel administrativo movil, y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y puede ofrecer horarios concretos, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital. Tambien puede cancelar por WhatsApp una cita activa tras verificar el numero registrado y el nombre y la fecha de nacimiento del paciente, confirmando la cancelacion y la oferta de reagendar; la verificacion fallida se audita y no expone datos. La evaluacion clinica ocurre antes que el flujo de reserva; los recordatorios del dia previo se programan a las 18:00 `America/Mexico_City` y solo se envian el dia calendario anterior a una cita aun futura. El login del panel es funcional para la cuenta `admin` (usuario `admin`, rol `admin`), la sesion expira por inactividad de 30 minutos, y la agenda permite crear, cancelar y mover/reagendar citas desde el movil. La landing publica aun no existe (US6): `/` redirige a `/admin/agenda`.
+Esta guia refleja el estado posterior a las convergencias de cierre de las fases comerciales de agendamiento (`US1`), panel administrativo (`US2`) y a las convergencias **Phase 24**, **Phase 25** y **Phase 26**. El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, panel administrativo movil, y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y detecta imagenes o documentos de comprobantes para avisar individualmente a Jocelyn; el pago nunca se valida de forma automatica. Tambien puede ofrecer horarios concretos, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital. Tambien puede cancelar por WhatsApp una cita activa tras verificar el numero registrado y el nombre y la fecha de nacimiento del paciente, confirmando la cancelacion y la oferta de reagendar; la verificacion fallida se audita y no expone datos. La evaluacion clinica ocurre antes que el flujo de reserva; los recordatorios del dia previo se programan a las 18:00 `America/Mexico_City` y solo se envian el dia calendario anterior a una cita aun futura. El login del panel es funcional para la cuenta `admin` (usuario `admin`, rol `admin`), la sesion expira por inactividad de 30 minutos, y la agenda permite crear, cancelar y mover/reagendar citas desde el movil. La landing publica aun no existe (US6): `/` redirige a `/admin/agenda`.
 
 ## Prerrequisitos verificados para esta fase
 
@@ -30,6 +30,7 @@ Archivo: `backend/.env.example`
 - `WHATSAPP_VERIFY_TOKEN`
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_ADMIN_PHONE` (número individual de Jocelyn para avisos de comprobantes)
 - `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` (destino interno; requiere proveedor compatible con grupos)
 - `AI_PROVIDER_API_KEY`
 

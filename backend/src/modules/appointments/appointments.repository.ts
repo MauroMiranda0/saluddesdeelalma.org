@@ -93,7 +93,19 @@ export const listAppointmentsInRange = (from: Date, to: Date) => {
           user: { select: { fullName: true } }
         }
       },
-      payments: { select: { paymentType: true, status: true } }
+      payments: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          paymentType: true,
+          amount: true,
+          method: true,
+          status: true,
+          proofReference: true,
+          paidAt: true,
+          createdAt: true
+        }
+      }
     }
   });
 };

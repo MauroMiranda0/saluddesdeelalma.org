@@ -14,6 +14,7 @@ const envSchema = z.object({
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_ADMIN_PHONE: z.string().min(1).optional(),
   WHATSAPP_PSYCHOLOGISTS_GROUP_ID: z.string().min(1).optional(),
   REMINDER_TIMEZONE: z
     .literal("America/Mexico_City")
@@ -50,10 +51,11 @@ export const assertProductionEnvironment = (environment: Environment) => {
   if (
     isPlaceholder(environment.WHATSAPP_ACCESS_TOKEN) ||
     isPlaceholder(environment.WHATSAPP_PHONE_NUMBER_ID) ||
+    isPlaceholder(environment.WHATSAPP_ADMIN_PHONE) ||
     isPlaceholder(environment.WHATSAPP_PSYCHOLOGISTS_GROUP_ID)
   ) {
     throw new Error(
-      "WhatsApp credentials and psychology group destination must be configured in production"
+      "WhatsApp credentials, Jocelyn destination and psychology group destination must be configured in production"
     );
   }
   if (

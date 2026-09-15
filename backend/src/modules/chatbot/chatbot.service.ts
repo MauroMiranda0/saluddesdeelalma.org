@@ -1,4 +1,5 @@
 import type { WhatsAppGateway } from "../../integrations/whatsapp/whatsapp.gateway";
+import { env } from "../../config/env";
 import { audit } from "../audit/audit.service";
 import {
   AppointmentConflictError,
@@ -43,6 +44,14 @@ export type IncomingWhatsAppMessage = {
   id: string;
   from: string;
   text: string;
+  receivedAt: Date;
+};
+
+export type IncomingPaymentProof = {
+  id: string;
+  from: string;
+  mediaId: string;
+  mediaType: "image" | "document";
   receivedAt: Date;
 };
 
@@ -103,6 +112,61 @@ const clinicalSummary =
 
 export const sanitizeIncomingWhatsAppContent = (text: string) =>
   containsSensitiveClinicalContent(text) ? clinicalSummary : text;
+
+export const processIncomingPaymentProof = async (
+  proof: IncomingPaymentProof,
+  context: ProcessingContext
+) => {
+  const conversation = await saveIncomingMessage({
+    whatsappPhone: proof.from,
+    waMessageId: proof.id,
+    contentText: "Comprobante de pago recibido; pendiente de validación manual.",
+    receivedAt: proof.receivedAt,
+    intent: "unknown",
+    containsSensitiveClinicalContent: false,
+    metadata: { mediaId: proof.mediaId, mediaType: proof.mediaType }
+  });
+
+  if (!conversation) {
+    return;
+  }
+
+  const patient = await findPatientWithAssignedTherapist(proof.from);
+  await updateConversation(conversation.id, {
+    intent: "unknown",
+    patientId: patient?.id,
+    lastMessageAt: proof.receivedAt
+  });
+  await audit({
+    actorChannel: "whatsapp",
+    action: "payment_proof_received",
+    entityType: "chat_conversation",
+    entityId: conversation.id,
+    result: "success",
+    metadata: { mediaType: proof.mediaType, patientId: patient?.id },
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent
+  });
+
+  if (!env.WHATSAPP_ADMIN_PHONE) {
+    return;
+  }
+
+  await context.gateway.sendText({
+    to: env.WHATSAPP_ADMIN_PHONE,
+    text: `Jocelyn, ${patient?.fullName ?? "una paciente"} envió un comprobante de pago. Revíselo y confirme el pago desde el panel.`
+  });
+  await audit({
+    actorChannel: "system",
+    action: "payment_confirmation_requested",
+    entityType: "chat_conversation",
+    entityId: conversation.id,
+    result: "success",
+    metadata: { patientId: patient?.id },
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent
+  });
+};
 
 const sendResponse = async (input: {
   conversationId: string;

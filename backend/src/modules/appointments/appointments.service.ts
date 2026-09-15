@@ -26,6 +26,7 @@ import {
   scheduleCancellationNotice
 } from "../reminders/reminders.service";
 import { whatsappGateway } from "../../integrations/whatsapp/whatsapp.gateway";
+import { paymentDto } from "../payments/payments.service";
 
 const mexicoTimeZone = "America/Mexico_City";
 const hourFormatter = new Intl.DateTimeFormat("en-US", {
@@ -324,7 +325,16 @@ type AppointmentWithRelations = {
     isActive: boolean;
     user: { fullName: string } | null;
   } | null;
-  payments?: PaymentSignal[];
+  payments?: Array<
+    PaymentSignal & {
+      id: string;
+      amount: { toString(): string };
+      method: "transferencia" | "efectivo";
+      proofReference: string | null;
+      paidAt: Date | null;
+      createdAt: Date;
+    }
+  >;
 };
 
 export const appointmentCalendarDto = (
@@ -345,6 +355,7 @@ export const appointmentCalendarDto = (
   cancellationNotice: appointment.cancellationNotice,
   createdVia: appointment.createdVia,
   paymentStatus: paymentStatusOf(appointment.payments ?? []),
+  payments: (appointment.payments ?? []).map(paymentDto),
   patientId: appointment.patient.id,
   patientName: appointment.patient.fullName,
   patientPhone: appointment.patient.whatsappPhone,

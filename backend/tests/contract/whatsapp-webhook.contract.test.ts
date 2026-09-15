@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { createApp } from "../../src/app.js";
 import { env } from "../../src/config/env.js";
+import { extractIncomingPaymentProofs } from "../../src/modules/chatbot/chatbot.controller.js";
 
 const withServer = async (run: (baseUrl: string) => Promise<void>) => {
   const server = createApp().listen(0);
@@ -61,4 +62,44 @@ test("POST WhatsApp webhook accepts a valid Meta envelope asynchronously", async
 
     assert.equal(response.status, 202);
   });
+});
+
+test("WhatsApp webhook extracts image and document payment proofs", () => {
+  const proofs = extractIncomingPaymentProofs({
+    object: "whatsapp_business_account",
+    entry: [
+      {
+        changes: [
+          {
+            value: {
+              messages: [
+                {
+                  id: "proof-image-1",
+                  from: "5215500000000",
+                  timestamp: "1780000000",
+                  type: "image",
+                  image: { id: "media-image-1" }
+                },
+                {
+                  id: "proof-document-1",
+                  from: "5215500000000",
+                  timestamp: "1780000001",
+                  type: "document",
+                  document: { id: "media-document-1" }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  assert.deepEqual(
+    proofs.map((proof) => [proof.id, proof.mediaId, proof.mediaType]),
+    [
+      ["proof-image-1", "media-image-1", "image"],
+      ["proof-document-1", "media-document-1", "document"]
+    ]
+  );
 });

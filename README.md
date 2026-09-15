@@ -211,7 +211,7 @@ npm run reminders:worker --workspace backend
 
 - `npm run start:backend` requiere haber ejecutado `npm run build`.
 - `npm run start:frontend` requiere haber ejecutado `npm run build`.
-- Sin `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`, el adaptador de WhatsApp simula el envio fuera de produccion; en produccion ambas credenciales son obligatorias.
+- Sin `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`, el adaptador de WhatsApp simula el envio fuera de produccion; en produccion ambas credenciales, `WHATSAPP_ADMIN_PHONE` para los avisos de comprobantes a Jocelyn y el destino interno son obligatorios.
 - El panel es funcional, pero la asignación de psicóloga a pacientes sigue requiriendo el listado legado de `therapists`/`patients`; el directorio las presenta solamente en modo lectura.
 - La suite E2E de Playwright no corre en CI: exige navegadores instalados, base sembrada (`ADMIN_SEED_PASSWORD`) y sesión `admin` real.
 - Las migraciones se aplicaron y verificaron contra un PostgreSQL 16 real mediante el gate `RUN_POSTGRES_INTEGRATION` (incluida `20261101000000_convergence_hardening`); la configuracion de destino y credenciales de produccion sigue pendiente.

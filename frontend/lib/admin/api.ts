@@ -47,6 +47,7 @@ export type AdminAppointmentEvent = {
   cancellationNotice: "a_tiempo" | "tardia" | null;
   createdVia: "whatsapp" | "panel" | "system";
   paymentStatus: "pendiente" | "anticipo" | "completado";
+  payments: AdminPayment[];
   patientId: string;
   patientName: string;
   patientPhone: string;
@@ -54,6 +55,17 @@ export type AdminAppointmentEvent = {
   therapistId: string;
   therapistName: string | null;
   therapistIsActive: boolean;
+};
+
+export type AdminPayment = {
+  id: string;
+  paymentType: "anticipo" | "completo";
+  amount: number;
+  method: "transferencia" | "efectivo";
+  status: "pendiente_validacion" | "validado" | "rechazado";
+  proofReference: string | null;
+  paidAt: string | null;
+  createdAt: string;
 };
 
 export type DirectoryPatient = {
@@ -212,6 +224,32 @@ export const cancelAdminAppointment = (
     `/appointments/${appointmentId}/cancel`,
     { method: "POST", body: { reason } }
   );
+};
+
+export const registerPayment = (input: {
+  appointmentId: string;
+  patientId: string;
+  paymentType: "anticipo" | "completo";
+  amount: number;
+  method: "transferencia" | "efectivo";
+  proofReference?: string;
+}) => {
+  return apiRequest<{ payment: AdminPayment }>("/payments", {
+    method: "POST",
+    body: input
+  });
+};
+
+export const confirmPayment = (paymentId: string) => {
+  return apiRequest<{ payment: AdminPayment }>(`/payments/${paymentId}/confirm`, {
+    method: "POST"
+  });
+};
+
+export const sendPaymentReminder = (appointmentId: string) => {
+  return apiRequest<void>(`/appointments/${appointmentId}/payment-reminder`, {
+    method: "POST"
+  });
 };
 
 export const fetchDirectory = () => {
