@@ -67,12 +67,14 @@ type DateTimePickerProps = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  confirmLabel?: string;
 };
 
 export const DateTimePicker = ({
   value,
   onChange,
-  disabled
+  disabled,
+  confirmLabel = "Continuar"
 }: DateTimePickerProps) => {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseValue(value));
@@ -115,11 +117,6 @@ export const DateTimePicker = ({
     if (draft.date && draft.time) {
       onChange(`${draft.date}T${draft.time}`);
     }
-    setOpen(false);
-  };
-
-  const clear = () => {
-    onChange("");
     setOpen(false);
   };
 
@@ -269,13 +266,6 @@ export const DateTimePicker = ({
             <div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">
               <button
                 type="button"
-                onClick={clear}
-                className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-              >
-                Limpiar
-              </button>
-              <button
-                type="button"
                 onClick={() => setOpen(false)}
                 className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
               >
@@ -287,7 +277,7 @@ export const DateTimePicker = ({
                 disabled={!draft.date || !draft.time}
                 className="rounded bg-forest px-4 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-50"
               >
-                Continuar
+                {confirmLabel}
               </button>
             </div>
           </div>

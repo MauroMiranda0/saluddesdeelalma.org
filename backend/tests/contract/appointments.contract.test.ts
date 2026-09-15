@@ -182,7 +182,8 @@ const withAdminServer = async (
         captureAudit(input);
         return fakeAppointment({
           scheduledAt: input.scheduledAt,
-          therapyType: input.therapyType ?? "individual"
+          therapyType: input.therapyType ?? "individual",
+          status: "programada"
         });
       }) as typeof rescheduleService,
       cancelAppointmentWithAudit: (async (
@@ -342,9 +343,10 @@ test("an admin reschedules an appointment and it is audited", async () => {
     );
     assert.equal(response.status, 200);
     const body = (await response.json()) as {
-      appointment: { scheduledAt: string };
+      appointment: { scheduledAt: string; status: string };
     };
     assert.equal(body.appointment.scheduledAt, "2026-09-18T18:00:00.000Z");
+    assert.equal(body.appointment.status, "programada");
   });
 
   assert.deepEqual(

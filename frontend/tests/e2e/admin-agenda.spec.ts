@@ -38,8 +38,6 @@ test("Login + agenda diaria con leyenda de colores", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: /Por confirmar/ })
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /Cumpleaños/ })).toBeVisible();
-
   await page.getByRole("button", { name: "Día", exact: true }).click();
   await expect(page.getByText("09:00", { exact: true })).toBeVisible();
   await expect(page.getByText("21:00", { exact: true })).toBeVisible();

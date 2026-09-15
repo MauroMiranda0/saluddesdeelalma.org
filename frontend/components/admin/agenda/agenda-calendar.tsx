@@ -30,9 +30,7 @@ type AgendaCalendarProps = {
 };
 
 const kindOfEvent = (event: CalendarEvent): AgendaEventKind => {
-  return event.kind === "appointment" && event.appointment
-    ? appointmentKindOf(event.appointment)
-    : "cumpleanios";
+  return appointmentKindOf(event.appointment);
 };
 
 export const AgendaCalendar = ({

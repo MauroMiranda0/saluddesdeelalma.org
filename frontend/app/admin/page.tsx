@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
       value: today.filter(
         (appointment) => appointment.paymentStatus !== "completado"
       ).length,
-      href: "/admin/agenda"
+      href: "/admin/payments"
     },
     {
       label: "Por confirmar (hoy)",

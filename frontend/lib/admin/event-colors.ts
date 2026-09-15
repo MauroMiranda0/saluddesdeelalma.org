@@ -4,8 +4,7 @@ export type AgendaEventKind =
   | "pendiente_pago"
   | "consulta_jocelyn"
   | "consulta_jenny"
-  | "personal"
-  | "cumpleanios";
+  | "personal";
 
 export type EventColorToken = {
   key: AgendaEventKind;
@@ -17,14 +16,6 @@ export type EventColorToken = {
 };
 
 export const EVENT_COLOR_MAP: Record<AgendaEventKind, EventColorToken> = {
-  cumpleanios: {
-    key: "cumpleanios",
-    label: "Cumpleaños",
-    bg: "#FFF7ED",
-    text: "#9A3412",
-    border: "#FB923C",
-    solid: "#FB923C"
-  },
   cancelada: {
     key: "cancelada",
     label: "Canceladas",
@@ -99,7 +90,7 @@ export const therapistKindOf = (
   return "personal";
 };
 
-export type AppointmentEventKind = Exclude<AgendaEventKind, "cumpleanios">;
+export type AppointmentEventKind = AgendaEventKind;
 
 export const appointmentKindOf = (
   appointment: AppointmentEventLike
@@ -109,6 +100,9 @@ export const appointmentKindOf = (
   }
   if (appointment.status === "programada") {
     return "por_confirmar";
+  }
+  if (appointment.status === "confirmada") {
+    return therapistKindOf(appointment.therapistName);
   }
   if (
     appointment.paymentStatus === "pendiente" ||

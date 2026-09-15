@@ -100,7 +100,11 @@ export const AppointmentForm = ({
         <label className="mb-1 block text-xs font-medium text-gray-500">
           Fecha y hora
         </label>
-        <DateTimePicker value={scheduledAt} onChange={setScheduledAt} />
+        <DateTimePicker
+          value={scheduledAt}
+          onChange={setScheduledAt}
+          confirmLabel="Aceptar"
+        />
 
         <div className="mb-3 grid grid-cols-2 gap-2">
           <div>

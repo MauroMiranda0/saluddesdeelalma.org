@@ -11,7 +11,8 @@ const NAV_ITEMS = [
   { href: "/admin/directorio", label: "Directorio" },
   { href: "/admin/patients", label: "Pacientes" },
   { href: "/admin/therapists", label: "Psicólogos/as" },
-  { href: "/admin/appointments", label: "Citas" }
+  { href: "/admin/appointments", label: "Citas" },
+  { href: "/admin/payments", label: "Pagos" }
 ];
 
 export const AdminNav = () => {

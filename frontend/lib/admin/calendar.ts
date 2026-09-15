@@ -1,24 +1,18 @@
-import type { AdminAppointmentEvent, Directory } from "./api";
+import type { AdminAppointmentEvent } from "./api";
 
 export type CalendarEvent = {
   id: string;
-  kind: "appointment" | "cumpleanios";
+  kind: "appointment";
   startsAt: string;
   endsAt: string;
   title: string;
   subtitle?: string;
   meta?: string;
-  appointment?: AdminAppointmentEvent;
-  patientId?: string;
-  patientName?: string;
+  appointment: AdminAppointmentEvent;
 };
 
 export const dayKeyOf = (date: Date) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-};
-
-export const dateAtNoon = (year: number, month: number, day: number) => {
-  return new Date(year, month, day, 12);
 };
 
 export const buildMonthGrid = (monthStart: Date) => {
@@ -98,52 +92,8 @@ export const appointmentsOverWindow = (
   );
 };
 
-export type BirthdayEvent = Omit<CalendarEvent, "kind"> & {
-  kind: "cumpleanios";
-};
-
-export const birthdaysOverWindow = (
-  directory: Directory,
-  days: Date[]
-): BirthdayEvent[] => {
-  const windowKeys = new Set(days.map(dayKeyOf));
-  const year = days[0]?.getFullYear() ?? new Date().getFullYear();
-  const events: BirthdayEvent[] = [];
-
-  for (const patient of directory.patients) {
-    if (!patient.birthdate) {
-      continue;
-    }
-    const [, month, day] = patient.birthdate.split("-").map(Number);
-
-    if (!month || !day) {
-      continue;
-    }
-
-    const birthday = new Date(year, month - 1, day, 12);
-
-    if (!windowKeys.has(dayKeyOf(birthday))) {
-      continue;
-    }
-
-    events.push({
-      id: `cumpleaños-${patient.id}`,
-      kind: "cumpleanios",
-      startsAt: dateAtNoon(year, month - 1, day).toISOString(),
-      endsAt: dateAtNoon(year, month - 1, day).toISOString(),
-      title: patient.fullName,
-      meta: "🎂",
-      patientId: patient.id,
-      patientName: patient.fullName
-    });
-  }
-
-  return events;
-};
-
 export const eventsForWindow = (
   appointments: AdminAppointmentEvent[],
-  directory: Directory,
   days: Date[]
 ): CalendarEvent[] => {
   const appointmentEvents = days.flatMap((day) =>
@@ -158,7 +108,5 @@ export const eventsForWindow = (
       appointment
     }))
   );
-  const birthdayEvents = birthdaysOverWindow(directory, days);
-
-  return [...appointmentEvents, ...birthdayEvents];
+  return appointmentEvents;
 };

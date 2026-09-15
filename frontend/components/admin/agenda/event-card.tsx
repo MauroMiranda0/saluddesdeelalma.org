@@ -25,12 +25,9 @@ export const EventCard = ({
   onConfirm,
   onComplete
 }: EventCardProps) => {
-  const kind =
-    event.kind === "appointment" && event.appointment
-      ? appointmentKindOf(event.appointment)
-      : "cumpleanios";
+  const kind = appointmentKindOf(event.appointment);
   const styles = eventStyles(kind);
-  const status = event.appointment?.status;
+  const status = event.appointment.status;
   const isCancellable = status === "programada" || status === "confirmada";
   const isConfirmable = status === "programada";
   const isCompletable = status === "programada" || status === "confirmada";
@@ -42,12 +39,12 @@ export const EventCard = ({
     <button
       type="button"
       onClick={() => {
-        if (onSelect && event.kind === "appointment") {
+        if (onSelect) {
           onSelect(event);
         }
       }}
       className={
-        onSelect && event.kind === "appointment"
+        onSelect
           ? "group flex w-full flex-col overflow-hidden rounded border border-gray-100 px-2 py-1.5 text-left shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2"
           : "group flex w-full flex-col overflow-hidden rounded border border-gray-100 px-2 py-1.5 text-left shadow-sm"
       }
@@ -75,7 +72,7 @@ export const EventCard = ({
       )}
       <div className="mt-0.5 flex items-center justify-between gap-1">
         <span className="text-[11px] font-medium opacity-90">
-          {event.appointment?.scheduledAt ? formatShort(event.startsAt) : ""}
+          {formatShort(event.startsAt)}
         </span>
         {hasActions && (
           <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">

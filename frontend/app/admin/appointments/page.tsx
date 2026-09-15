@@ -11,17 +11,17 @@ import { CancelDialog } from "../../../components/admin/agenda/cancel-dialog";
 import { ConfirmDialog } from "../../../components/admin/agenda/confirm-dialog";
 import { RescheduleDialog } from "../../../components/admin/agenda/reschedule-dialog";
 
-const ACTIVE_STATUSES = new Set(["programada", "confirmada"]);
+const VISIBLE_STATUSES = new Set(["programada", "confirmada", "cancelada"]);
 
 const rangeStart = () => {
   const start = new Date();
-  start.setDate(start.getDate() - 7);
+  start.setFullYear(start.getFullYear() - 1);
   return start;
 };
 
 const rangeEnd = () => {
   const end = new Date();
-  end.setDate(end.getDate() + 120);
+  end.setFullYear(end.getFullYear() + 1);
   return end;
 };
 
@@ -50,7 +50,7 @@ export default function AdminAppointmentsPage() {
       rangeStart().toISOString(),
       rangeEnd().toISOString()
     );
-    setAppointments(list.filter((item) => ACTIVE_STATUSES.has(item.status)));
+    setAppointments(list.filter((item) => VISIBLE_STATUSES.has(item.status)));
   }, []);
 
   useEffect(() => {
@@ -121,7 +121,9 @@ export default function AdminAppointmentsPage() {
                   className={`font-semibold ${
                     appointment.status === "programada"
                       ? "text-amber-700"
-                      : "text-green-700"
+                      : appointment.status === "confirmada"
+                        ? "text-green-700"
+                        : "text-gray-600"
                   }`}
                 >
                   {STATUS_LABEL[appointment.status]}

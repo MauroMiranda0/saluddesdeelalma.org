@@ -7,12 +7,9 @@ import {
 
 const LEGEND_ORDER: AgendaEventKind[] = [
   "por_confirmar",
-  "pendiente_pago",
   "consulta_jocelyn",
   "consulta_jenny",
-  "personal",
-  "cancelada",
-  "cumpleanios"
+  "cancelada"
 ];
 
 type AgendaFiltersProps = {

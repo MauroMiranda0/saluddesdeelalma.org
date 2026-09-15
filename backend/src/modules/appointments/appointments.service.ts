@@ -511,7 +511,8 @@ export const rescheduleAppointmentWithAudit = async (input: {
         therapyType,
         durationMinutes,
         modality,
-        isManualException
+        isManualException,
+        status: "programada"
       },
       include: {
         patient: {

@@ -101,18 +101,15 @@ export default function AdminAgendaPage() {
   const events = useMemo<CalendarEvent[]>(() => {
     const { days } = windowBounds(view, visibleDate);
 
-    return eventsForWindow(appointments, directory, days);
-  }, [appointments, directory, view, visibleDate]);
+    return eventsForWindow(appointments, days);
+  }, [appointments, view, visibleDate]);
 
   const counts = useMemo(() => {
     const summary: Partial<Record<AgendaEventKind, number>> = {};
     const days = windowBounds(view, visibleDate).days;
 
-    for (const event of eventsForWindow(appointments, directory, days)) {
-      const kind =
-        event.kind === "appointment" && event.appointment
-          ? appointmentKindOf(event.appointment)
-          : "cumpleanios";
+    for (const event of eventsForWindow(appointments, days)) {
+      const kind = appointmentKindOf(event.appointment);
 
       summary[kind] = (summary[kind] ?? 0) + 1;
     }

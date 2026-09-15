@@ -382,5 +382,6 @@ test(
       where: { id: appointment.id }
     });
     assert.equal(updated.scheduledAt.getTime(), to.getTime());
+    assert.equal(updated.status, "programada");
   }
 );
