@@ -3,7 +3,13 @@ import test from "node:test";
 import { randomInt, randomUUID } from "node:crypto";
 
 import { prisma } from "../../src/lib/prisma.js";
-import { completeAppointmentWithAudit } from "../../src/modules/appointments/appointments.service.js";
+import {
+  AppointmentConflictError,
+  completeAppointmentWithAudit,
+  createPanelAppointmentWithAudit,
+  createWhatsAppAppointment,
+  rescheduleAppointmentWithAudit
+} from "../../src/modules/appointments/appointments.service.js";
 import { scheduleAppointmentReminders } from "../../src/modules/reminders/reminders.service.js";
 import {
   assignPatientTherapistWithAudit,
@@ -171,6 +177,82 @@ test(
       status: "programada"
     });
     created.appointments.push(freed.id);
+  }
+);
+
+test(
+  "panel and WhatsApp block overlaps for different patients assigned to one therapist",
+  { skip: !enabled },
+  async (t) => {
+    const created: Created = { users: [], patients: [], appointments: [] };
+    registerCleanup(t, created);
+
+    const therapistUser = await createPsychologistUser("Terapeuta Agenda");
+    created.users.push(therapistUser.id);
+    const therapist = await prisma.therapistProfile.create({
+      data: { userId: therapistUser.id, phone: "5215500000000" }
+    });
+    const firstPatient = await createPatient(
+      "Paciente Agenda Uno",
+      created,
+      therapist.id
+    );
+    const secondPatient = await createPatient(
+      "Paciente Agenda Dos",
+      created,
+      therapist.id
+    );
+    const audit = auditFor(therapistUser.id);
+
+    const first = await createPanelAppointmentWithAudit({
+      patient: { patientId: firstPatient.id },
+      scheduledAt: new Date("2026-10-05T15:00:00.000Z"),
+      modality: "online",
+      therapyType: "individual",
+      isManualException: false,
+      actorUserId: therapistUser.id,
+      audit
+    });
+    created.appointments.push(first.id);
+
+    await assert.rejects(
+      createWhatsAppAppointment({
+        patient: {
+          fullName: secondPatient.fullName,
+          whatsappPhone: secondPatient.whatsappPhone,
+          birthdate: "1995-05-05",
+          preferredModality: "online"
+        },
+        scheduledAt: "2026-10-05T15:30:00.000Z",
+        modality: "online",
+        therapyType: "pareja",
+        createdVia: "whatsapp",
+        isManualException: false,
+        audit
+      }),
+      AppointmentConflictError
+    );
+
+    const later = await createPanelAppointmentWithAudit({
+      patient: { patientId: secondPatient.id },
+      scheduledAt: new Date("2026-10-05T17:00:00.000Z"),
+      modality: "presencial",
+      therapyType: "individual",
+      isManualException: false,
+      actorUserId: therapistUser.id,
+      audit
+    });
+    created.appointments.push(later.id);
+
+    await assert.rejects(
+      rescheduleAppointmentWithAudit({
+        appointmentId: later.id,
+        scheduledAt: new Date("2026-10-05T15:30:00.000Z"),
+        therapyType: "pareja",
+        audit
+      }),
+      AppointmentConflictError
+    );
   }
 );
 
@@ -439,7 +521,7 @@ test(
     const appointment = await createAppointment({
       patientId: patient.id,
       therapistId: therapistA.id,
-      scheduledAt: new Date("2026-10-05T15:00:00.000Z")
+      scheduledAt: new Date(Date.now() - 2 * 60 * 60_000)
     });
     created.appointments.push(appointment.id);
 
@@ -483,7 +565,7 @@ test(
     const appointment = await createAppointment({
       patientId: patient.id,
       therapistId: therapistA.id,
-      scheduledAt: new Date("2026-10-05T15:00:00.000Z")
+      scheduledAt: new Date(Date.now() - 2 * 60 * 60_000)
     });
     created.appointments.push(appointment.id);
 
@@ -535,7 +617,7 @@ test(
     const appointment = await createAppointment({
       patientId: patient.id,
       therapistId: therapistA.id,
-      scheduledAt: new Date("2026-10-05T15:00:00.000Z")
+      scheduledAt: new Date(Date.now() - 2 * 60 * 60_000)
     });
     created.appointments.push(appointment.id);
 

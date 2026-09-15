@@ -87,7 +87,13 @@ export const RescheduleDialog = ({
         <label className="mb-1 block text-xs font-medium text-gray-500">
           Nueva fecha y hora
         </label>
-        <DateTimePicker value={scheduledAt} onChange={setScheduledAt} />
+        <DateTimePicker
+          value={scheduledAt}
+          onChange={setScheduledAt}
+          therapistId={appointment.therapistId}
+          durationMinutes={therapyType === "individual" ? 60 : 90}
+          excludeAppointmentId={appointment.id}
+        />
 
         <div className="mb-3 grid grid-cols-2 gap-2">
           <div>

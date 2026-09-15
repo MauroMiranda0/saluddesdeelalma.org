@@ -35,6 +35,7 @@ export const AppointmentForm = ({
   const [isManualException, setIsManualException] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedPatient = patients.find((patient) => patient.id === patientId);
 
   const submit = async () => {
     const iso = toIsoFromLocalInput(scheduledAt);
@@ -104,6 +105,8 @@ export const AppointmentForm = ({
           value={scheduledAt}
           onChange={setScheduledAt}
           confirmLabel="Aceptar"
+          therapistId={selectedPatient?.assignedTherapistId}
+          durationMinutes={therapyType === "individual" ? 60 : 90}
         />
 
         <div className="mb-3 grid grid-cols-2 gap-2">

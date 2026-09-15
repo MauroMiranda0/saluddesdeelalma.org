@@ -14,6 +14,7 @@ import {
 import {
   findActiveAppointmentsForTherapist,
   findAppointmentForAdmin,
+  findOverlappingActiveAppointment,
   listAppointmentsInRange
 } from "./appointments.repository";
 import {
@@ -84,6 +85,21 @@ const isActiveAppointmentConflict = (error: unknown) =>
   (error.code === "P2002" ||
     (error.code === "P2010" && error.meta?.code === "23P01"));
 
+const assertTherapistAvailability = async (input: {
+  therapistId: string;
+  scheduledAt: Date;
+  endsAt: Date;
+  excludeAppointmentId?: string;
+}) => {
+  const conflict = await findOverlappingActiveAppointment(input);
+
+  if (conflict) {
+    throw new AppointmentConflictError(
+      "The requested appointment slot is unavailable"
+    );
+  }
+};
+
 export const createWhatsAppAppointment = async (
   input: CreateAppointmentInput & { audit?: AuditCreateInput }
 ) => {
@@ -103,6 +119,8 @@ export const createWhatsAppAppointment = async (
     );
   }
   const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
+
+  await assertTherapistAvailability({ therapistId, scheduledAt, endsAt });
 
   try {
     const appointment = await prisma.$transaction(async (transaction) => {
@@ -225,10 +243,22 @@ export const findNextAvailableSlots = async (
   return slots;
 };
 
-export const completeAppointmentWithAudit = (input: {
+export const completeAppointmentWithAudit = async (input: {
   appointmentId: string;
   audit: AuditCreateInput;
 }) => {
+  const current = await findAppointmentForAdmin(input.appointmentId);
+
+  if (!current) {
+    throw new AppointmentNotFoundError("Appointment does not exist");
+  }
+
+  if (current.status === "cancelada" || current.scheduledAt > new Date()) {
+    throw new AppointmentNotMutableError(
+      "Only started appointments can be completed"
+    );
+  }
+
   // Completion is the only event that schedules the priority post-session
   // notice; the mutation, reminder and audit log are written atomically.
   return prisma.$transaction(async (transaction) => {
@@ -411,6 +441,12 @@ export const createPanelAppointmentWithAudit = async (input: {
     }
   }
 
+  await assertTherapistAvailability({
+    therapistId: patient.assignedTherapistId,
+    scheduledAt,
+    endsAt
+  });
+
   let appointment;
 
   try {
@@ -501,6 +537,13 @@ export const rescheduleAppointmentWithAudit = async (input: {
       isManualException = true;
     }
   }
+
+  await assertTherapistAvailability({
+    therapistId: current.therapistId,
+    scheduledAt,
+    endsAt,
+    excludeAppointmentId: current.id
+  });
 
   const appointment = await prisma.$transaction(async (transaction) => {
     const updated = await transaction.appointment.update({

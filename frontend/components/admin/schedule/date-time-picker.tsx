@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import {
+  listAppointmentsRange,
+  type AdminAppointmentEvent
+} from "../../../lib/admin/api";
 import { buildMonthGrid } from "../../../lib/admin/calendar";
 
 const WEEKDAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -68,13 +72,19 @@ type DateTimePickerProps = {
   onChange: (value: string) => void;
   disabled?: boolean;
   confirmLabel?: string;
+  therapistId?: string | null;
+  durationMinutes?: number;
+  excludeAppointmentId?: string;
 };
 
 export const DateTimePicker = ({
   value,
   onChange,
   disabled,
-  confirmLabel = "Continuar"
+  confirmLabel = "Continuar",
+  therapistId,
+  durationMinutes = 60,
+  excludeAppointmentId
 }: DateTimePickerProps) => {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseValue(value));
@@ -83,6 +93,50 @@ export const DateTimePicker = ({
 
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
+  const [availability, setAvailability] = useState<{
+    therapistId: string;
+    appointments: AdminAppointmentEvent[];
+  } | null>(null);
+
+  const grid = buildMonthGrid(monthCursor);
+
+  useEffect(() => {
+    if (!open || !therapistId) {
+      setAvailability(null);
+      return;
+    }
+
+    let active = true;
+    const days = buildMonthGrid(monthCursor);
+    const from = new Date(days[0]);
+    const to = new Date(days[days.length - 1]);
+    to.setDate(to.getDate() + 1);
+
+    listAppointmentsRange(from.toISOString(), to.toISOString())
+      .then(({ appointments }) => {
+        if (active) {
+          setAvailability({
+            therapistId,
+            appointments: appointments.filter(
+              (appointment) =>
+                appointment.therapistId === therapistId &&
+                appointment.id !== excludeAppointmentId &&
+                (appointment.status === "programada" ||
+                  appointment.status === "confirmada")
+            )
+          });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAvailability({ therapistId, appointments: [] });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [excludeAppointmentId, monthCursor, open, therapistId]);
 
   const openPicker = () => {
     if (disabled) {
@@ -114,15 +168,38 @@ export const DateTimePicker = ({
   };
 
   const continueSelection = () => {
-    if (draft.date && draft.time) {
+    if (draft.date && draft.time && !isTimeUnavailable(draft.date, draft.time)) {
       onChange(`${draft.date}T${draft.time}`);
     }
     setOpen(false);
   };
 
-  const grid = buildMonthGrid(monthCursor);
+  const isTimeUnavailable = (date: string, time: string) => {
+    if (!therapistId || availability?.therapistId !== therapistId) {
+      return false;
+    }
+
+    const startsAt = new Date(`${date}T${time}`);
+
+    if (Number.isNaN(startsAt.getTime())) {
+      return false;
+    }
+
+    const endsAt = new Date(
+      startsAt.getTime() + durationMinutes * 60 * 1000
+    );
+
+    return availability.appointments.some((appointment) => {
+      const appointmentStartsAt = new Date(appointment.scheduledAt);
+      const appointmentEndsAt = new Date(appointment.endsAt);
+
+      return startsAt < appointmentEndsAt && endsAt > appointmentStartsAt;
+    });
+  };
+
   const todayDate = toDateInput(new Date());
   const label = formatTriggerLabel(value);
+  const selectedTimeUnavailable = isTimeUnavailable(draft.date, draft.time);
 
   return (
     <div className="mb-3">
@@ -228,14 +305,21 @@ export const DateTimePicker = ({
                 <div className="grid grid-cols-6 gap-1">
                   {TIME_SLOTS.map((slot) => {
                     const selected = slot === draft.time;
+                    const unavailable = isTimeUnavailable(draft.date, slot);
 
                     return (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => selectTime(slot)}
-                        className={`rounded px-1 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-forest/40 ${
-                          selected
+                        disabled={unavailable}
+                        aria-label={
+                          unavailable ? `${slot}, no disponible` : slot
+                        }
+                        className={`rounded px-1 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-forest/40 disabled:cursor-not-allowed ${
+                          unavailable
+                            ? "bg-gray-100 text-gray-400 line-through"
+                            : selected
                             ? "bg-forest font-semibold text-white"
                             : "text-gray-600 hover:bg-gray-100"
                         }`}
@@ -247,7 +331,11 @@ export const DateTimePicker = ({
                 </div>
               </div>
 
-              <label className="flex items-center gap-1.5 text-xs text-gray-500">
+              <label
+                className={`flex items-center gap-1.5 text-xs ${
+                  selectedTimeUnavailable ? "text-red-600" : "text-gray-500"
+                }`}
+              >
                 Hora libre
                 <input
                   type="time"
@@ -258,9 +346,18 @@ export const DateTimePicker = ({
                       time: event.target.value
                     }))
                   }
-                  className="rounded border border-gray-300 px-1.5 py-0.5 text-sm text-gray-700"
+                  className={`rounded border px-1.5 py-0.5 text-sm text-gray-700 ${
+                    selectedTimeUnavailable
+                      ? "border-red-300 line-through"
+                      : "border-gray-300"
+                  }`}
                 />
               </label>
+              {selectedTimeUnavailable && (
+                <p className="text-xs text-red-600">
+                  Este horario no está disponible para esta psicóloga.
+                </p>
+              )}
             </div>
 
             <div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">
@@ -274,7 +371,7 @@ export const DateTimePicker = ({
               <button
                 type="button"
                 onClick={continueSelection}
-                disabled={!draft.date || !draft.time}
+                disabled={!draft.date || !draft.time || selectedTimeUnavailable}
                 className="rounded bg-forest px-4 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-50"
               >
                 {confirmLabel}

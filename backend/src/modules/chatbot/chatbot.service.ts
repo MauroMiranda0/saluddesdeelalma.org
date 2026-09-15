@@ -126,6 +126,7 @@ const sendAvailability = async (input: {
   to: string;
   whatsappPhone: string;
   intent: "availability" | "book";
+  therapyType?: "individual" | "pareja" | "familiar";
   gateway: WhatsAppGateway;
   saveOutboundMessage: typeof saveOutboundMessage;
 }) => {
@@ -134,7 +135,7 @@ const sendAvailability = async (input: {
     patient?.assignedTherapistId && patient.assignedTherapist?.isActive
       ? await findNextAvailableSlots(
           patient.assignedTherapistId,
-          "individual",
+          input.therapyType ?? "individual",
           3
         )
       : [];
@@ -434,6 +435,7 @@ export const processIncomingWhatsAppMessage = async (
           to: message.from,
           whatsappPhone: message.from,
           intent,
+          therapyType: details.therapyType,
           gateway: context.gateway,
           saveOutboundMessage: processingDependencies.saveOutboundMessage
         });

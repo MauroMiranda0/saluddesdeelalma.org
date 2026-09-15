@@ -122,6 +122,26 @@ export const findActiveAppointmentsForTherapist = (
   });
 };
 
+export const findOverlappingActiveAppointment = (input: {
+  therapistId: string;
+  scheduledAt: Date;
+  endsAt: Date;
+  excludeAppointmentId?: string;
+}) => {
+  return prisma.appointment.findFirst({
+    where: {
+      therapistId: input.therapistId,
+      status: { in: ["programada", "confirmada"] },
+      scheduledAt: { lt: input.endsAt },
+      endsAt: { gt: input.scheduledAt },
+      ...(input.excludeAppointmentId
+        ? { id: { not: input.excludeAppointmentId } }
+        : {})
+    },
+    select: { id: true }
+  });
+};
+
 export const findNextActiveAppointmentForPatient = (
   patientId: string,
   from: Date

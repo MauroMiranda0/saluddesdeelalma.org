@@ -5,7 +5,11 @@ import { z } from "zod";
 import { authenticate } from "../../middleware/authenticate";
 import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identity";
 import { asyncHandler, AppError } from "../../middleware/error-handler";
-import { completeAppointmentWithAudit } from "../appointments/appointments.service";
+import {
+  AppointmentNotFoundError,
+  AppointmentNotMutableError,
+  completeAppointmentWithAudit
+} from "../appointments/appointments.service";
 import {
   createAdminPatientWithAudit,
   setPatientStatusWithAudit
@@ -337,19 +341,31 @@ export const createTherapistAdminRoutes = (
     asyncHandler(async (request, response) => {
       const appointmentId = requestParam(request.params.appointmentId)!;
       assertUuidParam(appointmentId);
-      const appointment = await completeAppointment({
-        appointmentId,
-        audit: {
-          actorUserId: request.adminSession?.user.id,
-          actorChannel: "admin_panel",
-          action: "appointment_completed",
-          entityType: "appointment",
-          result: "success",
-          metadata: { requestId: response.locals.requestId },
-          ipAddress: request.ip,
-          userAgent: request.header("user-agent")
+      let appointment;
+
+      try {
+        appointment = await completeAppointment({
+          appointmentId,
+          audit: {
+            actorUserId: request.adminSession?.user.id,
+            actorChannel: "admin_panel",
+            action: "appointment_completed",
+            entityType: "appointment",
+            result: "success",
+            metadata: { requestId: response.locals.requestId },
+            ipAddress: request.ip,
+            userAgent: request.header("user-agent")
+          }
+        });
+      } catch (error) {
+        if (error instanceof AppointmentNotFoundError) {
+          throw new AppError(404, "not_found", "La cita no existe");
         }
-      });
+        if (error instanceof AppointmentNotMutableError) {
+          throw new AppError(409, "conflict", "La cita aún no puede completarse");
+        }
+        throw error;
+      }
 
       response.json({
         appointment: {
