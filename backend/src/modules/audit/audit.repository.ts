@@ -14,18 +14,25 @@ export type AuditCreateInput = {
   userAgent?: string;
 };
 
+export const auditLogCreateData = (input: AuditCreateInput) => ({
+  actorUserId: input.actorUserId,
+  actorChannel: input.actorChannel,
+  action: input.action,
+  entityType: input.entityType,
+  entityId: input.entityId,
+  result: input.result,
+  metadata: input.metadata ?? {},
+  ipAddress: input.ipAddress,
+  userAgent: input.userAgent
+});
+
 export const createAuditLog = (input: AuditCreateInput) => {
-  return prisma.auditLog.create({
-    data: {
-      actorUserId: input.actorUserId,
-      actorChannel: input.actorChannel,
-      action: input.action,
-      entityType: input.entityType,
-      entityId: input.entityId,
-      result: input.result,
-      metadata: input.metadata ?? {},
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent
-    }
-  });
+  return prisma.auditLog.create({ data: auditLogCreateData(input) });
+};
+
+export const createAuditLogInTransaction = (
+  transaction: Prisma.TransactionClient,
+  input: AuditCreateInput
+) => {
+  return transaction.auditLog.create({ data: auditLogCreateData(input) });
 };

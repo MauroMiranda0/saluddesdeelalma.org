@@ -3,8 +3,8 @@
 > **Proyecto:** Salud desde el Alma
 > **Eslogan:** "Tu bienestar, nuestro propósito"
 > **Servicio:** Psicología integral (Cuerpo, Mente, Espíritu)
-> **Versión:** 1.2
-> **Fecha:** 7 de septiembre de 2026
+> **Versión:** 1.5
+> **Fecha:** 15 de septiembre de 2026
 > **Estado:** Guía constitutiva para el ciclo de vida del proyecto
 
 Este documento es la referencia de mayor jerarquía para el desarrollo, diseño, implementación y mantenimiento del asistente digital del consultorio de psicología **Salud desde el Alma**. Todo trabajo técnico o de diseño debe alinearse con lo aquí establecido.
@@ -35,14 +35,14 @@ Construir un **asistente digital integral** que centralice la gestión operativa
 
 ### 1.3 Alcance del MVP
 
-| Incluido (Fase MVP) | Excluido (fases posteriores) |
-|---|---|
-| Landing page informativa | Historial clínico digital |
-| Panel administrativo (citas, pagos y directorio operativo de psicólogos/as y pacientes) | Reportes estadísticos complejos |
-| Agendamiento/cancelación en línea y presencial | Descarga de expedientes |
-| Pagos: anticipo 50% (opcional) y pago completo | Facturación electrónica / CFDI |
-| Recordatorios de citas y pagos vía WhatsApp | Multi-sucursal o multi-terapeuta |
-| Chatbot IA en WhatsApp (FAQ, agenda, pagos) | Portal de autogestión para pacientes |
+| Incluido (Fase MVP)                                                                     | Excluido (fases posteriores)         |
+| --------------------------------------------------------------------------------------- | ------------------------------------ |
+| Landing page informativa                                                                | Historial clínico digital            |
+| Panel administrativo (citas, pagos y directorio operativo de psicólogos/as y pacientes) | Reportes estadísticos complejos      |
+| Agendamiento/cancelación en línea y presencial                                          | Descarga de expedientes              |
+| Pagos: anticipo 50% (opcional) y pago completo                                          | Facturación electrónica / CFDI       |
+| Recordatorios de citas y pagos vía WhatsApp                                             | Multi-sucursal                       |
+| Chatbot IA en WhatsApp (FAQ, agenda, pagos)                                             | Portal de autogestión para pacientes |
 
 ---
 
@@ -59,23 +59,23 @@ Construir un **asistente digital integral** que centralice la gestión operativa
 
 La paleta se extrae de `logo.jpg`, con verdes y sepias como colores predominantes, evocando serenidad, calma, fe y propósito. Paleta oficial del proyecto:
 
-| Color | Hex | Significado |
-|---|---|---|
-| Verde armonía | `#6B8F71` | Verde suave, evoca naturaleza y serenidad. |
-| Verde profundo | `#3C5A44` | Verde bosque, transmite confianza y estabilidad. |
-| Sepia cálido | `#A67C52` | Marrón dorado, aporta calidez y cercanía. |
-| Beige arena | `#D9CBB3` | Neutro claro, suaviza y equilibra la composición. |
-| Dorado tenue | `#C2A878` | Reflejo luminoso, asociado a espiritualidad y propósito. |
+| Color          | Hex       | Significado                                              |
+| -------------- | --------- | -------------------------------------------------------- |
+| Verde armonía  | `#6B8F71` | Verde suave, evoca naturaleza y serenidad.               |
+| Verde profundo | `#3C5A44` | Verde bosque, transmite confianza y estabilidad.         |
+| Sepia cálido   | `#A67C52` | Marrón dorado, aporta calidez y cercanía.                |
+| Beige arena    | `#D9CBB3` | Neutro claro, suaviza y equilibra la composición.        |
+| Dorado tenue   | `#C2A878` | Reflejo luminoso, asociado a espiritualidad y propósito. |
 
 **Uso recomendado:**
 
-| Color | Uso |
-|---|---|
-| Verde armonía | Fondos y áreas amplias para transmitir calma. |
-| Verde profundo | Títulos o elementos clave para dar solidez. |
-| Sepia cálido | Detalles decorativos o marcos, aporta cercanía. |
-| Beige arena | Espacios de descanso visual, balance neutro. |
-| Dorado tenue | Acentos en íconos o símbolos espirituales. |
+| Color          | Uso                                             |
+| -------------- | ----------------------------------------------- |
+| Verde armonía  | Fondos y áreas amplias para transmitir calma.   |
+| Verde profundo | Títulos o elementos clave para dar solidez.     |
+| Sepia cálido   | Detalles decorativos o marcos, aporta cercanía. |
+| Beige arena    | Espacios de descanso visual, balance neutro.    |
+| Dorado tenue   | Acentos en íconos o símbolos espirituales.      |
 
 ### 2.3 Directrices de diseño
 
@@ -92,16 +92,16 @@ La paleta se extrae de `logo.jpg`, con verdes y sepias como colores predominante
 
 ### 3.1 Stack propuesto
 
-| Capa | Tecnología |
-|---|---|
-| **Frontend** | Next.js (React) + TypeScript + Tailwind CSS |
-| **Backend** | Node.js + Express.js (servidor de aplicación, lógica de negocio e integraciones) |
-| **Base de datos** | PostgreSQL alojado en Hostinger (control directo, configuración y optimización de consultas) |
-| **ORM** | Prisma (esquema claro y versionado, migraciones seguras y consistentes) |
-| **Chatbot** | WhatsApp Business Cloud API (Meta) + proveedor de mensajería (p. ej. Twilio / 360dialog) + capa de IA conversacional |
-| **Despliegue** | Hostinger (backend y base de datos) — plan con soporte Node.js y PostgreSQL — SSL |
-| **Autenticación** | Middleware propio en Node (JWT) para el panel administrativo; solo la cuenta `admin` puede iniciar sesión en el MVP |
-| **Recordatorios** | Cron / tareas programadas en Node → envío vía API de WhatsApp entre 18:00 y 19:00 del día previo |
+| Capa              | Tecnología                                                                                                           |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**      | Next.js (React) + TypeScript + Tailwind CSS                                                                          |
+| **Backend**       | Node.js + Express.js (servidor de aplicación, lógica de negocio e integraciones)                                     |
+| **Base de datos** | PostgreSQL alojado en Hostinger (control directo, configuración y optimización de consultas)                         |
+| **ORM**           | Prisma (esquema claro y versionado, migraciones seguras y consistentes)                                              |
+| **Chatbot**       | WhatsApp Business Cloud API (Meta) + proveedor de mensajería (p. ej. Twilio / 360dialog) + capa de IA conversacional |
+| **Despliegue**    | Hostinger (backend y base de datos) — plan con soporte Node.js y PostgreSQL — SSL                                    |
+| **Autenticación** | Middleware propio en Node (JWT) para el panel administrativo; solo la cuenta `admin` puede iniciar sesión en el MVP  |
+| **Recordatorios** | Cron / tareas programadas en Node → envío entre 18:00 y 19:00 del día previo y aviso de saldo posterior a la sesión  |
 
 ### 3.2 Justificación
 
@@ -113,7 +113,7 @@ La paleta se extrae de `logo.jpg`, con verdes y sepias como colores predominante
 
 ### 3.3 Integraciones
 
-- **API de WhatsApp:** recepción y envío de mensajes (plantillas para recordatorios y confirmaciones; mensajes libres para conversación). Los webhooks del chatbot entran directamente al backend Node.
+- **API de WhatsApp:** recepción y envío de mensajes (plantillas para recordatorios y confirmaciones; mensajes libres para conversación). El paciente recibe mensajes individuales y las psicólogas una copia operativa en un destino grupal configurado. La compatibilidad real del proveedor con grupos es un prerrequisito de producción.
 - **Tareas programadas (cron):** generación y envío de recordatorios automáticos de citas y de pagos pendientes.
 - **Gestión de pagos (sin pasarela):** registro directo en base de datos, vinculado a la cita correspondiente: anticipo opcional del 50% y pago completo el día de la sesión (en línea o presencial). La validación del comprobante de transferencia es manual/semiautomática; una pasarela (Stripe/OpenPay) queda como expansión futura.
 
@@ -139,10 +139,12 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 1. El paciente escribe al WhatsApp del consultorio (56 6095 0665).
 2. El chatbot saluda de forma cálida y pregunta qué necesita.
 3. El chatbot consulta disponibilidad real contra la agenda en la base de datos (PostgreSQL).
-4. Ofrece **horarios concretos** disponibles.
-5. Confirma el día, la hora y la **modalidad** (en línea o presencial).
-6. Registra la cita y envía confirmación con datos de la sesión (ubicación o enlace de videollamada) y la política de cancelación: se debe avisar con al menos 24 horas de anticipación para evitar un costo adicional.
-7. Registra un **recordatorio automático** para el día previo, a enviar entre las 18:00 y las 19:00 (hora `America/Mexico_City`) al paciente y a Jocelyn.
+4. Identifica la psicóloga previamente asignada al paciente; para pacientes nuevos la asignación la realiza `admin` antes de confirmar una cita.
+5. Ofrece **horarios concretos** disponibles para esa psicóloga, sin importar si la cita es en línea o presencial.
+6. Confirma día, hora, modalidad y tipo: individual (60 min), pareja (90 min) o familiar (90 min).
+7. Registra la cita solo si el intervalo completo no se traslapa con otra cita activa de la psicóloga; las citas consecutivas sí son válidas.
+8. Envía confirmación individual al paciente y copia operativa, sin datos de pago ni clínicos, al grupo interno de psicólogas.
+9. Registra el recordatorio del día previo entre 18:00 y 19:00 (`America/Mexico_City`) y el aviso de saldo posterior a una cita completada cuando aplique.
 
 **Ejemplo de interacción (agendamiento):**
 
@@ -163,13 +165,13 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 
 1. Al agendar, el chatbot pregunta si desea apartar con el anticipo del 50%.
 2. Si acepta, comparte datos de pago (transferencia).
-3. El paciente envía el comprobante; se valida manualmente o por regla automatizada.
-4. El pago se registra como *anticipo (50%)*; el saldo queda como *pendiente de liquidar el día de la sesión*.
+3. El paciente envía el comprobante; el chatbot avisa de inmediato y de forma individual a Jocelyn para su revisión. El comprobante queda pendiente de validación; el bot nunca completa el pago por sí mismo.
+4. Jocelyn registra el pago y confirma su validación desde el panel. Al confirmar un anticipo, el saldo queda como _pendiente de liquidar el día de la sesión_.
 
 **Modalidad B — Pago completo:**
 
 1. El día de la sesión se cobra el total.
-2. El panel registra el pago como *completo*.
+2. El panel registra el pago como _pendiente de validación_ y Jocelyn lo confirma como _completo_ después de revisar el comprobante o el cobro en efectivo.
 
 > **Nota:** la gestión de pagos no requiere pasarela externa; los montos se registran directamente en la base de datos, vinculados a la cita correspondiente.
 
@@ -178,16 +180,18 @@ Ventajas de este enfoque: mayor independencia frente a proveedores externos, fle
 > **Paciente:** ¿Cómo puedo pagar?
 > **Chatbot:** Sí claro 😊 Aceptamos transferencia. Le comparto los datos y me confirma una vez realizado.
 
-> **Nota de diseño del panel:** cada cita muestra estado de pago (`pendiente`, `anticipo`, `completado`) y acciones rápidas (registrar anticipo, registrar liquidación) pensadas para el uso móvil con una sola mano.
+> **Nota de diseño del panel:** cada cita muestra estado de pago (`pendiente`, `anticipo`, `completado`) y acciones rápidas independientes del bot: registrar pago, enviar recordatorio y confirmar pago. Los pagos reportados permanecen pendientes de validación hasta que Jocelyn los confirme, con una traza de auditoría pensada para uso móvil con una sola mano.
 
 ### 4.3 Recordatorios automáticos
 
-| Tipo | Cuándo | Canal | Contenido |
-|---|---|---|---|
-| Confirmación | Al agendar | WhatsApp al paciente | Datos de la cita + modalidad + política de cancelación con 24 h de anticipación |
-| Recordatorio de cita | Entre 18:00 y 19:00 del día previo, hora `America/Mexico_City` | WhatsApp al paciente y a Jocelyn | Día/hora, modalidad, datos de acceso; dos envíos trazables |
-| Aviso de cancelación | Cuando se cancela | WhatsApp | Confirmación de cancelación + opción de reagendar |
-| Recordatorio de pago pendiente | Día de la sesión (o día previo) | WhatsApp | Aviso amable del saldo pendiente |
+| Tipo                                | Cuándo                                                              | Canal                                                    | Contenido                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Confirmación                        | Al agendar                                                          | WhatsApp individual al paciente y copia al grupo interno | Datos de cita al paciente; la copia interna omite datos clínicos y de pago          |
+| Recordatorio de cita                | Entre 18:00 y 19:00 del día previo, hora `America/Mexico_City`      | WhatsApp individual al paciente y copia al grupo interno | Día/hora, modalidad y datos de acceso solo para el paciente; dos entregas trazables |
+| Aviso de cancelación                | Cuando se cancela                                                   | WhatsApp                                                 | Confirmación de cancelación + opción de reagendar                                   |
+| Aviso previo de pago pendiente      | Junto con la solicitud de confirmación del día previo, si hay saldo | WhatsApp individual al paciente                          | Aviso amable sin exponerse al grupo interno                                         |
+| Aviso prioritario de pago pendiente | Al concluir una cita, si hay saldo                                  | WhatsApp individual al paciente                          | Aviso amable de liquidación; no se envía al grupo interno                           |
+| Comprobante recibido                | Al recibir imagen o documento de comprobante por WhatsApp           | WhatsApp individual a Jocelyn                            | Solicitud operativa de revisión; el pago queda pendiente de validación              |
 
 **Ejemplo de interacción (cancelación):**
 
@@ -226,11 +230,21 @@ patients
 ├── modality_preferred ENUM('online','presencial')
 ├── notes TEXT
 ├── status ENUM('activo','inactivo')
+├── assigned_therapist_id UUID FK → therapist_profiles (asignación vigente)
+
+therapist_profiles
+├── id UUID PK
+├── user_id UUID FK → users (perfil clínico, sin habilitar login)
+├── is_active BOOLEAN
 
 appointments
 ├── id UUID PK
 ├── patient_id UUID FK → patients
+├── therapist_id UUID FK → therapist_profiles
 ├── scheduled_at TIMESTAMPTZ
+├── ends_at TIMESTAMPTZ
+├── therapy_type ENUM('individual','pareja','familiar')
+├── duration_minutes INTEGER (60 individual; 90 pareja/familiar)
 ├── modality ENUM('online','presencial')
 ├── status ENUM('programada','confirmada','completada','cancelada')
 ├── cancel_reason TEXT
@@ -245,16 +259,16 @@ payments
 ├── amount NUMERIC(10,2)
 ├── type ENUM('anticipo','completo')
 ├── method ENUM('transferencia','efectivo')
-├── status ENUM('pendiente','pagado','reembolsado')
+├── status ENUM('pendiente_validacion','validado','rechazado')
 ├── paid_at TIMESTAMPTZ
-├── proof_url TEXT (comprobante)
+├── proof_reference TEXT (referencia o comprobante)
 ├── recorded_by UUID FK → users
 
 appointment_reminders
 ├── id UUID PK
 ├── appointment_id UUID FK → appointments
 ├── type ENUM('confirmacion','recordatorio','cancelacion','pago')
-├── recipient ENUM('paciente','admin')
+├── recipient ENUM('paciente','grupo_psicologas')
 ├── scheduled_at TIMESTAMPTZ
 ├── sent_at TIMESTAMPTZ (NULL = pendiente)
 ├── status ENUM('pendiente','enviado','fallido')
@@ -285,9 +299,10 @@ audit_logs (auditoría de accesos y acciones críticas)
 
 **Relaciones principales:**
 
-- `patients 1—N appointments`
+- `therapist_profiles 1—N patients`; cada paciente conserva una única asignación vigente, modificable solo por `admin` y con auditoría.
+- `patients 1—N appointments`; cada cita conserva la psicóloga asignada al momento de reservar.
 - `appointments 1—N payments` (en general 1 pago por cita; se permite N para anticipo + liquidación)
-- `appointments 1—N appointment_reminders`; el recordatorio del día previo genera un registro para `paciente` y otro para `admin`.
+- `appointments 1—N appointment_reminders`; la confirmación y el recordatorio del día previo generan un registro para `paciente` y otro para `grupo_psicologas`.
 - `patients 1—N chat_conversations`
 - `users graban payments / citas`
 - `users 1—N audit_logs`
@@ -314,20 +329,20 @@ audit_logs (auditoría de accesos y acciones críticas)
 
 ### 6.3 Pruebas
 
-| Tipo | Alcance |
-|---|---|
-| **Unitarias** | Lógica de negocio: cálculo de montos de pago, validaciones de agendamiento (horario laboral, choques de agenda), reglas del chatbot. |
-| **Integración** | Backend Node (crear cita → generar recordatorio → registrar pago), CRUD contra PostgreSQL/Prisma, webhooks de WhatsApp, mensajería. |
-| **UAT (pruebas con la usuaria)** | La psicóloga ejecuta escenarios reales desde su móvil: agendar, cancelar, registrar pago, recibir recordatorios. Se documentan con checklist. |
-| **Seguridad** | Autenticación JWT y control de accesos, validación de entrada, ausencia de credenciales en el repo, SSL vigente. |
+| Tipo                             | Alcance                                                                                                                                                              |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Unitarias**                    | Lógica de negocio: cálculo de montos de pago, duración 60/90 min, horarios de inicio/fin, asignación paciente-psicóloga, choques de intervalos y reglas del chatbot. |
+| **Integración**                  | Backend Node (crear cita → generar recordatorio → registrar y confirmar pago), CRUD contra PostgreSQL/Prisma, webhooks de WhatsApp, mensajería.                      |
+| **UAT (pruebas con la usuaria)** | La psicóloga ejecuta escenarios reales desde su móvil: agendar, cancelar, registrar pago, enviar recordatorio, confirmar pago y recibir avisos de comprobante. Se documentan con checklist. |
+| **Seguridad**                    | Autenticación JWT y control de accesos, validación de entrada, ausencia de credenciales en el repo, SSL vigente.                                                     |
 
 ### 6.4 Criterios de aceptación por fase
 
 **Fase 1 — Diseño:** paleta validada contra el logo (verde/sepia dominantes); wireframes de landing, panel y flujo del chatbot aprobados por la cliente.
 
-**Fase 2 — MVP:** la cita debe poder agendarse y cancelarse desde el chatbot y desde el panel; la disponibilidad se sincroniza y no permite doble reserva.
+**Fase 2 — MVP:** la cita debe poder agendarse y cancelarse desde el chatbot y desde el panel; la disponibilidad se sincroniza por psicóloga e intervalo, sin traslape entre modalidad en línea y presencial.
 
-**Fase 3 — Pagos/recordatorios:** anticipo y pago completo registrables; los recordatorios del día previo se envían al paciente y a Jocelyn únicamente entre las 18:00 y 19:00, hora `America/Mexico_City`; estados de pago visibles en el panel.
+**Fase 3 — Pagos/recordatorios:** anticipo y pago completo registrables y confirmables manualmente; el comprobante recibido por WhatsApp notifica a Jocelyn y queda pendiente de validación; el panel permite enviar recordatorios manuales. Los recordatorios automáticos del día previo se envían al paciente y al grupo interno únicamente entre las 18:00 y 19:00, hora `America/Mexico_City`; los avisos de saldo se mantienen privados para el paciente.
 
 **Fase 4 — Chatbot IA:** responde FAQ, agenda, cancela y consulta pagos siguiendo el tono definido (ver §7); deriva temas clínicos a la psicóloga; es transparente si le preguntan si es un bot.
 
@@ -429,66 +444,93 @@ La persona debe percibir una conversación sencilla, cálida y fluida, similar a
 
 ## 8. Plan de desarrollo detallado
 
-Duración total estimada: **29 días calendario** (inicio propuesto: **31 de agosto de 2026**). Las fechas son estimadas y se ajustan según validaciones y disponibilidad de la cliente.
+Duración total estimada: **32 días calendario** (inicio: **31 de agosto de 2026**, entrega comprometida máxima: **1 de octubre de 2026**). Las fechas son estimadas y se ajustan según validaciones y disponibilidad de la cliente. El ajuste del plan (v1.5) incorpora una fase dedicada de alineación de la interfaz al mockup `mockupWithDashboard.png`, que se ejecuta **en paralelo con el desarrollo de la landing**.
 
-### Fase 1 — Diseño UI/UX (Días 1–5)
+## Estado al día 17 (16 de septiembre de 2026)
 
-| Día | Entregable |
-|---|---|
-| 1 | Análisis de marca: extracción de paleta del logo, definición tipográfica, tono visual |
-| 2 | Wireframes de la landing page (móvil/desktop) |
-| 3 | Wireframes del panel administrativo (agenda, pacientes, pagos) |
-| 4 | Guiones y flujos del chatbot (agendar, cancelar, pagos, FAQ, temas clínicos) |
-| 5 | Prototipo navegable y **aprobación de la cliente** |
+- **Completadas:** Fases 1, 2, 3 de este plan (diseño, MVP, pagos y recordatorios parciales), US1 (agendamiento WhatsApp), US2 (panel administrativo) y US3 (pagos). Progreso de tareas **137 de 164 (83.5%)**.
+- **Pendiente funcional:** US4 recordatorios automáticos, US5 FAQ/estado de cita y pago por WhatsApp, US6 landing pública y alineación visual de la interfaz al mockup aprobado.
+
+### Fase 1 — Diseño UI/UX (Días 1–5) · Completada
+
+| Día | Entregable                                                                            |
+| --- | ------------------------------------------------------------------------------------- |
+| 1   | Análisis de marca: extracción de paleta del logo, definición tipográfica, tono visual |
+| 2   | Wireframes de la landing page (móvil/desktop)                                         |
+| 3   | Wireframes del panel administrativo (agenda, pacientes, pagos)                        |
+| 4   | Guiones y flujos del chatbot (agendar, cancelar, pagos, FAQ, temas clínicos)          |
+| 5   | Prototipo navegable y **aprobación de la cliente**                                    |
 
 **Criterio de aceptación:** paleta verde/sepia validada, wireframes y guiones del chatbot aprobados.
 
-### Fase 2 — Desarrollo MVP (Días 6–14)
+### Fase 2 — Desarrollo MVP (Días 6–14) · Completada
 
-| Día | Entregable |
-|---|---|
-| 6–7 | Setup del proyecto: Next.js, Node/Express, PostgreSQL en Hostinger, Prisma, entorno y CI básica |
-| 8–9 | Landing page publicada (información, accesos, enlace WhatsApp) |
-| 10 | Autenticación del panel y manejo de pacientes |
-| 11–12 | Gestión de citas: agenda, agendar, cancelar, modalidades en línea/presencial |
-| 13–14 | Diseño responsive móvil del panel y pulido de UX |
+| Día   | Entregable                                                                                      |
+| ----- | ----------------------------------------------------------------------------------------------- |
+| 6–7   | Setup del proyecto: Next.js, Node/Express, PostgreSQL en Hostinger, Prisma, entorno y CI básica |
+| 8–9   | Landing page publicada (información, accesos, enlace WhatsApp)                                  |
+| 10    | Autenticación del panel y manejo de pacientes                                                   |
+| 11–12 | Gestión de citas: agenda, agendar, cancelar, modalidades en línea/presencial                    |
+| 13–14 | Diseño responsive móvil del panel y pulido de UX                                                |
 
-**Criterio de aceptación:** cita puede agendarse y cancelarse; no hay doble reserva; garantía de compensación; panel funcional en móvil.
+**Criterio de aceptación:** cita puede agendarse y cancelarse; no hay traslape de intervalos para una misma psicóloga; garantía de compensación; panel funcional en móvil.
 
-### Fase 3 — Pagos y recordatorios (Días 15–19)
+### Fase 3 — Pagos y recordatorios: pagos (Días 15–16) · Completada
 
-| Día | Entregable |
-|---|---|
-| 15 | Registro de pagos: anticipo 50% y pago completo |
-| 16 | Estados de pago y vista en el panel |
-| 17 | Cron de recordatorios en Node (confirmación y 24 h antes) |
-| 18 | Recordatorios de pago pendiente y avisos de cancelación |
-| 19 | Pruebas de envío y ajuste de plantillas WhatsApp |
+| Día | Entregable                                                |
+| --- | --------------------------------------------------------- |
+| 15  | Registro y confirmación manual de pagos: anticipo 50% y pago completo |
+| 16  | Estados de pago y vista en el panel y comprobantes de WhatsApp |
 
-**Criterio de aceptación:** anticipo y pago completo registrables; recordatorios emitidos en el horario definido; estados visibles en el panel.
+### Fase 4 — Recordatorios automáticos US4 (Días 17–20)
 
-### Fase 4 — Chatbot IA (Días 20–25)
+Los recordatorios programados quedan como alcance acordado. La confirmación inmediata ya se envía al agendar.
 
-| Día | Entregable |
-|---|---|
-| 20 | Configuración de WhatsApp Business Cloud API y webhooks |
-| 21–22 | Conexión del chatbot de IA con el backend Node (consulta la agenda real en PostgreSQL) |
-| 23 | Entrenamiento del chatbot con los guiones de la Fase 1 (§7 de este documento) |
-| 24 | Automatización de agendado, cancelación y consulta de pagos |
-| 25 | Pruebas de conversación y ajuste de tono |
+| Día   | Entregable                                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------- |
+| 17–18 | Cron de recordatorios en Node: confirmación y recordatorio del día previo en ventana 18:00–19:00 America/Mexico_City; avisos de pago pendiente y de cancelación con política de 24 horas |
+| 19    | Pruebas de envío, ajuste de plantillas WhatsApp y trazabilidad por destinatario                 |
+| 20    | Cierre: auditoría de envíos, reintentos y supresiones fuera de ventana; estados visibles en agenda y pagos |
 
-**Criterio de aceptación:** el chatbot agenda/cancela citas y consulta pagos en tono natural; deriva temas clínicos; es transparente sobre ser un asistente.
+**Criterio de aceptación:** recordatorios automáticos y manuales quedan trazables por destinatario; fuera de la ventana no se envían ni reintentan; avisos de saldo solo al paciente.
 
-### Fase 5 — Panel y pruebas (Días 26–29)
+### Fase 5 — Consultas por WhatsApp y FAQ US5 (Días 21–22)
 
-| Día | Entregable |
-|---|---|
-| 26 | Finalización del panel y detalles finales de UX |
-| 27 | Pruebas UAT con la usuaria (escenarios del checklist desde su móvil) |
-| 28 | Pruebas de seguridad (autenticación JWT, control de accesos, SSL, secretos) |
-| 29 | Despliegue en producción, documentación y capacitación |
+| Día | Entregable                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------- |
+| 21  | Catálogo de FAQ, verificación de identidad (número, nombre y fecha de nacimiento) y consulta de estado de cita/pago |
+| 22  | Pruebas de verificación exitosa y fallida sin exponer datos; minimización de contenido sensible; auditoría |
 
-**Criterio de aceptación:** UAT superado, seguridad aprobada, sistema en producción con SSL y capacitación completada.
+**Criterio de aceptación:** el paciente identificado consulta su cita o saldo; si la verificación falla no se exponen datos y se deriva a la psicóloga.
+
+### Fase 6 — Landing pública + Alineación de interfaz al mockup (Días 23–25, en paralelo)
+
+Trabajo **en paralelo**: se construye la landing pública con la identidad correcta, mientras la interfaz del panel se rediseña para ser **fiel al mockup** `mockupWithDashboard.png` (referencia visual en la raíz del proyecto), no genérica.
+
+| Día | Landing pública (US6)                                                                 | Panel: alineación al mockup                                                          |
+| --- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 23  | Estructura, secciones informativas, CTA a WhatsApp y acceso discreto al panel          | Rediseño de login y dashboard replicando composición, tarjetas y jerarquía del mockup |
+| 24  | Estilos con la paleta oficial verde/sepia y responsive móvil/desktop                   | Agenda (día/semana/mes), navegación y directorio con la misma identidad visual        |
+| 25  | Prueba E2E móvil de la landing                                                         | Pagos, pacientes y terapeutas; revisión móvil y comparativa antes/después frente a la cliente |
+
+**Criterio de aceptación:** la landing y el panel se asemejan de forma evidente al mockup aprobado; a la cliente se le presenta comparativa antes/después.
+
+### Fase 7 — Pulido y seguridad (Días 26–27)
+
+| Día | Entregable                                                                  |
+| --- | --------------------------------------------------------------------------- |
+| 26  | Pulido final de UX del panel y detalles visuales restantes                  |
+| 27  | Pruebas de seguridad (autenticación JWT, control de accesos, SSL, secretos) |
+
+### Fase 8 — UAT, ajustes y despliegue (Días 28–32)
+
+| Día   | Entregable                                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------- |
+| 28–29 | Pruebas UAT con la usuaria (escenarios del checklist desde su móvil)                           |
+| 30–31 | Correcciones derivadas de la UAT y validación final con `quickstart.md`                        |
+| 32    | Despliegue en producción, documentación y capacitación (entrega máxima **1 de octubre**)       |
+
+**Criterio de aceptación:** UAT superado, seguridad aprobada, interfaz alineada al mockup, sistema en producción con SSL y capacitación completada.
 
 ---
 
@@ -523,7 +565,7 @@ Los siguientes elementos **se dejan deliberadamente para fases posteriores**:
 ### 10.3 Escalabilidad y actualizaciones
 
 - La arquitectura separada (Next.js + Node/Express + PostgreSQL/Prisma + API de WhatsApp) permite crecer sin reescribir.
-- Expansiones previstas: pasarela de pago automatizada, historial clínico, reportes, recordatorios por SMS/e-mail, múltiples terapeutas.
+- Expansiones previstas: pasarela de pago automatizada, historial clínico, reportes y recordatorios por SMS/e-mail.
 - Toda expansión debe pasar por una actualización de este documento y los criterios de aceptación correspondientes.
 
 ---
@@ -534,9 +576,9 @@ Los siguientes elementos **se dejan deliberadamente para fases posteriores**:
 - Cualquier enmienda (cambio de stack, paleta, alcance, fechas o conducta del chatbot) debe **reflejarse aquí** y registrarse en el historial de versiones antes de implementarse.
 - Los PRs y entregables por fase deben verificar el cumplimiento de los criterios de aceptación definidos en §6.4.
 
-**Versión:** 1.2 | **Ratificación:** 28/08/2026 | **Última enmienda:** 07/09/2026 — Política de cancelación con 24 h, recordatorios del día previo entre 18:00 y 19:00 para paciente y Jocelyn, y acceso MVP exclusivo para la cuenta `admin`. | **Próxima revisión:** al cierre de cada fase.
+**Versión:** 1.4 | **Ratificación:** 28/08/2026 | **Última enmienda:** 15/09/2026 — Pagos pendientes de validación, notificación individual a Jocelyn al recibir comprobante por WhatsApp y acciones manuales de registrar pago, enviar recordatorio y confirmar pago desde el panel. | **Próxima revisión:** al cierre de cada fase.
 
 ---
 
-*"Tu bienestar, nuestro propósito" — Salud desde el Alma · Psicología integral (Cuerpo, Mente, Espíritu)*
-*Dirección: Valle del Ciprés #148, Jardines del Valle, San Juan del Río, Querétaro · WhatsApp: 56 6095 0665 · Tel: 427 427 9168*
+_"Tu bienestar, nuestro propósito" — Salud desde el Alma · Psicología integral (Cuerpo, Mente, Espíritu)_
+_Dirección: Valle del Ciprés #148, Jardines del Valle, San Juan del Río, Querétaro · WhatsApp: 56 6095 0665 · Tel: 427 427 9168_

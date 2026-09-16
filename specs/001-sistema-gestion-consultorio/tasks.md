@@ -1,4 +1,4 @@
----
+﻿---
 description: "Lista de tareas para implementar la funcionalidad"
 ---
 
@@ -20,9 +20,9 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ## Correspondencia con Cronograma Comercial
 
-- **Fase 4: Integración de pagos y recordatorios**: reúne las tareas de `US3` y `US4`; su alcance obligatorio incluye la política de cancelación de 24 horas, la ventana de envío 18:00–19:00 `America/Mexico_City` y un recordatorio independiente para paciente y Jocelyn.
-- **Fase 6: Panel administrativo**: corresponde a `US2` más las tareas transversales de autenticación y directorio. La única sesión admisible en el MVP es la cuenta activa `admin` con rol `admin`.
-- Los encabezados históricos por historia de usuario se conservan para no renumerar las tareas existentes ni invalidar sus referencias.
+- **Fase 4: IntegraciÃ³n de pagos y recordatorios**: reÃºne las tareas de `US3` y `US4`; su alcance obligatorio incluye la polÃ­tica de cancelaciÃ³n de 24 horas, la ventana de envÃ­o 18:00â€“19:00 `America/Mexico_City`, aviso privado de pago antes y despuÃ©s de la cita y trazabilidad independiente para paciente/grupo interno.
+- **Fase 6: Panel administrativo**: corresponde a `US2` mÃ¡s las tareas transversales de autenticaciÃ³n y directorio. La Ãºnica sesiÃ³n admisible en el MVP es la cuenta activa `admin` con rol `admin`.
+- Los encabezados histÃ³ricos por historia de usuario se conservan para no renumerar las tareas existentes ni invalidar sus referencias.
 
 ## Fase 1: Preparacion (Infraestructura Compartida)
 
@@ -54,7 +54,7 @@ description: "Lista de tareas para implementar la funcionalidad"
 - [x] T078 Crear migracion de evolucion para `users`, perfiles de directorio, cancelacion y destinatarios de recordatorio en `backend/prisma/schema.prisma` y `backend/prisma/migrations/<timestamp>_business_rules/migration.sql`
 - [x] T079 [P] Crear seed idempotente de Jocelyn como unica cuenta activa `username = admin`, `role = admin` y `panel_login_enabled = true` en `backend/prisma/seed.ts` y `backend/package.json`
 - [x] T080 [P] Crear pruebas de migracion y restricciones para impedir un segundo admin o login habilitado de perfiles no admin en `backend/tests/integration/users-access-constraints.integration.test.ts`
-- [x] T090 Actualizar Prisma y Next.js a versiones no vulnerables, con la aprobación necesaria para cambios mayores, y repetir build e integración per auditoría de dependencias (high)
+- [x] T090 Actualizar Prisma y Next.js a versiones no vulnerables, con la aprobaciÃ³n necesaria para cambios mayores, y repetir build e integraciÃ³n per auditorÃ­a de dependencias (high)
 
 **Punto de control**: La base comun queda lista y ya pueden empezar las historias de usuario
 
@@ -78,7 +78,7 @@ description: "Lista de tareas para implementar la funcionalidad"
 - [x] T019 [P] [US1] Implementar adaptador del proveedor de WhatsApp en `backend/src/integrations/whatsapp/whatsapp.gateway.ts`
 - [x] T020 [US1] Implementar intents de agendamiento y reglas de derivacion clinica en `backend/src/modules/chatbot/chatbot.intents.ts` y `backend/src/modules/chatbot/chatbot.booking.handler.ts`
 - [x] T021 [US1] Implementar controller y rutas del webhook de WhatsApp en `backend/src/modules/chatbot/chatbot.controller.ts` y `backend/src/modules/chatbot/chatbot.routes.ts`
-- [x] T022 [US1] Crear la confirmación inmediata al agendar con la plantilla obligatoria de cancelación con al menos 24 horas en `backend/src/modules/reminders/reminders.service.ts` y `backend/src/modules/chatbot/response-templates.ts`
+- [x] T022 [US1] Crear la confirmaciÃ³n inmediata al agendar con la plantilla obligatoria de cancelaciÃ³n con al menos 24 horas en `backend/src/modules/reminders/reminders.service.ts` y `backend/src/modules/chatbot/response-templates.ts`
 - [x] T023 [US1] Persistir mensajes entrantes y salientes del chat en `backend/src/modules/chatbot/chat-messages.repository.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
 - [x] T024 [US1] Auditar agendamientos, conflictos de horario y derivaciones clinicas en `backend/src/modules/audit/audit.service.ts`
 
@@ -94,23 +94,25 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 2
 
-- [ ] T025 [P] [US2] Crear prueba de contrato de autenticacion y sesion en `backend/tests/contract/auth.contract.test.ts`
-- [ ] T026 [P] [US2] Crear prueba de contrato de endpoints administrativos de citas en `backend/tests/contract/appointments.contract.test.ts`
-- [ ] T027 [P] [US2] Crear prueba E2E movil de login y agenda diaria en `frontend/tests/e2e/admin-agenda.spec.ts`
-- [ ] T081 [P] [US2] Crear pruebas de contrato e integración que rechacen cualquier `username` o rol distinto de `admin`, sin emitir cookie y con auditoría de denegación, en `backend/tests/contract/auth.contract.test.ts` y `backend/tests/integration/admin-identity-access.integration.test.ts`
+- [x] T025 [P] [US2] Crear prueba de contrato de autenticacion y sesion en `backend/tests/contract/auth.contract.test.ts`
+- [x] T026 [P] [US2] Crear prueba de contrato de endpoints administrativos de citas en `backend/tests/contract/appointments.contract.test.ts`
+- [x] T027 [P] [US2] Crear prueba E2E movil de login y agenda diaria en `frontend/tests/e2e/admin-agenda.spec.ts`
+- [x] T081 [P] [US2] Crear pruebas de contrato e integraciÃ³n que rechacen cualquier `username` o rol distinto de `admin`, sin emitir cookie y con auditorÃ­a de denegaciÃ³n, en `backend/tests/contract/auth.contract.test.ts` y `backend/tests/integration/admin-identity-access.integration.test.ts`
 
 ### Implementacion para Historia de Usuario 2
 
-- [ ] T028 [P] [US2] Implementar controllers y rutas de login, logout y sesion activa con credenciales `username` y contraseña en `backend/src/modules/auth/auth.controller.ts`, `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/auth/auth.routes.ts`
-- [ ] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.controller.ts` y `backend/src/modules/appointments/admin-appointments.routes.ts`
-- [ ] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/ui/login-form.tsx`
-- [ ] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/agenda/daily-agenda.tsx`
-- [ ] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/agenda/appointment-form.tsx` y `frontend/components/agenda/cancel-appointment-dialog.tsx`
-- [ ] T033 [US2] Implementar proteccion de rutas, validación de identidad `admin` y expiracion de sesion en `frontend/app/admin/agenda/page.tsx`, `frontend/lib/auth/session.ts` y `frontend/middleware.ts`
-- [ ] T034 [US2] Disparar notificaciones de cancelacion desde acciones administrativas en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`
-- [ ] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/audit/audit.service.ts`
-- [ ] T082 [US2] Aplicar `authenticate` seguido de `authorizeAdminIdentity` a todas las rutas administrativas y auditar denegaciones de identidad o rol en `backend/src/middleware/authorize-admin-identity.ts`, `backend/src/app.ts` y los routers administrativos de `backend/src/modules/`
-- [ ] T083 [P] [US2] Implementar endpoint y vista móvil del directorio de psicólogos/as y pacientes, con citas y pagos pendientes en `backend/src/modules/directory/directory.controller.ts`, `backend/src/modules/directory/directory.routes.ts`, `backend/src/modules/directory/directory.service.ts`, `frontend/app/admin/directorio/page.tsx` y `frontend/components/directorio/user-directory.tsx`
+- [x] T028 [P] [US2] Implementar rutas de login, logout y sesion activa con credenciales `username` y contraseÃ±a en `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/auth/auth.service.ts`, `backend/src/modules/auth/password.service.ts` y `backend/src/modules/auth/session.service.ts`
+- [x] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.routes.ts`, `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/appointments/appointments.repository.ts`
+- [x] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/admin/login-form.tsx`
+- [x] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/admin/agenda/agenda-calendar.tsx`
+- [x] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/admin/agenda/appointment-form.tsx` y `frontend/components/admin/agenda/cancel-dialog.tsx`
+- [x] T033 [US2] Implementar proteccion de rutas, validaciÃ³n de identidad `admin` y expiracion de sesion en `frontend/app/admin/layout.tsx`, `frontend/lib/auth/use-admin-session.ts` y `frontend/lib/auth/session.ts`
+- [x] T034 [US2] Disparar notificaciones de cancelacion desde acciones administrativas en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`
+- [x] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/auth/session.service.ts`, `backend/src/modules/appointments/appointments.routes.ts` y `backend/src/modules/audit/audit.repository.ts`
+- [x] T082 [US2] Aplicar `authenticate` seguido de `authorizeAdminIdentity` a todas las rutas administrativas y auditar denegaciones de identidad o rol en `backend/src/middleware/authorize-admin-identity.ts`, `backend/src/app.ts` y los modulos de rutas administrativos en `backend/src/modules/`
+- [x] T083 [P] [US2] Implementar endpoint y vista mÃ³vil del directorio de psicÃ³logos/as y pacientes, con citas y pagos pendientes en `backend/src/modules/directory/directory.routes.ts`, `backend/src/modules/directory/directory.service.ts`, `backend/src/modules/directory/directory.repository.ts` y `frontend/app/admin/directorio/page.tsx`
+
+**Notas de cierre US2**: los controladores se implementan como modulos de rutas con dependencias inyectables. Los archivos efectivos son `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/appointments/appointments.routes.ts` (creacion, reagendamiento, confirmacion y cancelacion), `backend/src/modules/directory/directory.*` y `backend/src/middleware/authorize-admin-identity.ts` (factory `createAuthorizeAdminIdentity(audit)`). La proteccion de rutas usa layout cliente + `AdminGuard`/`useAdminSession` en `frontend/app/admin/layout.tsx`, saltando `/admin/login`, y no `middleware.ts` (Next 16 usa `proxy.ts`; el backend conserva toda la autorizacion). El E2E T027 requiere base sembrada con `ADMIN_SEED_PASSWORD` e instalacion de navegadores Playwright para ejecutarse.
 
 **Punto de control**: Las Historias de Usuario 1 y 2 deben funcionar de forma independiente
 
@@ -124,18 +126,18 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 3
 
-- [ ] T036 [P] [US3] Crear prueba de contrato de pagos en `backend/tests/contract/payments.contract.test.ts`
-- [ ] T037 [P] [US3] Crear prueba de integracion del flujo de pagos en `backend/tests/integration/payments-flow.integration.test.ts`
-- [ ] T038 [P] [US3] Crear prueba E2E movil para registro de pagos en `frontend/tests/e2e/admin-payments.spec.ts`
+- [x] T036 [P] [US3] Crear prueba de contrato de pagos en `backend/tests/contract/payments.contract.test.ts`
+- [x] T037 [P] [US3] Crear prueba de integracion del flujo de pagos en `backend/tests/integration/payments-flow.integration.test.ts`
+- [x] T038 [P] [US3] Crear prueba E2E movil para registro de pagos en `frontend/tests/e2e/admin-payments.spec.ts`
 
 ### Implementacion para Historia de Usuario 3
 
-- [ ] T039 [P] [US3] Implementar persistencia de pagos y reglas de negocio en `backend/src/modules/payments/payments.repository.ts` y `backend/src/modules/payments/payments.service.ts`
-- [ ] T040 [US3] Implementar endpoints de pagos en `backend/src/modules/payments/payments.controller.ts` y `backend/src/modules/payments/payments.routes.ts`
-- [ ] T041 [P] [US3] Implementar agregacion del estado de pago por cita en `backend/src/modules/payments/payment-status.service.ts`
-- [ ] T042 [P] [US3] Implementar pagina de pagos y acciones rapidas en `frontend/app/admin/pagos/page.tsx` y `frontend/components/pagos/payment-actions.tsx`
-- [ ] T043 [US3] Agregar campo de referencia de comprobante y manejo de validacion en `backend/src/modules/payments/payments.service.ts` y `frontend/components/pagos/payment-proof-field.tsx`
-- [ ] T044 [US3] Auditar registro y validacion de pagos en `backend/src/modules/payments/payments.service.ts` y `backend/src/modules/audit/audit.service.ts`
+- [x] T039 [P] [US3] Implementar registro de pagos y reglas de negocio en `backend/src/modules/payments/payments.service.ts`
+- [x] T040 [US3] Implementar endpoints de pagos en `backend/src/modules/payments/payments.routes.ts`
+- [x] T041 [P] [US3] Agregar el estado de pago por cita en `backend/src/modules/appointments/appointments.service.ts`
+- [x] T042 [P] [US3] Implementar pagina de pagos y acciones rapidas en `frontend/app/admin/payments/page.tsx`
+- [x] T043 [US3] Agregar campo de referencia de comprobante y manejo de validacion en `backend/src/modules/payments/payments.service.ts` y `frontend/app/admin/payments/page.tsx`
+- [x] T044 [US3] Auditar el registro y la validacion de pagos en `backend/src/modules/payments/payments.service.ts`
 
 **Punto de control**: La Historia de Usuario 3 debe quedar funcional por si sola
 
@@ -143,25 +145,25 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ## Fase 6: Historia de Usuario 4 - Recibir recordatorios automaticos de citas y pagos (Prioridad: P2)
 
-**Objetivo**: Enviar confirmaciones, recordatorios del día previo entre 18:00 y 19:00, cancelaciones y avisos de saldo pendiente por WhatsApp.
+**Objetivo**: Enviar confirmaciones, recordatorios del dÃ­a previo entre 18:00 y 19:00, cancelaciones y avisos de saldo pendiente por WhatsApp.
 
-**Prueba independiente**: Una cita de prueba genera confirmación inmediata con política de cancelación, dos recordatorios del día previo dentro de la ventana y aviso de pago pendiente el día de la sesión.
+**Prueba independiente**: Una cita de prueba genera confirmaciÃ³n inmediata con polÃ­tica de cancelaciÃ³n, dos recordatorios del dÃ­a previo dentro de la ventana y aviso de pago pendiente el dÃ­a de la sesiÃ³n.
 
 ### Pruebas para Historia de Usuario 4
 
-- [ ] T045 [P] [US4] Crear prueba de integración de programación, reintento y envío idempotente de recordatorios para paciente y Jocelyn en `backend/tests/integration/reminders.integration.test.ts`
+- [ ] T045 [P] [US4] Crear prueba de integraciÃ³n de programaciÃ³n, reintento y envÃ­o idempotente de recordatorios para paciente y grupo interno en `backend/tests/integration/reminders.integration.test.ts`
 - [ ] T046 [P] [US4] Crear prueba de contrato del endpoint de recordatorios en `backend/tests/contract/reminders.contract.test.ts`
-- [ ] T084 [P] [US4] Crear pruebas unitarias de zona horaria y bordes 18:00 inclusivo / 19:00 exclusivo del día previo en `backend/tests/unit/reminder-window.test.ts`
-- [ ] T085 [P] [US4] Crear pruebas de clasificación de cancelación a tiempo y tardía, incluido el límite exacto de 24 horas y ausencia de cobro automático, en `backend/tests/unit/cancellation-policy.test.ts`
+- [ ] T084 [P] [US4] Crear pruebas unitarias de zona horaria y bordes 18:00 inclusivo / 19:00 exclusivo del dÃ­a previo en `backend/tests/unit/reminder-window.test.ts`
+- [ ] T085 [P] [US4] Crear pruebas de clasificaciÃ³n de cancelaciÃ³n a tiempo y tardÃ­a, incluido el lÃ­mite exacto de 24 horas y ausencia de cobro automÃ¡tico, en `backend/tests/unit/cancellation-policy.test.ts`
 
 ### Implementacion para Historia de Usuario 4
 
-- [ ] T047 [P] [US4] Implementar repositorio y reglas de dominio que creen dos recordatorios del día previo, uno por destinatario, y omitan los creados después de su ventana en `backend/src/modules/reminders/reminders.repository.ts` y `backend/src/modules/reminders/reminders.service.ts`
-- [ ] T048 [P] [US4] Implementar job recurrente e idempotente cada cinco minutos con guardia `18:00 <= America/Mexico_City < 19:00`, reclamación atómica y máximo tres intentos dentro de la ventana; configurar `REMINDER_TIMEZONE` en `backend/src/jobs/process-reminders.job.ts`, `backend/src/modules/reminders/reminder-dispatcher.ts`, `backend/src/config/env.ts` y `backend/.env.example`
+- [ ] T047 [P] [US4] Implementar repositorio y reglas de dominio que creen dos recordatorios del dÃ­a previo, uno por destinatario, y omitan los creados despuÃ©s de su ventana en `backend/src/modules/reminders/reminders.repository.ts` y `backend/src/modules/reminders/reminders.service.ts`
+- [ ] T048 [P] [US4] Implementar job recurrente e idempotente cada cinco minutos con guardia `18:00 <= America/Mexico_City < 19:00`, reclamaciÃ³n atÃ³mica y mÃ¡ximo tres intentos dentro de la ventana; configurar `REMINDER_TIMEZONE` en `backend/src/jobs/process-reminders.job.ts`, `backend/src/modules/reminders/reminder-dispatcher.ts`, `backend/src/config/env.ts` y `backend/.env.example`
 - [ ] T049 [US4] Implementar endpoint administrativo de consulta de recordatorios en `backend/src/modules/reminders/reminders.controller.ts` y `backend/src/modules/reminders/reminders.routes.ts`
 - [ ] T050 [US4] Mostrar estados de recordatorio en agenda y pagos en `frontend/components/agenda/reminder-status-badge.tsx` y `frontend/components/pagos/payment-status-card.tsx`
-- [ ] T051 [US4] Auditar envíos, fallos, reintentos y omisiones de recordatorios por destinatario, incluida la supresión fuera de ventana, en `backend/src/modules/reminders/reminder-dispatcher.ts` y `backend/src/modules/audit/audit.service.ts`
-- [ ] T086 [US4] Implementar cálculo y persistencia de `cancelled_at` y `cancellation_notice` sin crear pagos automáticos en `backend/src/modules/appointments/appointments.service.ts`, `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/lib/validators/appointment.ts`
+- [ ] T051 [US4] Auditar envÃ­os, fallos, reintentos y omisiones de recordatorios por destinatario, incluida la supresiÃ³n fuera de ventana, en `backend/src/modules/reminders/reminder-dispatcher.ts` y `backend/src/modules/audit/audit.service.ts`
+- [ ] T086 [US4] Implementar cÃ¡lculo y persistencia de `cancelled_at` y `cancellation_notice` sin crear pagos automÃ¡ticos en `backend/src/modules/appointments/appointments.service.ts`, `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/lib/validators/appointment.ts`
 
 **Punto de control**: La Historia de Usuario 4 debe quedar funcional por si sola
 
@@ -230,8 +232,8 @@ description: "Lista de tareas para implementar la funcionalidad"
 - **Fase 1: Preparacion**: Sin dependencias
 - **Fase 2: Fundacional**: Depende de la Fase 1 y bloquea todas las historias de usuario
 - **Fase 3: US1**: Depende de la Fase 2
-- **Fase comercial 4: US3 + US4**: Depende de US1 para el flujo de WhatsApp y de US2/US3 para cancelaciones y estado de pagos; incluye el cron horario y la política de cancelación.
-- **Fase comercial 6: US2**: Depende de la Fase 2; incluye login exclusivo `admin`, protección de rutas y directorio administrativo.
+- **Fase comercial 4: US3 + US4**: Depende de US1 para el flujo de WhatsApp y de US2/US3 para cancelaciones y estado de pagos; incluye el cron horario y la polÃ­tica de cancelaciÃ³n.
+- **Fase comercial 6: US2**: Depende de la Fase 2; incluye login exclusivo `admin`, protecciÃ³n de rutas y directorio administrativo.
 - **Fase 7: US5**: Depende de US1 para el flujo base del chatbot y de US3 para consultar saldos
 - **Fase 8: US6**: Depende solo de la Fase 2
 - **Fase 9: Polish**: Depende de todas las historias que se deseen cerrar
@@ -298,9 +300,9 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 1. Completar Fase 1: Preparacion
 2. Completar Fase 2: Fundacional
 3. Completar Fase 3: Historia de Usuario 1
-4. Completar Fase comercial 4: pagos, política de cancelación y recordatorios
+4. Completar Fase comercial 4: pagos, polÃ­tica de cancelaciÃ³n y recordatorios
 5. Completar Fase comercial 6: panel administrativo exclusivo para `admin`
-6. Validar el gate constitucional del MVP para agendamiento y cancelación por chatbot y panel
+6. Validar el gate constitucional del MVP para agendamiento y cancelaciÃ³n por chatbot y panel
 
 ### Entrega incremental
 
@@ -327,7 +329,7 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 ## Notas
 
-- Total de tareas: `86`
+- Total de tareas base: `86` (T001–T086). Con las fases de convergencia y la alineación de interfaz, el total del documento asciende a `171` tareas (T001–T171). El conteo de avance real se verifica con líneas `[x]`/`[ ]`, no con este encabezado histórico.
 - Tareas por historia:
   - `US1`: 10
   - `US2`: 14
@@ -349,11 +351,11 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T070 Centralizar autorizacion de rol admin y auditoria de denegaciones en `backend/src/middleware/authorize-admin.ts`, `backend/src/middleware/authenticate.ts`, `backend/src/modules/audit/audit.service.ts` y `backend/src/modules/audit/audit.repository.ts`
 - [x] T071 Configurar soporte CORS y cookies para frontend y backend separados en `backend/src/app.ts`, `backend/src/config/env.ts`, `backend/.env.example`, `backend/package.json` y `frontend/.env.example`
 - [x] T072 Documentar indices SQL manuales no representables por Prisma en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260904000000_initial/migration.sql`
-- [X] T073 Completar consistencia local de Prisma Migrate agregando `backend/prisma/migrations/migration_lock.toml` y validacion de schema en `backend/package.json`
-- [X] T074 Agregar scripts verificables de ciclo de vida en `package.json`, `backend/package.json` y `frontend/package.json`
-- [X] T075 Endurecer manejo de cookies de sesion separando opciones de set/clear y tratando cookies malformadas como 401 auditado en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/auth.routes.ts` y `backend/src/middleware/authenticate.ts`
-- [X] T076 Reforzar validacion de sesion verificando coincidencia entre `sub` del JWT y `admin_sessions.user_id` en `backend/src/modules/auth/session.service.ts`
-- [X] T077 Limpiar artefactos generados ignorados y agregar higiene de workspace en `.gitignore` y `package.json`
+- [x] T073 Completar consistencia local de Prisma Migrate agregando `backend/prisma/migrations/migration_lock.toml` y validacion de schema en `backend/package.json`
+- [x] T074 Agregar scripts verificables de ciclo de vida en `package.json`, `backend/package.json` y `frontend/package.json`
+- [x] T075 Endurecer manejo de cookies de sesion separando opciones de set/clear y tratando cookies malformadas como 401 auditado en `backend/src/modules/auth/session.service.ts`, `backend/src/modules/auth/auth.routes.ts` y `backend/src/middleware/authenticate.ts`
+- [x] T076 Reforzar validacion de sesion verificando coincidencia entre `sub` del JWT y `admin_sessions.user_id` en `backend/src/modules/auth/session.service.ts`
+- [x] T077 Limpiar artefactos generados ignorados y agregar higiene de workspace en `.gitignore` y `package.json`
 
 ---
 
@@ -361,9 +363,9 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 **Proposito**: Remediar brechas detectadas al auditar las fases de preparacion y fundacional antes de iniciar US1.
 
-- [X] T087 Aplicar el formato configurado por Prettier a los archivos de configuracion, backend y frontend para cerrar T004 y hacer que `npm run format:check` finalice sin errores per T004 (partial)
-- [X] T088 Instalar Prisma CLI y Prisma Client en el workspace `backend` para habilitar la validacion del esquema y cerrar T008/T009 per T008, T009 (missing)
-- [X] T089 Configurar `prisma:validate` y `prisma:generate` para cargar `backend/.env.example` en validacion local sin versionar secretos per T009, T074 (partial)
+- [x] T087 Aplicar el formato configurado por Prettier a los archivos de configuracion, backend y frontend para cerrar T004 y hacer que `npm run format:check` finalice sin errores per T004 (partial)
+- [x] T088 Instalar Prisma CLI y Prisma Client en el workspace `backend` para habilitar la validacion del esquema y cerrar T008/T009 per T008, T009 (missing)
+- [x] T089 Configurar `prisma:validate` y `prisma:generate` para cargar `backend/.env.example` en validacion local sin versionar secretos per T009, T074 (partial)
 
 ---
 
@@ -390,3 +392,187 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 **Proposito**: Remediar la cobertura incompleta del flujo de agendamiento detectada en la segunda auditoria de US1.
 
 - [x] T095 Ejecutar `processIncomingWhatsAppMessage` en la prueba de integracion y verificar que orquesta la persistencia de la cita, confirmacion y auditoria en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts` per T016, Constitution IV (partial)
+
+---
+
+## Fase 15: Reglas clÃ­nicas y notificaciones operativas
+
+**PropÃ³sito**: Eliminar la deuda de agenda Ãºnica, duraciÃ³n implÃ­cita y destinatarios de recordatorio antes de continuar el panel.
+
+- [x] T096 Crear perfiles clÃ­nicos, asignaciÃ³n paciente-psicÃ³loga, tipo/duraciÃ³n 60/90 min y exclusiÃ³n PostgreSQL por intervalo activo en `backend/prisma/schema.prisma` y `backend/prisma/migrations/20260911000000_therapist_session_rules/migration.sql`.
+- [x] T097 Actualizar el flujo de WhatsApp para capturar tipo de sesiÃ³n, validar el fin de jornada y exigir una psicÃ³loga asignada en `backend/src/modules/chatbot/`, `backend/src/modules/appointments/` y `backend/src/lib/validators/appointment.ts`.
+- [x] T098 Registrar confirmaciones individuales al paciente y copia mÃ­nima al destino interno, mÃ¡s filas de aviso previo y posterior de pago, en `backend/src/modules/reminders/reminders.service.ts`.
+- [x] T099 Implementar UI y endpoints de `admin` para crear perfiles clÃ­nicos, asignar/reasignar pacientes y completar citas, con auditorÃ­a.
+- [x] T100 Implementar el dispatcher recurrente que entregue recordatorios previos en ventana, omita saldo liquidado y envÃ­e el aviso posterior al completar la cita.
+- [x] T101 Crear pruebas de migraciÃ³n PostgreSQL real para exclusiÃ³n de intervalos, asignaciÃ³n, idempotencia de ambos destinos, privacidad del grupo y avisos de pago.
+
+---
+
+## Phase 16: Convergence
+
+- [x] T102 [P] Configurar Tailwind CSS 4 en el workspace frontend: aÃ±adir dependencias y PostCSS en `frontend/package.json` y `frontend/postcss.config.mjs`, importar Tailwind en `frontend/app/globals.css` y verificar frontend build. per T003, plan: stack, Constitution II (missing)
+- [x] T103 [P] Rechazar en producciÃ³n todos los valores placeholder documentados para JWT y WhatsApp en `backend/src/config/env.ts`, y aÃ±adir pruebas de regresiÃ³n de configuraciÃ³n productiva en `backend/tests/unit/env-production-validation.test.ts`. per T005, Constitution II (partial)
+- [x] T104 [P] Aplicar la configuraciÃ³n existente de Prettier a los archivos reportados por `npm run format:check` y verificar que finalice sin errores. per T004, Constitution IV (partial)
+
+---
+
+## Phase 17: Convergence
+
+- [x] T105 Cubrir de forma independiente los placeholders documentados de `JWT_SECRET`, `WHATSAPP_PHONE_NUMBER_ID` y `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` en `backend/tests/unit/env-production-validation.test.ts`. per T103, Constitution II (partial)
+
+---
+
+## Phase 18: Convergence
+
+- [x] T106 Cubrir el placeholder documentado de `JWT_SECRET` (`replace-with-a-strong-secret-of-at-least-32-characters`) en `backend/tests/unit/env-production-validation.test.ts`. per T105, Constitution II (partial)
+
+---
+
+## Phase 19: Convergence
+
+- [x] T107 Rechazar en producciÃ³n el placeholder documentado de `AI_PROVIDER_API_KEY` y cubrirlo de forma independiente en `backend/src/config/env.ts` y `backend/tests/unit/env-production-validation.test.ts`. per Constitution II (partial)
+
+---
+
+## Phase 20: Convergence
+
+- [x] T108 [P] Eliminar el valor predeterminado de `DATABASE_URL` en `backend/src/config/env.ts`, exigir una URL configurada y agregar prueba que rechace ausencia o placeholder en producciÃ³n; mantener `backend/.env.example` solo con una URL sintÃ¡cticamente vÃ¡lida sin credenciales reales. per T007, Constitution Â§3.4 (partial)
+- [x] T109 Hacer confiable la persistencia de auditorÃ­a en `backend/src/modules/audit/audit.service.ts` y casos administrativos: no suprimir fallos; registrar la auditorÃ­a junto con la mutaciÃ³n en una transacciÃ³n o rechazar la operaciÃ³n, y aÃ±adir prueba de integraciÃ³n con fallo inyectado del repositorio. per T011, FR-016, Constitution III (partial)
+- [x] T110 [P] Auditar accesos administrativos exitosos a `GET /api/v1/auth/me` y cierres de sesiÃ³n en `POST /api/v1/auth/logout`, incluyendo actor, resultado, IP, user-agent y request ID; cubrirlos con pruebas de integraciÃ³n. per T011/T012, FR-016, FR-026 (missing)
+
+---
+
+## Phase 21: Convergence
+
+- [x] T111 Eliminar los valores activos predeterminados de `JWT_SECRET` y `WHATSAPP_VERIFY_TOKEN` de `backend/src/config/env.ts`, exigirlos desde el entorno y adaptar la configuraciÃ³n de pruebas sin versionar secretos. per T007, Constitution II (contradicts)
+- [x] T112 Garantizar que la actualizaciÃ³n de sesiÃ³n y su auditorÃ­a, asÃ­ como logout y su auditorÃ­a, se completen atÃ³micamente o se rechacen, y cubrir fallos de auditorÃ­a en integraciÃ³n administrativa. per T109, FR-016, Constitution III (partial)
+- [x] T113 Ampliar `backend/tests/integration/auth-audit.integration.test.ts` para afirmar actor, resultado, IP, user-agent y request ID de los eventos exitosos. per T110, FR-016, FR-026 (partial)
+
+---
+
+## Phase 22: Convergence
+
+- [x] T114 Provocar un fallo real de `auditLog.create` dentro de la transacciÃ³n Prisma de renovaciÃ³n/revocaciÃ³n de sesiÃ³n y comprobar en integraciÃ³n que la sesiÃ³n no se actualiza ni se revoca. per T109/T112, Constitution III (partial)
+
+---
+
+## Phase 23: Convergence
+
+- [x] T115 Reordenar `classifyIntent` para derivar contenido clÃ­nico sensible antes que el flujo de reserva y cubrirlo con una prueba de regresiÃ³n en `backend/src/modules/chatbot/chatbot.intents.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts`. per FR-013, FR-014, FR-025, Constitution Â§7.8 (partial)
+- [x] T116 Exigir terapeuta activo asignado tambiÃ©n a nivel de base de datos (rechazar `therapist_id` nulo en el trigger y endurecer el listado administrativo ante filas histÃ³ricas sin terapeuta) en `backend/prisma/migrations/20261101000000_convergence_hardening/migration.sql`, `backend/prisma/schema.prisma` y `backend/src/modules/therapists/therapists.routes.ts`. per FR-005b (partial)
+- [x] T117 Deslizar la ventana de inactividad de sesiÃ³n administrativa en cada peticiÃ³n autenticada de rutas administrativas (no solo `/auth/me`), renovando actividad/expiraciÃ³n, en `backend/src/middleware/authenticate.ts`, `backend/src/modules/auth/session.service.ts` y `backend/src/modules/auth/auth.routes.ts`. per FR-019, SC-012, Decision 2026-09-04 (partial)
+- [x] T118 Renovar la cookie de sesiÃ³n con opciones de set (maxAge de 30 minutos) en `/auth/me`, reservando el clear para logout, en `backend/src/modules/auth/auth.routes.ts`. per T075, Decision 2026-09-04 (contradicts)
+- [x] T119 Limitar el envÃ­o del recordatorio del dÃ­a previo al dÃ­a calendario anterior y a citas aÃºn futuras, omitiendo las filas rezagadas, en `backend/src/modules/reminders/reminder-dispatcher.ts`. per FR-007, SC-003 (partial)
+- [x] T120 Programar los recordatorios del dÃ­a previo con independencia del envÃ­o inmediato de confirmaciÃ³n (o en la transacciÃ³n de creaciÃ³n de la cita), en `backend/src/modules/reminders/reminders.service.ts`. per FR-007 (partial)
+- [x] T121 Integrar `findNextAvailableSlots` a la respuesta de disponibilidad del flujo de WhatsApp para ofrecer horarios concretos, en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/src/modules/chatbot/response-templates.ts`. per FR-002, US1/AC1 (partial)
+- [x] T122 Incluir `requestId` en la metadata de las auditorÃ­as de acceso denegado (cookie ausente/malformada, sesiÃ³n invÃ¡lida y rol prohibido), en `backend/src/middleware/authenticate.ts` y `backend/src/middleware/authorize-admin.ts`. per FR-026, T110 (partial)
+- [x] T123 Resolver el estado del recordatorio de confirmaciÃ³n grupal cuando el destino interno no estÃ¡ configurado (omisiÃ³n o reintento controlado), en `backend/src/modules/reminders/reminders.service.ts`. per FR-031, FR-007 (partial)
+- [x] T124 Devolver 400 `validation_error` para parÃ¡metros de ruta no-UUID en la API administrativa, en lugar de 404 `not_found`, en `backend/src/modules/therapists/therapists.routes.ts`. per contracts/api.yaml, forma de error de validaciÃ³n (contradicts)
+- [x] T125 Ejecutar `npm run format` sobre los archivos reportados por `npm run format:check` y verificar que el gate finalice sin errores. per T004, T087, T094, Constitution IV (contradicts)
+- [x] T126 Eliminar o usar las constantes sin uso en `backend/tests/contract/admin-clinical.contract.test.ts` para que `npm run lint` finalice sin errores. per T004 (contradicts)
+
+---
+
+## Phase 24: Convergence
+
+- [x] T127 Crear la cita de WhatsApp y su auditorÃ­a de forma atÃ³mica (transacciÃ³n Ãºnica o rechazo si la auditorÃ­a falla) y cubrir el fallo inyectado del repositorio en `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/appointments/appointments.service.ts` y `backend/tests/integration/whatsapp-booking.integration.test.ts`. per Constitution III, FR-016, T109 (contradicts)
+- [x] T128 Aplicar la paleta oficial verde/sepia (`#6B8F71`, `#3C5A44`, `#A67C52`, `#D9CBB3`, `#C2A878`) a la apariencia del frontend, reemplazar los hexes y clases ajenas, y corregir las clases `lavender-*` inexistentes en `frontend/app/globals.css`, `frontend/app/admin/*` y `frontend/components/admin/*`. per Constitution I (contradicts)
+- [x] T129 Despachar los avisos de cancelaciÃ³n (`cancelacion`) en el worker para que el paciente reciba el aviso y la oferta de reagendar, preservando la supresiÃ³n de otros avisos en citas canceladas, en `backend/src/modules/reminders/reminder-dispatcher.ts`. per FR-008, US2/AC2, T034 (partial)
+- [x] T130 Realinear los recordatorios del dÃ­a previo (`recordatorio_24h`, `pago_pendiente`) a la nueva fecha dentro de la transacciÃ³n de reagendamiento, en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`. per FR-007 (partial)
+- [x] T131 Implementar la UI mÃ³vil para mover/reagendar citas conectando `onEventSelect` de `frontend/components/admin/agenda/agenda-calendar.tsx` y `rescheduleAdminAppointment`, con nuevo diÃ¡logo en `frontend/app/admin/agenda/page.tsx` y `frontend/components/admin/agenda/reschedule-dialog.tsx`. per US2/AC2, FR-012 (partial)
+- [x] T132 Redirigir a `/admin/login` cuando una peticiÃ³n autenticada devuelva `401` o expire la sesiÃ³n durante el uso, centralizando el manejo en `frontend/lib/api/client.ts` y consolidando `isSessionExpired` sin exponer datos administrativos. per FR-019, US2/AC6, SC-012 (partial)
+
+---
+
+## Phase 25: Convergence
+
+**Proposito**: Remediar hallazgos de la auditoria de convergencia posterior al cierre de Phase 24 contrastando el codigo contra `spec.md`, `plan.md`, `data-model.md` y la constitucion.
+
+- [x] T133 [P] Hacer atomicos los recordatorios del agendamiento por WhatsApp: crear dentro de la transaccion de la cita las filas de confirmacion (paciente y grupo) y las de `recordatorio_24h`/`pago_pendiente` con su ventana del dia previo, en `backend/src/modules/reminders/reminders.service.ts` y `backend/src/modules/appointments/appointments.service.ts`, y cubrir la programacion en `backend/tests/integration/booking-reminder-regressions.postgres.integration.test.ts`. per FR-007, Constitution III (partial)
+- [x] T134 [P] Hacer null-safe el DTO/repositorio de agenda ante filas historicas sin terapeuta asignado, devolviendo `therapistId: null`, `therapistName: null` y `therapistIsActive: false`, en `backend/src/modules/appointments/appointments.service.ts`. per T116, data-model (partial)
+- [x] T135 [P] Arrancar el worker de recordatorios desde `server.ts` de forma configurable con `ENABLE_REMINDER_WORKER` (recomendado en produccion, deshabilitado por defecto) manteniendo el arranque directo por comando, en `backend/src/jobs/process-reminders.job.ts`, `backend/src/server.ts`, `backend/src/config/env.ts` y `backend/.env.example`. per plan: Fase comercial 4 (partial)
+- [x] T136 [M] Rechazar en produccion un `SESSION_IDLE_TIMEOUT_MINUTES` distinto de 30 y cubrirlo con prueba en `backend/src/config/env.ts` y `backend/tests/unit/env-production-validation.test.ts`. per plan: constraints, Decision 2026-09-04 (partial)
+- [x] T137 [M] Exigir `ADMIN_E2E_PASSWORD` por entorno en las pruebas E2E del panel sin credencial plana por defecto en `frontend/tests/e2e/admin-agenda.spec.ts`. per DoD sin secretos, Constitution II (contradicts)
+- [x] T138 [L] Eliminar codigo muerto backend y frontend: `backend/src/middleware/authorize-admin.ts`, `formatTime`/`formatDayLabel` y el re-export en `frontend/lib/admin/calendar.ts` y `frontend/components/admin/agenda/agenda-calendar.tsx`, `isSessionExpired` en `frontend/lib/auth/use-admin-session.tsx`, `badge`/`chip` de `eventStyles` en `frontend/lib/admin/event-colors.ts`, la prop inerte `onEventSelect` en la agenda y `startOfDay` duplicado en `frontend/app/admin/page.tsx`. per DoD: sin codigo muerto (partial)
+- [x] T139 [L] Alinear `specs/001-sistema-gestion-consultorio/quickstart.md` con el estado posterior a Phase 24: login administrativo funcional, reagendamiento/cancelaciones por panel, worker de recordatorios configurable y redireccion `/` a `/admin/agenda` hasta US6. per T067 (partial)
+
+---
+
+## Phase 26: Convergence
+
+**Proposito**: Cerrar el gap de FR-004 detectado en la tercera auditoria: la cancelacion de citas por WhatsApp con verificacion de identidad del paciente.
+
+- [x] T140 [M] [US1] Implementar cancelacion de cita por WhatsApp con verificacion de identidad (numero registrado + nombre y fecha de nacimiento coincidentes) que cancela la proxima cita activa, audita el resultado y confirma al paciente con oferta de reagendar, en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/response-templates.ts` y `backend/src/modules/appointments/appointments.repository.ts`. per FR-004 (partial)
+- [x] T141 [P] [US1] Crear pruebas de clasificacion del intent `cancel` (sobre `book`/`handoff`), verificacion de identidad fallida sin exponer datos y flujo de cancelacion con auditoria y confirmacion, en `backend/tests/integration/whatsapp-booking.integration.test.ts`. per FR-004, FR-023, FR-024 (partial)
+
+---
+
+## Phase 27: Convergence
+
+**Proposito**: Cerrar la tercera vuelta de pruebas iniciales del panel y los hallazgos de convergencia de US2/US3 contra `spec.md`, `data-model.md`, `quickstart.md` y la Constitucion.
+
+- [x] T142 [L] Documentar la correccion de hidratacion por botones anidados en `frontend/components/admin/agenda/event-card.tsx` (commit `c79ed69`) y registrar la tercera vuelta inicial del panel en `docs/pruebas-panel.md` y `docs/decisions.md`.
+- [x] T143 [L] Alinear la documentacion con el estado real de US3: marcar las tareas implementadas y actualizar `README.md` y `quickstart.md` sin declarar cerrado el flujo completo.
+- [x] T144 [H] Persistir una traza durable del recordatorio manual antes o junto con su despacho para que un fallo de auditoria no deje un envio sin registro, en `backend/src/modules/payments/payments.service.ts` y la infraestructura de auditoria. per FR-016, FR-035, SC-007.
+- [x] T145 [H] Vincular la referencia operativa de comprobantes de WhatsApp a la cita o pago correspondiente y mostrar referencia, fecha y estado en `/admin/payments`, en `backend/src/modules/chatbot/`, `backend/src/modules/payments/` y `frontend/app/admin/payments/page.tsx`. per FR-033, FR-034, FR-035, SC-015.
+- [x] T146 [H] Crear las pruebas de integracion y E2E movil del flujo de pagos, incluida autorizacion, auditoria, anticipo y confirmacion, en `backend/tests/integration/payments-flow.integration.test.ts` y `frontend/tests/e2e/admin-payments.spec.ts`. per Constitution 6.3-6.4, SC-004, SC-008, SC-016.
+- [x] T147 [M] Rechazar la confirmacion de pagos cuyo estado no sea `pendiente_validacion`, dentro de la transaccion de confirmacion de `backend/src/modules/payments/payments.service.ts`. per FR-033, FR-035.
+- [x] T148 [M] Definir una base tarifaria para validar el anticipo del 50% o ajustar el requisito que lo promete, con validacion y pruebas en pagos. per Constitution 4.2, FR-009.
+- [x] T149 [M] Mostrar en la vista diaria las excepciones manuales fuera de horario regular y reestructurar la vista mensual para que no anide botones, en `frontend/components/admin/agenda/agenda-calendar.tsx`. per FR-012.
+- [x] T150 [L] Actualizar las referencias historicas de archivos de US2 en `tasks.md` para que coincidan con los modulos efectivos consignados en la nota de cierre. per trazabilidad del plan.
+
+---
+
+## Phase 28: Convergence
+
+**Proposito**: Cerrar las desviaciones adicionales encontradas al contrastar codigo, `spec.md`, `plan.md` y `tasks.md`.
+
+- [x] T151 [H] Crear y despachar las confirmaciones durables de paciente y grupo al crear una cita desde el panel, con estados verificables de envio, en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/`. per FR-006, FR-031, plan decision 8 (partial).
+- [x] T152 [H] Persistir los eventos entrantes de WhatsApp en una bandeja durable con procesamiento idempotente y reintentos recuperables tras reinicio, en `backend/src/modules/chatbot/` y la infraestructura de jobs. per FR-001, plan performance goal (partial).
+- [x] T153 [M] Exigir la confirmacion explicita de excepcion manual al reagendar fuera del horario regular, con auditoria de la excepcion, en `backend/src/modules/appointments/` y `frontend/components/admin/agenda/reschedule-dialog.tsx`. per FR-002, plan decision 6 (contradicts).
+- [x] T154 [M] Eliminar o acotar `Patient.notes` y su exposicion para evitar que funcione como expediente clinico, con migracion y prueba de regresion, en `backend/prisma/`, `backend/src/modules/patients/` y `frontend/app/admin/patients/page.tsx`. per plan constraints, spec FR-025 (contradicts).
+- [x] T155 [M] Alinear `contracts/api.yaml` con las rutas y DTOs administrativos reales de citas y pagos, incluyendo confirmacion y recordatorio, en `specs/001-sistema-gestion-consultorio/contracts/api.yaml`. per plan Phase 1 outputs (contradicts).
+- [x] T156 [L] Actualizar `plan.md` con el stack, worker y rutas adoptados, incluido Next 16, scrypt, worker por intervalo y `/admin/payments`. per plan technical context and project structure (unrequested).
+
+---
+
+## Phase 29: Convergence
+
+**Proposito**: Cerrar las brechas restantes de la verificacion final de convergencia.
+
+- [x] T157 [H] Hacer recuperable el despacho de respuestas salientes de WhatsApp cuando el evento entrante ya fue persistido, evitando que un reintento marque procesado un mensaje sin respuesta, en `backend/src/modules/chatbot/` y el inbox durable. per FR-001 (partial).
+- [x] T158 [H] Validar que todo pago `completo` coincida con la tarifa configurada de la sesion antes de confirmarlo, con pruebas de regresion, en `backend/src/modules/payments/` y `backend/tests/`. per Constitution 4.2, FR-009, FR-010 (partial).
+- [x] T159 [M] Eliminar `patient.notes` y alinear las rutas de pacientes y terapeutas en `contracts/api.yaml` con la API administrativa implementada. per plan Phase 1 outputs (contradicts).
+
+---
+
+## Phase 30: Convergence
+
+**Proposito**: Cerrar la identificacion visible de excepciones manuales en la agenda diaria.
+
+- [x] T160 [M] Mostrar una etiqueta visible de excepcion manual en `EventCard` para citas fuera del horario regular y cubrirla con prueba de componente o regresion equivalente. per FR-012 (partial).
+
+---
+
+## Phase 31: Convergence
+
+**Proposito**: Cerrar la recuperacion completa de la bandeja WhatsApp y la cobertura movil pendiente.
+
+- [x] T161 [H] Reintentar la materializacion de respuestas y avisos de comprobante cuando el mensaje entrante ya exista pero no se haya creado su outbox, sin marcar procesado el evento hasta que los efectos salientes esten persistidos. per FR-001, T157 (partial).
+- [x] T162 [H] Habilitar y documentar el worker de inbox WhatsApp para produccion de modo que un webhook aceptado no quede sin procesamiento, en configuracion, `.env.example` y guia operativa. per FR-001 (partial).
+- [x] T163 [M] Completar el E2E movil de pagos con confirmacion manual posterior al registro, en `frontend/tests/e2e/admin-payments.spec.ts`. per SC-016, T146 (partial).
+- [x] T164 [M] Cubrir la etiqueta de excepcion manual de `EventCard` con una regresion frontend ejecutable. per FR-012, T160 (partial).
+
+---
+
+## Phase 32: Alineacion de interfaz al mockup y landing publica
+
+**Proposito**: Redisenar la interfaz del panel para que sea fiel al mockup aprobado `mockupWithDashboard.png` (referencia visual en la raiz del proyecto) y construir la landing publica con la misma identidad. Ejecucion **en paralelo** (ajuste del plan a 32 dias, entrega maxima 1 de octubre de 2026). La replica visual la ejecuta el desarrollador tomando el mockup como referencia directa.
+
+- [ ] T165 [P] Redisenar login y dashboard del panel replicando la composicion, tarjetas y jerarquia del mockup en `frontend/app/admin/login/page.tsx`, `frontend/components/admin/login-form.tsx`, `frontend/app/admin/page.tsx`. per Constitution 2.3, plan Fase 6.
+- [ ] T166 [P] Redisenar agenda (vistas dia/semana/mes), navegacion, leyenda y directorio con la identidad del mockup (paleta verde/sepia, tipografia, espaciados) en `frontend/components/admin/admin-nav.tsx`, `frontend/components/admin/agenda/*`, `frontend/app/admin/agenda/page.tsx`, `frontend/app/admin/directorio/page.tsx`. per Constitution 2.2-2.3.
+- [ ] T167 [P] Redisenar pagos, pacientes y terapeutas con la misma identidad visual en `frontend/app/admin/payments/page.tsx`, `frontend/app/admin/patients/page.tsx`, `frontend/app/admin/therapists/page.tsx` y componentes asociados. per Constitution 2.3.
+- [ ] T168 [P] Implementar landing publica (US6): hero, secciones informativas, CTA a WhatsApp y acceso discreto al panel en `frontend/app/page.tsx`, `frontend/components/landing/hero.tsx`, `frontend/components/landing/consultorio-info.tsx`, `frontend/components/landing/whatsapp-cta.tsx`, `frontend/components/landing/admin-access-link.tsx`. per task.md US6.
+- [ ] T169 [P] Aplicar paleta oficial, tipografia y tokens de diseno de un solo sistema de diseno reutilizado en landing y panel en `frontend/app/globals.css`. per Constitution 2.2-2.3.
+- [ ] T170 [M] Crear prueba E2E movil de la landing publica y prueba de componentes de la landing en `frontend/tests/e2e/public-landing.spec.ts` y `frontend/tests/components/landing-page.test.tsx`. per US6 (T059, T060).
+- [ ] T171 [M] Revisar en movil el panel completo y registrar comparativa antes/despues frente al mockup en `docs/pruebas-panel.md` y `docs/avance-dia-17.md`. per Constitution 2.3, plan Fase 6.

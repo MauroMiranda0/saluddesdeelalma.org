@@ -1,59 +1,84 @@
-import type { Appointment, Patient } from "@prisma/client";
+import type { Appointment, Patient, Prisma } from "@prisma/client";
 
-import { prisma } from "../../lib/prisma";
+import { env } from "../../config/env";
 import type { WhatsAppGateway } from "../../integrations/whatsapp/whatsapp.gateway";
-import { appointmentConfirmation } from "../chatbot/response-templates";
+import { prisma } from "../../lib/prisma";
+import {
+  appointmentConfirmation,
+  modalityLabel,
+  therapyTypeLabel
+} from "../chatbot/response-templates";
 import { saveOutboundMessage } from "../chatbot/chat-messages.repository";
 
-export const sendAppointmentConfirmation = async (input: {
-  appointment: Appointment;
-  patient: Patient;
-  conversationId: string;
+const mexicoDateParts = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: env.REMINDER_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  return { year: value("year"), month: value("month"), day: value("day") };
+};
+
+export const previousDayReminderAt = (scheduledAt: Date) => {
+  const { year, month, day } = mexicoDateParts(scheduledAt);
+  // Mexico City is UTC-6 year-round; this is 18:00 on the preceding local day.
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
+const groupConfirmation = (appointment: Appointment) =>
+  `Nueva cita ${therapyTypeLabel(appointment.therapyType)} de ${appointment.durationMinutes} minutos: ${new Intl.DateTimeFormat(
+    "es-MX",
+    {
+      timeZone: env.REMINDER_TIMEZONE,
+      dateStyle: "full",
+      timeStyle: "short"
+    }
+  ).format(appointment.scheduledAt)}, ${modalityLabel(appointment.modality)}.`;
+
+const claimReminder = async (id: string) => {
+  const claimed = await prisma.appointmentReminder.updateMany({
+    where: {
+      id,
+      status: { in: ["pendiente", "fallido"] },
+      attemptsCount: { lt: 3 }
+    },
+    data: { status: "procesando" }
+  });
+
+  return claimed.count === 1;
+};
+
+export const sendReminder = async (input: {
+  reminderId: string;
+  to: string;
+  text: string;
   gateway: WhatsAppGateway;
 }) => {
-  const reminder = await prisma.appointmentReminder.upsert({
-    where: {
-      appointmentId_reminderType_recipient: {
-        appointmentId: input.appointment.id,
-        reminderType: "confirmacion",
-        recipient: "paciente"
-      }
-    },
-    update: {},
-    create: {
-      appointmentId: input.appointment.id,
-      reminderType: "confirmacion",
-      recipient: "paciente",
-      scheduledAt: new Date()
-    }
-  });
-  const text = appointmentConfirmation(input.appointment, input.patient);
+  if (!(await claimReminder(input.reminderId))) {
+    return null;
+  }
 
   try {
     const sent = await input.gateway.sendText({
-      to: input.patient.whatsappPhone,
-      text
+      to: input.to,
+      text: input.text
     });
-
-    await Promise.all([
-      prisma.appointmentReminder.update({
-        where: { id: reminder.id },
-        data: {
-          status: "enviado",
-          sentAt: new Date(),
-          providerMessageId: sent.messageId
-        }
-      }),
-      saveOutboundMessage({
-        conversationId: input.conversationId,
-        waMessageId: sent.messageId,
-        contentText: text,
-        intent: "book"
-      })
-    ]);
+    await prisma.appointmentReminder.update({
+      where: { id: input.reminderId },
+      data: {
+        status: "enviado",
+        sentAt: new Date(),
+        providerMessageId: sent.messageId
+      }
+    });
+    return sent;
   } catch (error) {
     await prisma.appointmentReminder.update({
-      where: { id: reminder.id },
+      where: { id: input.reminderId },
       data: {
         status: "fallido",
         attemptsCount: { increment: 1 },
@@ -62,4 +87,297 @@ export const sendAppointmentConfirmation = async (input: {
     });
     throw error;
   }
+};
+
+export const scheduleAppointmentReminders = async (
+  appointment: Appointment,
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  const scheduledAt = previousDayReminderAt(appointment.scheduledAt);
+  const status = scheduledAt <= new Date() ? "omitido" : "pendiente";
+  const lastError =
+    status === "omitido" ? "Created after the prior-day reminder window" : null;
+
+  await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId: appointment.id,
+        reminderType: "recordatorio_24h",
+        recipient: "paciente"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "recordatorio_24h",
+      recipient: "paciente",
+      scheduledAt,
+      status,
+      lastError
+    }
+  });
+  // The dispatcher omits this first payment notice if the balance is settled.
+  await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId: appointment.id,
+        reminderType: "recordatorio_24h",
+        recipient: "grupo_psicologas"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "recordatorio_24h",
+      recipient: "grupo_psicologas",
+      scheduledAt,
+      status,
+      lastError
+    }
+  });
+  await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId: appointment.id,
+        reminderType: "pago_pendiente",
+        recipient: "paciente"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "pago_pendiente",
+      recipient: "paciente",
+      scheduledAt,
+      status,
+      lastError
+    }
+  });
+};
+
+export const scheduleCancellationNotice = async (
+  appointmentId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  return db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId,
+        reminderType: "cancelacion",
+        recipient: "paciente"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId,
+      reminderType: "cancelacion",
+      recipient: "paciente",
+      scheduledAt: new Date()
+    }
+  });
+};
+
+export const ensureConfirmationReminders = async (
+  appointment: { id: string },
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  const patientReminder = await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId: appointment.id,
+        reminderType: "confirmacion",
+        recipient: "paciente"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "confirmacion",
+      recipient: "paciente",
+      scheduledAt: new Date()
+    }
+  });
+  const groupReminder = await db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId: appointment.id,
+        reminderType: "confirmacion",
+        recipient: "grupo_psicologas"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId: appointment.id,
+      reminderType: "confirmacion",
+      recipient: "grupo_psicologas",
+      scheduledAt: new Date()
+    }
+  });
+
+  return { patientReminder, groupReminder };
+};
+
+export const sendAppointmentConfirmation = async (input: {
+  appointment: Appointment;
+  patient: Patient;
+  conversationId: string;
+  gateway: WhatsAppGateway;
+  queueOutboundMessage?: (input: {
+    to: string;
+    text: string;
+    conversationId: string;
+    intent: "book";
+  }) => Promise<unknown>;
+}) => {
+  const { patientReminder, groupReminder } = await ensureConfirmationReminders(
+    input.appointment
+  );
+  const text = appointmentConfirmation(input.appointment, input.patient);
+
+  try {
+    if (input.queueOutboundMessage) {
+      await input.queueOutboundMessage({
+        to: input.patient.whatsappPhone,
+        text,
+        conversationId: input.conversationId,
+        intent: "book"
+      });
+
+      if (env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID) {
+        await input.queueOutboundMessage({
+          to: env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID,
+          text: groupConfirmation(input.appointment),
+          conversationId: input.conversationId,
+          intent: "book"
+        });
+      } else {
+        await prisma.appointmentReminder.update({
+          where: { id: groupReminder.id },
+          data: {
+            status: "omitido",
+            lastError: "Group destination is not configured"
+          }
+        });
+      }
+      return;
+    }
+
+    const sentPatientMessage = await sendReminder({
+      reminderId: patientReminder.id,
+      to: input.patient.whatsappPhone,
+      text,
+      gateway: input.gateway
+    });
+
+    if (sentPatientMessage) {
+      await saveOutboundMessage({
+        conversationId: input.conversationId,
+        waMessageId: sentPatientMessage.messageId,
+        contentText: text,
+        intent: "book"
+      });
+    }
+
+    if (env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID) {
+      await sendReminder({
+        reminderId: groupReminder.id,
+        to: env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID,
+        text: groupConfirmation(input.appointment),
+        gateway: input.gateway
+      });
+    } else {
+      await prisma.appointmentReminder.update({
+        where: { id: groupReminder.id },
+        data: {
+          status: "omitido",
+          lastError: "Group destination is not configured"
+        }
+      });
+    }
+  } finally {
+    // Scheduling the prior-day reminders must not depend on the outcome of
+    // the immediate confirmation sends.
+    await scheduleAppointmentReminders(input.appointment);
+  }
+};
+
+export const dispatchAppointmentConfirmation = async (input: {
+  appointment: Appointment;
+  patient: Pick<Patient, "whatsappPhone" | "fullName">;
+  gateway: WhatsAppGateway;
+  confirmationReminders?: Awaited<
+    ReturnType<typeof ensureConfirmationReminders>
+  >;
+}) => {
+  const { patientReminder, groupReminder } =
+    input.confirmationReminders ??
+    (await ensureConfirmationReminders(input.appointment));
+  const text = appointmentConfirmation(input.appointment, input.patient);
+
+  const deliveries: Array<PromiseLike<unknown>> = [
+    sendReminder({
+      reminderId: patientReminder.id,
+      to: input.patient.whatsappPhone,
+      text,
+      gateway: input.gateway
+    })
+  ];
+
+  if (env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID) {
+    deliveries.push(
+      sendReminder({
+        reminderId: groupReminder.id,
+        to: env.WHATSAPP_PSYCHOLOGISTS_GROUP_ID,
+        text: groupConfirmation(input.appointment),
+        gateway: input.gateway
+      })
+    );
+  } else {
+    deliveries.push(
+      prisma.appointmentReminder.update({
+        where: { id: groupReminder.id },
+        data: {
+          status: "omitido",
+          lastError: "Group destination is not configured"
+        }
+      })
+    );
+  }
+
+  // Each recipient has an independent durable delivery row. A provider
+  // failure updates only its row and must not prevent the other delivery.
+  await Promise.allSettled(deliveries);
+};
+
+export const createPostCompletionPaymentReminder = async (
+  appointmentId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  const appointment = await db.appointment.findUniqueOrThrow({
+    where: { id: appointmentId },
+    include: {
+      payments: { where: { paymentType: "completo", status: "validado" } }
+    }
+  });
+
+  if (appointment.payments.length > 0) {
+    return null;
+  }
+
+  return db.appointmentReminder.upsert({
+    where: {
+      appointmentId_reminderType_recipient: {
+        appointmentId,
+        reminderType: "pago_pendiente_post_cita",
+        recipient: "paciente"
+      }
+    },
+    update: {},
+    create: {
+      appointmentId,
+      reminderType: "pago_pendiente_post_cita",
+      recipient: "paciente",
+      scheduledAt: new Date()
+    }
+  });
 };

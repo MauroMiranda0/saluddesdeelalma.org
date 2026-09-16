@@ -4,15 +4,17 @@
   "private": true,
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "dotenv -e .env -- tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "prisma:generate": "dotenv -e .env.example -- prisma generate --schema prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "prisma:validate": "dotenv -e .env.example -- prisma validate --schema prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "tsx --test tests/contract/*.test.ts tests/integration/*.test.ts && node --test tests/integration/users-access-constraints.integration.test.mjs",
+    "test": "dotenv -e .env.example -- tsx --test tests/contract/*.test.ts tests/integration/*.test.ts tests/unit/*.test.ts && node --test tests/integration/users-access-constraints.integration.test.mjs",
     "test:integration": "npm run test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "reminders:worker": "tsx src/jobs/reminders-worker.entry.ts",
+    "whatsapp-inbox:worker": "tsx src/jobs/whatsapp-inbox-worker.entry.ts",
     "start": "node dist/server.js"
   },
   "dependencies": {

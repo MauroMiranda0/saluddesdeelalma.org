@@ -43,7 +43,7 @@
 
 ## Decision 6: Disponibilidad, conflictos y recordatorios
 
-- **Decision**: gestionar disponibilidad con validacion transaccional y una restriccion unica parcial para citas activas; programar en tabla propia dos recordatorios del día previo (paciente y Jocelyn) para las 18:00 de `America/Mexico_City`. El job se ejecuta cada 5 minutos, pero solo reclama, envía o reintenta entre 18:00:00 y 18:59:59, con reclamacion atomica y hasta 3 intentos dentro de esa ventana.
+- **Decision**: gestionar disponibilidad con validación transaccional y exclusión por intervalo de psicóloga; programar en tabla propia recordatorios del día previo para paciente y grupo interno a las 18:00 de `America/Mexico_City`. El job se ejecuta cada 5 minutos, pero solo reclama, envía o reintenta entre 18:00:00 y 18:59:59, con reclamación atómica y hasta 3 intentos dentro de esa ventana.
 - **Rationale**: evita dobles reservas aun con concurrencia entre panel y chatbot, garantiza la política comercial de envío entre las 18:00 y las 19:00 y ofrece una estrategia simple de scheduler compatible con Hostinger. Persistir un registro por destinatario mantiene la trazabilidad aunque uno de los dos envíos falle.
 - **Alternatives considered**:
   - Solo validacion en aplicacion sin restriccion en BD: rechazada porque no garantiza integridad bajo carrera.
@@ -71,4 +71,14 @@
 - **Rationale**: permite a Jocelyn visualizar perfiles y preparar el crecimiento del directorio sin abrir datos sensibles ni crear una superficie de autorización incompleta en el MVP.
 - **Alternatives considered**:
   - Permitir el acceso a cualquier perfil con rol administrativo: rechazado porque contradice el administrador único solicitado.
-  - Supabase RLS como control actual: rechazado porque la constitución establece PostgreSQL privado detrás de Express y Prisma. RLS se evaluará únicamente si la arquitectura migra a Supabase.
+- Supabase RLS como control actual: rechazado porque la constitución establece PostgreSQL privado detrás de Express y Prisma. RLS se evaluará únicamente si la arquitectura migra a Supabase.
+
+## Decision 10: Continuidad clínica, intervalos y destino interno
+
+- **Decision**: modelar `therapist_profiles` sin habilitar login, asignar pacientes solo desde `admin` y copiar la psicóloga en cada cita. La base de datos bloquea rangos traslapados por psicóloga con `EXCLUDE USING gist`; individual dura 60 min y pareja/familiar 90 min. La confirmación del paciente es individual y el grupo interno es un destino configurable independiente.
+- **Rationale**: la asignación evita que un paciente cambie de psicóloga al alternar modalidad; el rango protege contra carreras y traslapes que una validación de hora exacta no detecta. Separar destinos evita divulgar saldo o datos sensibles al grupo.
+- **Alternatives considered**:
+  - Índice único por hora de inicio: rechazado porque no representa duración ni permite agendas de psicólogas distintas.
+  - Asignación automática de pacientes nuevos: rechazada por la decisión de que `admin` realiza la asignación inicial.
+  - Reutilizar el mensaje individual como envío grupal: rechazado por privacidad y trazabilidad.
+- **Operational constraint**: el proveedor de WhatsApp debe aceptar el identificador configurado de grupo. Si no puede enviar a grupos, no se considerará cumplido con simulación; debe aprobarse un proveedor compatible o un cambio de requisito.

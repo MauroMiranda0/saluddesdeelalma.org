@@ -33,6 +33,16 @@ export const apiRequest = async <TResponse>(
   });
 
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/admin/login"
+    ) {
+      const returnTo = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
+      window.location.assign(`/admin/login?next=${returnTo}`);
+    }
     const payload = (await response.json().catch(() => null)) as {
       code?: string;
       message?: string;

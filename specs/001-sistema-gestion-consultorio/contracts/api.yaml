@@ -12,6 +12,8 @@ servers:
     description: Desarrollo local
 tags:
   - name: Auth
+  - name: Admin Therapists
+  - name: Admin Patients
   - name: Appointments
   - name: Payments
   - name: Directory
@@ -30,6 +32,8 @@ components:
         code:
           type: string
         message:
+          type: string
+        requestId:
           type: string
     AdminSession:
       type: object
@@ -75,19 +79,198 @@ components:
         preferredModality:
           type: string
           enum: [online, presencial]
-    Appointment:
+        assignedTherapistId:
+          type: string
+          format: uuid
+          nullable: true
+    Therapist:
       type: object
-      required:
-        [id, patient, scheduledAt, modality, status, createdVia, paymentStatus]
+      required: [id, fullName, isActive]
       properties:
         id:
           type: string
           format: uuid
-        patient:
-          $ref: "#/components/schemas/Patient"
+        fullName:
+          type: string
+        isActive:
+          type: boolean
+    AdminTherapist:
+      type: object
+      required: [id, fullName, email, phone, isActive]
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          pattern: ^\\+?[0-9]{8,30}$
+        isActive:
+          type: boolean
+    CreateAdminTherapistRequest:
+      type: object
+      required: [fullName, phone]
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 120
+        phone:
+          type: string
+          pattern: ^\\+?[0-9]{8,30}$
+        email:
+          type: string
+          format: email
+    UpdateAdminTherapistRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
+    AdminPatient:
+      type: object
+      required:
+        [
+          id,
+          fullName,
+          whatsappPhone,
+          status,
+          birthdate,
+          preferredModality,
+          email,
+          assignedTherapistId
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        whatsappPhone:
+          type: string
+        status:
+          type: string
+          enum: [activo, inactivo]
+        birthdate:
+          type: string
+          format: date-time
+        preferredModality:
+          type: string
+          enum: [online, presencial]
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        assignedTherapistId:
+          type: string
+          format: uuid
+          nullable: true
+    CreateAdminPatientRequest:
+      type: object
+      additionalProperties: false
+      required: [fullName, whatsappPhone, birthdate]
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 150
+        whatsappPhone:
+          type: string
+          minLength: 8
+          maxLength: 30
+        birthdate:
+          type: string
+          format: date
+        preferredModality:
+          type: string
+          enum: [online, presencial]
+        email:
+          type: string
+          format: email
+        therapistId:
+          type: string
+          format: uuid
+    AdminPatientSummary:
+      type: object
+      required: [id, fullName, whatsappPhone, status, assignedTherapistId]
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        whatsappPhone:
+          type: string
+        status:
+          type: string
+          enum: [activo, inactivo]
+        assignedTherapistId:
+          type: string
+          format: uuid
+          nullable: true
+    AssignAdminPatientTherapistRequest:
+      type: object
+      required: [therapistId]
+      properties:
+        therapistId:
+          type: string
+          format: uuid
+          nullable: true
+    UpdateAdminPatientStatusRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
+    Appointment:
+      type: object
+      required:
+        [
+          id,
+          scheduledAt,
+          endsAt,
+          therapyType,
+          durationMinutes,
+          modality,
+          status,
+          isManualException,
+          locationLabel,
+          meetingLink,
+          cancelReason,
+          cancelledAt,
+          cancellationNotice,
+          createdVia,
+          paymentStatus,
+          payments,
+          patientId,
+          patientName,
+          patientPhone,
+          patientBirthdate,
+          therapistId,
+          therapistName,
+          therapistIsActive
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
         scheduledAt:
           type: string
           format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        therapyType:
+          type: string
+          enum: [individual, pareja, familiar]
+        durationMinutes:
+          type: integer
+          enum: [60, 90]
         modality:
           type: string
           enum: [online, presencial]
@@ -99,27 +282,66 @@ components:
           enum: [whatsapp, panel, system]
         isManualException:
           type: boolean
-        paymentStatus:
-          type: string
-          enum: [pendiente, anticipo, completado]
-        meetingLink:
-          type: string
-          nullable: true
         locationLabel:
           type: string
           nullable: true
+        meetingLink:
+          type: string
+          format: uri
+          nullable: true
+        cancelReason:
+          type: string
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancellationNotice:
+          type: string
+          enum: [a_tiempo, tardia]
+          nullable: true
+        paymentStatus:
+          type: string
+          enum: [pendiente, anticipo, completado]
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        patientPhone:
+          type: string
+        patientBirthdate:
+          type: string
+          format: date
+          nullable: true
+        therapistId:
+          type: string
+          format: uuid
+          nullable: true
+        therapistName:
+          type: string
+          nullable: true
+        therapistIsActive:
+          type: boolean
     Payment:
       type: object
       required:
-        [id, appointmentId, patientId, paymentType, amount, method, status]
+        [
+          id,
+          paymentType,
+          amount,
+          method,
+          status,
+          proofReference,
+          paidAt,
+          createdAt
+        ]
       properties:
         id:
-          type: string
-          format: uuid
-        appointmentId:
-          type: string
-          format: uuid
-        patientId:
           type: string
           format: uuid
         paymentType:
@@ -137,30 +359,62 @@ components:
         proofReference:
           type: string
           nullable: true
-    Reminder:
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    SessionRate:
+      type: object
+      required: [therapyType, amount]
+      properties:
+        therapyType:
+          type: string
+          enum: [individual, pareja, familiar]
+        amount:
+          type: number
+          format: float
+    PaymentProof:
       type: object
       required:
-        [id, appointmentId, reminderType, recipient, scheduledAt, status]
+        [
+          id,
+          reference,
+          mediaType,
+          receivedAt,
+          status,
+          appointmentId,
+          paymentId,
+          associatedAt
+        ]
       properties:
         id:
           type: string
           format: uuid
+        reference:
+          type: string
+        mediaType:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pendiente_asociacion, asociado]
         appointmentId:
           type: string
           format: uuid
-        reminderType:
+          nullable: true
+        paymentId:
           type: string
-          enum: [confirmacion, recordatorio_24h, cancelacion, pago_pendiente]
-        recipient:
-          type: string
-          enum: [paciente, admin]
-        scheduledAt:
+          format: uuid
+          nullable: true
+        associatedAt:
           type: string
           format: date-time
-          description: Para `recordatorio_24h`, corresponde a las 18:00 de America/Mexico_City del día previo.
-        status:
-          type: string
-          enum: [pendiente, procesando, enviado, fallido, omitido]
+          nullable: true
 paths:
   /api/v1/auth/login:
     post:
@@ -227,35 +481,363 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /api/v1/appointments:
+  /api/v1/admin/therapists:
     get:
-      tags: [Appointments]
-      summary: Lista citas por fecha (solo cuenta `admin`)
+      tags: [Admin Therapists]
+      summary: Lista perfiles clinicos para el panel administrativo
       security:
         - cookieAuth: []
-      parameters:
-        - in: query
-          name: date
-          required: true
-          schema:
-            type: string
-            format: date
       responses:
         "200":
-          description: Agenda del dia
+          description: Perfiles clinicos ordenados por fecha de creacion ascendente
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required: [therapists]
                 properties:
-                  items:
+                  therapists:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdminTherapist"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags: [Admin Therapists]
+      summary: Crea un perfil clinico sin capacidad de inicio de sesion
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminTherapistRequest"
+      responses:
+        "201":
+          description: Perfil clinico creado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [therapistProfile]
+                properties:
+                  therapistProfile:
+                    $ref: "#/components/schemas/AdminTherapist"
+        "400":
+          description: Datos del perfil invalidos (`validation_error`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: El correo ya esta en uso (`email_already_in_use`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/admin/therapists/{therapistId}:
+    patch:
+      tags: [Admin Therapists]
+      summary: Activa o desactiva un perfil clinico
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: therapistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminTherapistRequest"
+      responses:
+        "200":
+          description: Perfil clinico actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [therapistProfile]
+                properties:
+                  therapistProfile:
+                    $ref: "#/components/schemas/AdminTherapist"
+        "400":
+          description: Identificador o estado invalido, o el perfil ya tiene ese estado (`validation_error` o `no_change`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: El perfil clinico no existe (`not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/admin/patients:
+    get:
+      tags: [Admin Patients]
+      summary: Lista pacientes para el panel administrativo
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Pacientes ordenados por fecha de creacion ascendente
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [patients]
+                properties:
+                  patients:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdminPatient"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags: [Admin Patients]
+      summary: Crea un paciente y opcionalmente le asigna un terapeuta activo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminPatientRequest"
+      responses:
+        "201":
+          description: Paciente creado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [patient]
+                properties:
+                  patient:
+                    $ref: "#/components/schemas/AdminPatientSummary"
+        "400":
+          description: Datos invalidos o terapeuta inactivo (`validation_error` o `inactive_therapist`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: El terapeuta indicado no existe (`not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Ya existe un paciente con ese telefono de WhatsApp (`patient_already_exists`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/admin/patients/{patientId}:
+    patch:
+      tags: [Admin Patients]
+      summary: Activa o desactiva un paciente
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: patientId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminPatientStatusRequest"
+      responses:
+        "200":
+          description: Estado del paciente actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [patient]
+                properties:
+                  patient:
+                    $ref: "#/components/schemas/AdminPatientSummary"
+        "400":
+          description: Identificador o estado invalido, o el paciente ya tiene ese estado (`validation_error` o `no_change`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: El paciente no existe (`not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/admin/patients/{patientId}/therapist:
+    patch:
+      tags: [Admin Patients]
+      summary: Asigna o desasigna el terapeuta de un paciente
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: patientId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignAdminPatientTherapistRequest"
+      responses:
+        "200":
+          description: Asignacion de terapeuta actualizada; use `null` para desasignar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [patient]
+                properties:
+                  patient:
+                    $ref: "#/components/schemas/AdminPatientSummary"
+        "400":
+          description: Identificador o asignacion invalida, o el terapeuta esta inactivo (`validation_error` o `inactive_therapist`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sesion administrativa ausente, invalida o expirada (`unauthorized`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La sesion no corresponde a la identidad administrativa `admin` (`forbidden`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: El paciente o terapeuta indicado no existe (`not_found`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/appointments:
+    get:
+      tags: [Appointments]
+      summary: Lista citas en un rango ISO (solo cuenta `admin`)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Citas del calendario en el rango solicitado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [appointments]
+                properties:
+                  appointments:
                     type: array
                     items:
                       $ref: "#/components/schemas/Appointment"
     post:
       tags: [Appointments]
-      summary: Crea una cita desde panel o automatizacion interna
+      summary: Crea una cita desde el panel
       security:
         - cookieAuth: []
       requestBody:
@@ -264,8 +846,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [patient, scheduledAt, modality, createdVia]
+              required: [scheduledAt, modality, therapyType]
+              anyOf:
+                - required: [patientId]
+                - required: [patient]
               properties:
+                patientId:
+                  type: string
+                  format: uuid
                 patient:
                   type: object
                   required: [fullName, whatsappPhone, birthdate]
@@ -277,27 +865,46 @@ paths:
                     birthdate:
                       type: string
                       format: date
+                    preferredModality:
+                      type: string
+                      enum: [online, presencial]
+                    email:
+                      type: string
+                      format: email
                 scheduledAt:
                   type: string
                   format: date-time
                 modality:
                   type: string
                   enum: [online, presencial]
-                createdVia:
+                therapyType:
                   type: string
-                  enum: [panel, system]
+                  enum: [individual, pareja, familiar]
+                manualExceptionConfirmed:
+                  type: boolean
+                  default: false
                 isManualException:
                   type: boolean
                   default: false
+                locationLabel:
+                  type: string
+                  maxLength: 255
+                meetingLink:
+                  type: string
+                  format: uri
       responses:
         "201":
           description: Cita creada
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Appointment"
+                type: object
+                required: [appointment]
+                properties:
+                  appointment:
+                    $ref: "#/components/schemas/Appointment"
         "409":
-          description: Horario ya ocupado
+          description: El intervalo solicitado se traslapa con una cita activa de la psicóloga asignada
           content:
             application/json:
               schema:
@@ -305,7 +912,7 @@ paths:
   /api/v1/appointments/{appointmentId}:
     patch:
       tags: [Appointments]
-      summary: Actualiza fecha, modalidad o estado operativo de una cita
+      summary: Reagenda una cita
       security:
         - cookieAuth: []
       parameters:
@@ -321,6 +928,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [scheduledAt]
               properties:
                 scheduledAt:
                   type: string
@@ -328,20 +936,54 @@ paths:
                 modality:
                   type: string
                   enum: [online, presencial]
-                status:
+                therapyType:
                   type: string
-                  enum: [programada, confirmada, completada]
+                  enum: [individual, pareja, familiar]
       responses:
         "200":
-          description: Cita actualizada
+          description: Cita reagendada
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Appointment"
+                type: object
+                required: [appointment]
+                properties:
+                  appointment:
+                    $ref: "#/components/schemas/Appointment"
+  /api/v1/appointments/{appointmentId}/confirm:
+    post:
+      tags: [Appointments]
+      summary: Confirma una cita programada y despacha su confirmacion
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Cita confirmada
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [appointment]
+                properties:
+                  appointment:
+                    $ref: "#/components/schemas/Appointment"
+        "409":
+          description: La cita no esta programada o no puede confirmarse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/v1/appointments/{appointmentId}/cancel:
     post:
       tags: [Appointments]
-      summary: Cancela una cita y dispara notificacion al paciente
+      summary: Cancela una cita y programa la notificacion al paciente
       security:
         - cookieAuth: []
       parameters:
@@ -367,33 +1009,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Appointment"
-  /api/v1/payments:
-    get:
-      tags: [Payments]
-      summary: Lista pagos de una cita (solo cuenta `admin`)
-      security:
-        - cookieAuth: []
-      parameters:
-        - in: query
-          name: appointmentId
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: Pagos asociados a la cita
-          content:
-            application/json:
-              schema:
                 type: object
-                required: [items]
+                required: [appointment]
                 properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Payment"
+                  appointment:
+                    $ref: "#/components/schemas/Appointment"
+  /api/v1/payments:
     post:
       tags: [Payments]
       summary: Registra un anticipo o pago completo
@@ -430,15 +1051,190 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Payment"
-  /api/v1/reminders:
-    get:
-      tags: [Appointments]
-      summary: Lista recordatorios de una cita (solo cuenta `admin`)
+                type: object
+                required: [payment]
+                properties:
+                  payment:
+                    $ref: "#/components/schemas/Payment"
+  /api/v1/payments/{paymentId}/confirm:
+    post:
+      tags: [Payments]
+      summary: Confirma manualmente un pago registrado
       security:
         - cookieAuth: []
       parameters:
-        - in: query
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Pago confirmado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [payment]
+                properties:
+                  payment:
+                    $ref: "#/components/schemas/Payment"
+        "409":
+          description: El pago no puede confirmarse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/appointments/{appointmentId}/payment-reminder:
+    post:
+      tags: [Payments]
+      summary: Envia un recordatorio manual de pago al paciente
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Recordatorio enviado
+        "409":
+          description: Una cita cancelada no puede recibir recordatorios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/session-rates:
+    get:
+      tags: [Payments]
+      summary: Lista las tarifas configuradas por tipo de terapia
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Tarifas de sesion
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessionRates]
+                properties:
+                  sessionRates:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SessionRate"
+  /api/v1/session-rates/{therapyType}:
+    put:
+      tags: [Payments]
+      summary: Crea o actualiza la tarifa de un tipo de terapia
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: therapyType
+          required: true
+          schema:
+            type: string
+            enum: [individual, pareja, familiar]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: number
+                  format: float
+                  exclusiveMinimum: 0
+                  maximum: 9999999.99
+      responses:
+        "200":
+          description: Tarifa de sesion guardada
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessionRate]
+                properties:
+                  sessionRate:
+                    $ref: "#/components/schemas/SessionRate"
+  /api/v1/payment-proofs:
+    get:
+      tags: [Payments]
+      summary: Lista comprobantes de pago recibidos por WhatsApp
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Comprobantes ordenados por fecha de recepcion descendente
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [paymentProofs]
+                properties:
+                  paymentProofs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PaymentProof"
+  /api/v1/payment-proofs/{proofId}/associate:
+    post:
+      tags: [Payments]
+      summary: Asocia un comprobante pendiente a una cita y opcionalmente a un pago
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: proofId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentId]
+              properties:
+                appointmentId:
+                  type: string
+                  format: uuid
+                paymentId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Comprobante asociado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [paymentProof]
+                properties:
+                  paymentProof:
+                    $ref: "#/components/schemas/PaymentProof"
+        "409":
+          description: El comprobante no puede asociarse a la cita o pago indicados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/admin/appointments/{appointmentId}/complete:
+    post:
+      tags: [Appointments]
+      summary: Completa una cita iniciada y programa el aviso de saldo si aplica
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
           name: appointmentId
           required: true
           schema:
@@ -446,17 +1242,27 @@ paths:
             format: uuid
       responses:
         "200":
-          description: Recordatorios asociados
+          description: Cita completada
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required: [appointment]
                 properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Reminder"
+                  appointment:
+                    type: object
+                    required: [id, status, completedAt]
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        const: completada
+                      completedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
   /api/v1/directory:
     get:
       tags: [Directory]

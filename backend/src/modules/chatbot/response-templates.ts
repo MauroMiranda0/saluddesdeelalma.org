@@ -1,4 +1,9 @@
-import type { Appointment, Modality, Patient } from "@prisma/client";
+import type {
+  Appointment,
+  Modality,
+  Patient,
+  TherapyType
+} from "@prisma/client";
 
 const dateFormatter = new Intl.DateTimeFormat("es-MX", {
   timeZone: "America/Mexico_City",
@@ -13,7 +18,12 @@ const dateFormatter = new Intl.DateTimeFormat("es-MX", {
 export const appointmentConfirmation = (
   appointment: Pick<
     Appointment,
-    "scheduledAt" | "modality" | "locationLabel" | "meetingLink"
+    | "scheduledAt"
+    | "modality"
+    | "locationLabel"
+    | "meetingLink"
+    | "therapyType"
+    | "durationMinutes"
   >,
   patient: Pick<Patient, "fullName">
 ) => {
@@ -28,7 +38,7 @@ export const appointmentConfirmation = (
         ? ` Dirección: ${appointment.locationLabel}`
         : "";
 
-  return `Perfecto, ${patient.fullName}. Su cita queda agendada para ${dateFormatter.format(appointment.scheduledAt)}, modalidad ${modality}.${accessDetails} Si necesita cancelar o reagendar, avísenos con al menos 24 horas de anticipación para evitar un costo adicional.`;
+  return `Perfecto, ${patient.fullName}. Su cita ${therapyTypeLabel(appointment.therapyType)} de ${appointment.durationMinutes} minutos queda agendada para ${dateFormatter.format(appointment.scheduledAt)}, modalidad ${modality}.${accessDetails} Si necesita cancelar o reagendar, avísenos con al menos 24 horas de anticipación para evitar un costo adicional.`;
 };
 
 export const bookingDetailsPrompt = (slots: Date[]) => {
@@ -36,7 +46,11 @@ export const bookingDetailsPrompt = (slots: Date[]) => {
     .map((slot) => dateFormatter.format(slot))
     .join("; ");
 
-  return `Con gusto. Tenemos estos horarios disponibles: ${offeredSlots}. Para confirmar, responda con: Nombre: ...; nacimiento: AAAA-MM-DD; cita: AAAA-MM-DD HH:MM; modalidad: en línea o presencial.`;
+  const availability = offeredSlots
+    ? `Tenemos estos horarios disponibles: ${offeredSlots}. `
+    : "Para revisar horarios con su psicóloga asignada, ";
+
+  return `Con gusto. ${availability}para confirmar, responda con: Nombre: ...; nacimiento: AAAA-MM-DD; cita: AAAA-MM-DD HH:MM; modalidad: en línea o presencial; tipo: individual, pareja o familiar.`;
 };
 
 export const clinicalHandoffResponse =
@@ -53,3 +67,31 @@ export const automationDisclosureResponse =
 
 export const modalityLabel = (modality: Modality) =>
   modality === "online" ? "en línea" : "presencial";
+
+export const therapyTypeLabel = (therapyType: TherapyType) =>
+  therapyType === "individual"
+    ? "individual"
+    : therapyType === "pareja"
+      ? "de pareja"
+      : "familiar";
+
+export const cancellationVerificationPrompt =
+  "Con gusto le ayudo a cancelar su cita. Para confirmar su identidad, por favor responda: Nombre: ...; nacimiento: AAAA-MM-DD.";
+
+export const cancellationVerificationFailedResponse =
+  "No pudimos confirmar sus datos. Para proteger su información, la cancelación se atiende desde el número registrado y con nombre y fecha de nacimiento coincidentes; por favor verifíquelo con la psicóloga.";
+
+export const cancellationNotFoundResponse =
+  "No encontramos una cita activa por cancelar. Si desea agendar o reagendar una sesión, con gusto le ayudo.";
+
+export const cancellationConfirmedText = (
+  appointment: Pick<
+    Appointment,
+    "scheduledAt" | "therapyType" | "durationMinutes" | "modality"
+  > & { patient: Pick<Patient, "fullName"> }
+) =>
+  `Listo, ${appointment.patient.fullName}. Su cita ${therapyTypeLabel(
+    appointment.therapyType
+  )} programada para ${dateFormatter.format(
+    appointment.scheduledAt
+  )} quedó cancelada. Si desea reagendar o agendar una nueva sesión, escríbanos por este medio y con gusto la apoyamos.`;

@@ -243,3 +243,326 @@ La prueba inicial de US1 comprobaba el esquema de persistencia insertando regist
 - La prueba verifica la coordinacion real del caso de uso sin requerir una base de datos externa.
 - El contrato de produccion conserva las dependencias predeterminadas; la inyeccion solo se usa para pruebas.
 - La integridad de migraciones y relaciones se sigue comprobando con PostgreSQL embebido.
+
+## 2026-09-11 - Continuidad clínica y agenda por intervalos
+
+**Decisión**
+
+Se incorporan perfiles clínicos sin login, asignación de paciente por `admin`, tipos `individual` (60 min), `pareja` (90 min) y `familiar` (90 min). PostgreSQL protege las citas activas con una exclusión por psicóloga e intervalo, independientemente de la modalidad. Las confirmaciones se entregan al paciente y al destino interno configurado; los avisos de pago son exclusivos del paciente, antes y después de la sesión si aplica.
+
+**Consecuencias**
+
+- Las citas y pacientes históricos quedan sin asignación hasta que `admin` los regularice; no se infiere una psicóloga.
+- El grupo interno requiere compatibilidad verificada del proveedor de WhatsApp antes de operar en producción.
+- El panel pendiente debe incorporar asignación/reasignación y mostrar tipo, duración y fin de cada cita.
+
+## 2026-09-11 - Endurecimiento de invariantes de agenda en PostgreSQL (convergencia)
+
+**Contexto**
+
+La convergencia detectó que el trigger de citas permitía `therapist_id` nulo, mientras la capa de aplicación ya exigía una psicóloga activa asignada. La segunda pasada (`T116`) cerró el hueco a nivel de base de datos y endureció el listado administrativo ante filas históricas sin terapeuta.
+
+**Decisión**
+
+La migración `20261101000000_convergence_hardening` reemplaza la función del trigger para rechazar con SQLSTATE `23514` las citas con `therapist_id` nulo o que no correspondan a la psicóloga activa asignada al paciente. El listado administrativo de citas usa `therapist?.user?.fullName ?? null` en lugar de desreferenciar la fila.
+
+**Alternativas consideradas**
+
+- Dejar únicamente la validación en la capa de aplicación.
+- Rechazar en el trigger solo el `therapist_id` nulo sin validar la psicóloga activa.
+- Corregir los datos históricos con una migración de datos.
+
+**Consecuencias**
+
+- La restricción sobrevive a cualquier camino de escritura, incluidos los que omitan la validación de aplicación.
+- Las filas históricas se listan con `fullName` nulo en lugar de fallar.
+- Toda migración futura que toque el trigger debe conservar el comportamiento.
+
+## 2026-09-11 - Deslizamiento de sesión administrativa en cada petición (convergencia)
+
+**Contexto**
+
+La renovación por inactividad solo ocurría en `/auth/me`; una petición a cualquier otra ruta administrativa no desplazaba la ventana, y además la cookie de `/me` se emitía sin opciones de sesión (conservaba clear). Descubierto en `T117`/`T118`.
+
+**Decisión**
+
+El middleware `authenticate` desliza la sesión en cada petición autenticada: actualiza `last_activity_at`/`expiry` con el tiempo de inactividad, firma un nuevo JWT con el mismo `jwt_id` y reescribe la cookie con las opciones de set. `/auth/me` conserva su refresco auditable (doble actualización, por diseño), y el clear vuelve a usarse solo en logout.
+
+**Alternativas consideradas**
+
+- Deslizar solo en `/auth/me`.
+- Renovar únicamente la cookie sin volver a firmar el token.
+- Usar sesiones opacas sin JWT.
+
+**Consecuencias**
+
+- La expiración de inactividad se cumple en toda la API administrativa.
+- Cada petición autenticada escribe en `admin_sessions` (más carga de BD, aceptada por el alcance).
+- `/auth/me` realiza dos slides por petición (uno silencioso del middleware y uno auditable del handler).
+
+## 2026-09-11 - Ventana fija y guard de día calendario para los recordatorios del día previo (convergencia)
+
+**Contexto**
+
+`T119`/`T120`: el despacho de recordatorios del día previo dependía solo de la hora y no verificaba el día calendario ni que la cita fuese aún futura, y la programación quedaba atada al resultado del envío inmediato de la confirmación.
+
+**Decisión**
+
+Los recordatorios `recordatorio_24h` y `pago_pendiente` se envían únicamente entre las 18:00 y 19:00 `America/Mexico_City` del día calendario anterior a una cita futura (`isPriorDayReminderDue`); las filas rezagadas se marcan `omitido` con causa "Outside the prior-day reminder window". La programación (`scheduleAppointmentReminders`) se ejecuta en el `finally` de la confirmación, independiente del resultado del envío.
+
+**Alternativas consideradas**
+
+- Confiar en la hora programada de la fila para saber cuándo enviar.
+- Reprogramar (devolver la fila a `pendiente`) en lugar de omitir.
+- Enviar el recordatorio en la transacción de creación de la cita.
+
+**Consecuencias**
+
+- El criterio usa el día calendario de Ciudad de México, no el reloj de la máquina.
+- Las ejecuciones tardías del worker no envían avisos fuera de tiempo; la fila queda omitida y auditable.
+- La confirmación sigue existiendo aunque el envío de confirmación falle.
+
+## 2026-09-11 - Confirmación grupal sin destino configurado como `omitido` (convergencia)
+
+**Contexto**
+
+`T123`: cuando `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` no está configurado, el envío grupal de confirmación lanzaba un error que interrumpía la confirmación del paciente.
+
+**Decisión**
+
+La confirmación envía al paciente normalmente y, si el destino grupal no está configurado, marca la fila grupal como `omitido` con `lastError: "Group destination is not configured"` sin lanzar.
+
+**Alternativas consideradas**
+
+- Reintentar el envío grupal en cada ciclo hasta configurar el destino.
+- Fallar la confirmación completa.
+
+**Consecuencias**
+
+- El paciente nunca queda sin confirmación por un destino interno pendiente.
+- La operación del consultorio debe configurar el destino antes de producir para no perder avisos internos.
+- El despachador (`dispatchDueReminders`) mantiene un camino propio: marca `fallido` si falta el destino; diferencia intencional y documentada.
+
+## 2026-09-11 - `400 validation_error` para parámetros de ruta no-UUID (convergencia)
+
+**Contexto**
+
+`T124`: la API administrativa respondía `404 not_found` ante parámetros de ruta inválidos, contradiciendo el formato de error de validación del contrato.
+
+**Decisión**
+
+`assertUuidParam` lanza `AppError(400, "validation_error", "Invalid identifier")` para los ids de ruta, y el test de contrato verifica `PATCH /therapists/not-a-uuid` y `POST /appointments/not-a-uuid/complete`.
+
+**Alternativas consideradas**
+
+- Mantener `404` para cualquier id inválido.
+- Devolver `422`.
+
+**Consecuencias**
+
+- `404` vuelve a significar recurso inexistente; `400` indica parámetro malformado.
+- Es consistente con el resto de validaciones Zod del contrato.
+
+## 2026-09-11 - Gate de integración con PostgreSQL real (convergencia)
+
+**Contexto**
+
+Las reglas con `btree_gist` (exclusión de traslapes) y los triggers de negocio no se pueden verificar con PGlite, que no incluye la extensión. Las pruebas se saltaban sin cubrir la semántica real.
+
+**Decisión**
+
+El runner de test usa PGlite como base embebida para contrato, integración y unitarias, y un gate opt-in `RUN_POSTGRES_INTEGRATION=true` activa `*.postgres.integration.test.ts` contra PostgreSQL 16 real (`postgres:16-alpine`, puerto 54321) con las migraciones aplicadas vía `prisma migrate deploy`.
+
+**Alternativas consideradas**
+
+- Solo PGlite sin gate real.
+- Ejecutar siempre el gate en cada corredor (requiere infraestructura permanente).
+- Probar las reglas con SQL directo sin Prisma.
+
+**Consecuencias**
+
+- El gate exige Docker/PostgreSQL disponible; sin él, la suite verdea con esos escenarios omitidos.
+- Los invariantes críticas (exclusión, triggers, rollbacks) quedan verificados contra Postgres real.
+- `DATABASE_URL` del gate debe apuntar a una base dedicada desechable.
+
+## 2026-09-11 - Disponibilidad con slots reales y clasificación clínica previa (convergencia)
+
+**Contexto**
+
+`T121`/`T115`: la respuesta de disponibilidad construía el template con una lista vacía (`bookingDetailsPrompt([])`), y `classifyIntent` evaluaba el patrón de reserva antes que el contenido clínico sensible.
+
+**Decisión**
+
+`sendAvailability` resuelve el paciente por teléfono, y si tiene psicóloga activa asignada ofrece los 3 siguientes espacios de `findNextAvailableSlots(psicóloga, individual)` en el template (quien no tenga asignación recibe el pedido de datos genérico). `classifyIntent` evalúa el contenido clínico sensible antes que el patrón de reserva (handoff prioritario), con prueba de regresión para mensajes combinados ("me siento muy mal y quiero agendar").
+
+**Alternativas consideradas**
+
+- Ofrecer solo mensajes genéricos sin horarios.
+- Calcular slots contra una modalidad fija (60 min) sin importar el tipo final.
+- Mantener el orden previo de intents.
+
+**Consecuencias**
+
+- La oferta mostrada ya es reservable y evita prometer horarios ocupados.
+- Los horarios se calculan por modalidad `individual` (60 min) para la vista previa; la cita final valida su propio tipo/duración.
+- Un mensaje urgente nunca se reserva automáticamente aunque pida agendar.
+
+## 2026-09-11 - Panel administrativo: identidad `admin` con scrypt y auditoría (US2)
+
+**Contexto**
+
+El panel requiere la única sesión admisible del MVP: la cuenta `admin` con rol `admin`, `panel_login_enabled` y `is_active`, validando `username` + contraseña. Los intentos no admin deben rechazarse sin emitir cookie y con auditoría de denegación.
+
+**Decisión**
+
+El login usa `password.service.ts` con `scrypt` nativo (`scrypt$<salt>$<hash>`, mismo formato del seed). `identifyAdminForLogin` autentica por `username` y contraseña y además exige, vía `authorizeAdminIdentity`, que el usuario sea exactamente el admin panel del directorio de usuarios. El middleware de identidad es una factoría inyectable `createAuthorizeAdminIdentity(audit)` con instancia por defecto; los routers administrativos la reciben como dependencia inyectable. El registro de la sesión (`createAdminSessionWithAudit`) y su auditoría viven en una misma transacción Prisma, de modo que un fallo de auditoría revierte la sesión.
+
+**Consecuencias**
+
+- Las contraseñas se verifican con `timingSafeEqual` sobre hashes scrypt, sin texto plano ni bcrypt.
+- Los fallos de credenciales o identidad devuelven `401 Unauthorized` sin cookie y quedan auditados.
+- Los tests de contrato inyectan un guard con auditoría falsa; la integración usa PGlite + constraints `users_single_admin_key`/`users_access_profile_check`.
+
+## 2026-09-11 - Panel administrativo: mutaciones de citas desde rutas injectables (US2/T028-T035, T082)
+
+**Contexto**
+
+El panel necesita listar citas por rango, crearlas, reagendarlas y cancelarlas, reutilizando el motor de dominio de US1 y visibilizando el estado de pago del usuario paciente.
+
+**Decisión**
+
+`appointments.routes.ts` expone `GET /appointments?from=&to=`, `POST /appointments`, `PATCH /appointments/:appointmentId` (reagendar) y `POST /appointments/:appointmentId/cancel`. La creación usa `resolvePanelPatient` (existe o se crea), asigna `createdByUserId` desde la sesión admin, detecta conflictos de horario (`AppointmentConflictError` → 409) y exige psicóloga asignada al paciente (`TherapistAssignmentRequiredError` → 409). Reagendar fuera de horario regular setea `isManualException`. El DTO de calendario `appointmentCalendarDto` incluye `scheduledAt` por `startsAt`, `paymentStatus` y fines de cita y se sirve directamente en las rutas. El módulo `directory` (repository/service/routes) y estos routers se montan bajo `API_PREFIX`, todos detrás de `authenticate` + `authorizeAdminIdentity`.
+
+**Consecuencias**
+
+- Contrato unificado: `400 validation_error`, `404 not_found`, `409` conflictos y `422 schedule_error`.
+- El panel programa recordatorios en la transacción de creación (sin confirmación WhatsApp inmediata desde admin) y `scheduleCancellationNotice` al cancelar, clasificando `a_tiempo`/`tardia` con `cancellationNoticeFor`.
+- Endpoints legados de `therapists.routes.ts` y `GET /admin/appointments` quedan tras el mismo guard.
+
+## 2026-09-11 - Panel administrativo: paleta semántica y precedencia de colores (US2/T031)
+
+**Contexto**
+
+La agenda del panel exige distinguir visualmente el motivo del color de una cita: cancelación, confirmación pendiente, pago pendiente, terapeuta asignado y tipo personal, en un esquema único ya definido.
+
+**Decisión**
+
+Un único `EVENT_COLOR_MAP` centraliza los 7 tokens del contrato (naranja cumpleaños, gris cancelada, ámbar por confirmar, verde pago pendiente, lavanda Jocelyn, uva Jenny, rosa personal) con pares `bg`/`text` y `solid` para badges. `appointmentKindOf` resuelve la categoría por precedencia: `cancelada` → `por_confirmar` → `pendiente_pago`/`anticipo` (pago no liquidado) → terapeuta (por nombre) → `personal`. `eventsForWindow` fusiona citas con cumpleaños del directorio.
+
+**Consecuencias**
+
+- La agenda (mes/semana/día), la leyenda con contadores y el dashboard usan el mismo origen de verdad.
+- La precedencia garantiza que el estado operativo del día (cancelación o pago) domine al color de la psicóloga.
+
+## 2026-09-11 - Panel administrativo: protección de rutas en el frontend (US2/T030, T033)
+
+**Contexto**
+
+El frontend necesita bloquear el panel salvo login. Next 16 sustituye `middleware.ts` por `proxy.ts`, y el proyecto decidió no adelantar infra proxy; toda la autorización vive en la API.
+
+**Decisión**
+
+Un layout cliente en `frontend/app/admin/layout.tsx` usa `usePathname` para saltar el guard en `/admin/login` y, en el resto, monta `AdminGuard` + `AdminNav`. `useAdminSession` carga la sesión vía `GET /auth/me`; sin sesión o con `401` redirige con `router.replace("/admin/login")`. La cuenta raíz `/` redirige a `/admin/agenda`.
+
+**Consecuencias**
+
+- Sin `proxy.ts` ni duplicidad de Estado del host: el backend sigue siendo la única autoridad.
+- Las páginas admin existentes (`appointments`, `patients`, `therapists`) ya no se auto-envuelven en `AdminGuard`.
+- El E2E `admin-agenda.spec.ts` verifica redirect anónimo, login, vista diaria con leyenda y logout.
+
+## 2026-09-12 - Recordatorios atómicos del agendamiento y worker configurable (Phase 25/T133-T135)
+
+**Contexto**
+
+Las filas de recordatorio programadas al agendar o confirmar debían ser un efecto consistente de la cita, no un paso separable que pudiera quedar a medias. Además el worker no debía auto-enviar por defecto en desarrollo ni al arrancar el backend sin configurarlo, y el build compila a CommonJS.
+
+**Decisión**
+
+La programación y confirmación de recordatorios se ejecutan dentro de la misma transacción Prisma que persiste la cita: si la cita no se guarda, tampoco sus recordatorios. El arranque del worker depende de `ENABLE_REMINDER_WORKER` (`z.enum(["true","false"])`, default `false`) en `server.ts`, y existe una entrada dedicada `backend/src/jobs/reminders-worker.entry.ts` invocable con `npm run reminders:worker`. La validación de entorno de producción exige además `SESSION_IDLE_TIMEOUT_MINUTES=30`.
+
+**Alternativas consideradas**
+
+- Crear recordatorios en un paso posterior sin transacción.
+- Arrancar el worker implícitamente con el backend.
+
+**Consecuencias**
+
+- No quedan citas con recordatorios huérfanos ni recordatorios sin cita.
+- Por defecto el backend no envía nada; producción debe activar la variable o ejecutar el worker aparte.
+
+## 2026-09-12 - Cancelación por WhatsApp con verificación completa de identidad (Phase 26/T140-T141)
+
+**Contexto**
+
+`FR-004` exige cancelar citas por WhatsApp y desde el panel. El chatbot agendaba, ofrecía disponibilidad y derivaba clínica, pero no cancelaba. El usuario optó por una verificación con número registrado, nombre y fecha de nacimiento antes de cancelar.
+
+**Decisión**
+
+Se agregó el intent `cancel`, reconocido con `cancellationPattern` (`\bcancel\w*\b|anular|anulaci[oó]n|ya no podr[ée] (asistir|ir)|no podr[ée] (asistir|ir a la cita)`), evaluado después de la revisión clínica y antes que el intent de reserva. El flujo resuelve el paciente por su número de WhatsApp registrado y exige que nombre y fecha de nacimiento coincidan (`parseCancellationDetails` + `matchesPatientIdentity`; la fecha se compara con `toISOString().slice(0,10)`). Si coinciden, cancela la próxima cita activa (`findNextActiveAppointmentForPatient`: estados `programada|confirmada`, cita futura) mediante `cancelAppointmentWithAudit`, vincula la conversación con el `patientId` y confirma ofreciendo reagendar. La petición incompleta o con identidad fallida se audita como `appointment_cancellation_denied`. El enum de `ConversationIntent` ya incluía `cancel`, por lo que no hubo migración; el multi-turno reactiva el intent con `currentIntent`.
+
+**Alternativas consideradas**
+
+- Cancelar solo con el número registrado (descartada por elección del usuario).
+- Cancelar sin verificación alguna.
+- Aplazar la decisión a US5.
+
+**Consecuencias**
+
+- Ninguna mutación por WhatsApp ocurre sin identidad verificada; las denegaciones quedan auditables.
+- La verificación adelanta solo la semántica de identidad de US5 para la mutación de cancelación.
+- La cancelación del panel (`POST /api/v1/appointments/:id/cancel`) permanece en la sesión administrativa, sin verificación del paciente.
+
+## 2026-09-12 - Inyección ampliada en el orquestador de WhatsApp sin romper contratos (Phase 26)
+
+**Contexto**
+
+Al incorporar la cancelación, `processIncomingWhatsAppMessage` necesitaba persistir el mensaje de salida del chatbot y resolver/cancelar la cita verificada, sin duplicar lógica ni romper el patrón de inyección para pruebas ya usado en US1.
+
+**Decisión**
+
+Se extendió el mismo esquema: `sendResponse` recibe `saveOutboundMessage`, y la cancelación inyecta `findVerifiedCancellableAppointment` y `cancelAppointmentWithAudit`. Las instancias por defecto (persistencia real) se conservan en producción; las pruebas de integración inyectan implementaciones controladas y verifican el ciclo completo.
+
+**Alternativas consideradas**
+
+- Acoplar el módulo `chatbot` a los repositorios directamente.
+- Duplicar el flujo de cancelación en otro módulo.
+
+**Consecuencias**
+
+- El contrato de producción no cambia; la inyección sigue siendo exclusivamente para pruebas.
+- Las pruebas controladas (PGlite/embebida) y el gate PostgreSQL cubren la integración real.
+
+## 2026-09-15 - Tercera vuelta de pruebas iniciales del panel y auditoria US2/US3
+
+**Contexto**
+
+La tercera vuelta manual del panel cubrio agenda y pagos. Durante ella se
+detecto una estructura HTML invalida que podia producir un error de hidratacion
+en la agenda. Se ejecuto una auditoria de convergencia para contrastar US2 y
+US3 con la especificacion, el modelo de datos, la Constitucion, las pruebas y
+la documentacion operativa.
+
+**Decision**
+
+La correccion de botones anidados se conserva como correccion de producto en
+`event-card.tsx` (commit `c79ed69`). La vuelta queda registrada en
+`docs/pruebas-panel.md` como evidencia inicial, sin declararla UAT formal. Los
+hallazgos de la auditoria se registran como tareas pendientes en Phase 27 para
+no ocultar deuda funcional ni documentacion desactualizada.
+
+**Consecuencias**
+
+- La agenda no debe volver a renderizar botones anidados en ninguna vista.
+- US3 tiene acciones manuales disponibles, pero su cierre requiere pruebas de
+  integracion/E2E, trazabilidad durable del recordatorio y asociacion visible de
+  comprobantes.
+- Las guias operativas distinguen funcionalidad disponible de criterios aun no
+  verificados con Jocelyn.
+
+**Resolucion de convergencia**
+
+Las remediaciones T144-T164 cerraron la auditoria: recordatorios y webhooks
+tienen trazas durables, comprobantes se asocian manualmente, tarifas validan el
+anticipo, agenda exige excepciones explicitas y los contratos, plan y pruebas
+de pagos quedaron alineados. La UAT formal con Jocelyn sigue siendo un gate de
+entrega, no una afirmacion de esta auditoria tecnica.
