@@ -144,30 +144,36 @@ const MonthView = ({
           const inMonth = day.getMonth() === dates[15]?.getMonth();
 
           return (
-            <button
+            <div
               key={key}
-              type="button"
-              onClick={() => onDaySelect?.(day)}
-              aria-label={`Ver ${new Intl.DateTimeFormat("es-MX", {
-                day: "numeric",
-                month: "long"
-              }).format(day)}`}
-              className={`flex min-h-24 flex-col gap-1 p-1.5 text-left focus:outline-none focus:ring-2 focus:ring-forest/40 ${
+              className={`flex min-h-24 flex-col gap-1 p-1.5 ${
                 inMonth ? "bg-white" : "bg-gray-50/60"
-              } ${onDaySelect ? "cursor-pointer hover:bg-forest/5" : ""}`}
+              }`}
             >
               <div className="flex justify-between px-0.5">
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                    key === todayKey
-                      ? "bg-forest text-white"
-                      : inMonth
-                        ? "text-gray-700"
-                        : "text-gray-300"
+                <button
+                  type="button"
+                  onClick={() => onDaySelect?.(day)}
+                  aria-label={`Ver ${new Intl.DateTimeFormat("es-MX", {
+                    day: "numeric",
+                    month: "long"
+                  }).format(day)}`}
+                  className={`rounded focus:outline-none focus:ring-2 focus:ring-forest/40 ${
+                    onDaySelect ? "cursor-pointer hover:bg-forest/5" : ""
                   }`}
                 >
-                  {day.getDate()}
-                </span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                      key === todayKey
+                        ? "bg-forest text-white"
+                        : inMonth
+                          ? "text-gray-700"
+                          : "text-gray-300"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </span>
+                </button>
                 {dayEvents.length > 4 && (
                   <span className="text-[10px] text-gray-400">
                     +{dayEvents.length - 4}
@@ -186,7 +192,7 @@ const MonthView = ({
                   onComplete={onEventComplete}
                 />
               ))}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -333,42 +339,49 @@ const DayView = ({
     byHour.set(hour, bucket);
   }
 
+  const hours = new Set(Array.from({ length: 13 }, (_, index) => 9 + index));
+  for (const hour of byHour.keys()) {
+    hours.add(hour);
+  }
+
   return (
     <div className="overflow-hidden rounded border border-gray-200 bg-white">
       <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700">
         {formatFullDayLabel(day)}
       </div>
       <div className="divide-y divide-gray-100">
-        {Array.from({ length: 13 }, (_, index) => 9 + index).map((hour) => {
-          const hourEvents = (byHour.get(hour) ?? []).sort(eventSort);
+        {Array.from(hours)
+          .sort((a, b) => a - b)
+          .map((hour) => {
+            const hourEvents = (byHour.get(hour) ?? []).sort(eventSort);
 
-          return (
-            <div key={hour} className="flex min-h-14 items-stretch">
-              <div className="w-16 shrink-0 border-r border-gray-100 py-2 pr-2 text-right text-[11px] font-medium text-gray-400">
-                {String(hour).padStart(2, "0")}:00
+            return (
+              <div key={hour} className="flex min-h-14 items-stretch">
+                <div className="w-16 shrink-0 border-r border-gray-100 py-2 pr-2 text-right text-[11px] font-medium text-gray-400">
+                  {String(hour).padStart(2, "0")}:00
+                </div>
+                <div className="flex flex-1 flex-col gap-1 p-1.5">
+                  {hourEvents.length === 0 && (
+                    <span className="pl-2 pt-2 text-[11px] text-gray-300">
+                      Libre
+                    </span>
+                  )}
+                  {hourEvents.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      variant="day"
+                      onSelect={onEventSelect}
+                      onCancel={onEventCancel}
+                      onReschedule={onEventReschedule}
+                      onConfirm={onEventConfirm}
+                      onComplete={onEventComplete}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-1 flex-col gap-1 p-1.5">
-                {hourEvents.length === 0 && (
-                  <span className="pl-2 pt-2 text-[11px] text-gray-300">
-                    Libre
-                  </span>
-                )}
-                {hourEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    variant="day"
-                    onSelect={onEventSelect}
-                    onCancel={onEventCancel}
-                    onReschedule={onEventReschedule}
-                    onConfirm={onEventConfirm}
-                    onComplete={onEventComplete}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
     </div>
   );

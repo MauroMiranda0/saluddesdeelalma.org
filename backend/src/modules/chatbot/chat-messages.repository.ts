@@ -15,6 +15,14 @@ type IncomingMessage = {
 export const hasChatMessage = async (waMessageId: string) =>
   Boolean(await prisma.chatMessage.findUnique({ where: { waMessageId } }));
 
+export const findConversationByIncomingMessage = (waMessageId: string) =>
+  prisma.chatMessage
+    .findUnique({
+      where: { waMessageId },
+      include: { conversation: true }
+    })
+    .then((message) => message?.conversation ?? null);
+
 export const getOrCreateConversation = async (
   whatsappPhone: string,
   lastMessageAt: Date

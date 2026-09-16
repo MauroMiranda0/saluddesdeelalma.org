@@ -18,7 +18,6 @@ const INITIAL_FORM = {
   birthdate: "",
   preferredModality: "" as "" | "online" | "presencial",
   email: "",
-  notes: "",
   therapistId: ""
 };
 
@@ -65,7 +64,6 @@ export default function AdminPatientsPage() {
         birthdate: form.birthdate,
         preferredModality: form.preferredModality || undefined,
         email: form.email || undefined,
-        notes: form.notes || undefined,
         therapistId: form.therapistId || undefined
       });
       setForm(INITIAL_FORM);
@@ -187,16 +185,6 @@ export default function AdminPatientsPage() {
               ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1">
-          Notas (opcional)
-          <textarea
-            className="rounded border px-2 py-1"
-            value={form.notes}
-            onChange={(event) => setField("notes", event.target.value)}
-            maxLength={1000}
-            rows={3}
-          />
-        </label>
         <button
           type="submit"
           className="self-start rounded bg-forest px-3 py-1 text-white"
@@ -238,9 +226,6 @@ export default function AdminPatientsPage() {
             ) : null}
             {patient.email ? (
               <p className="text-sm text-gray-600">{patient.email}</p>
-            ) : null}
-            {patient.notes ? (
-              <p className="text-sm text-gray-600">{patient.notes}</p>
             ) : null}
             <div className="mt-2 flex items-center gap-2">
               <select

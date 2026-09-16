@@ -11,7 +11,6 @@ export const listDirectoryPatients = () => {
       status: true,
       preferredModality: true,
       email: true,
-      notes: true,
       assignedTherapistId: true
     }
   });

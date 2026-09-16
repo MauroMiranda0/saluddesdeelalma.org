@@ -101,18 +101,18 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Implementacion para Historia de Usuario 2
 
-- [x] T028 [P] [US2] Implementar controllers y rutas de login, logout y sesion activa con credenciales `username` y contraseÃ±a en `backend/src/modules/auth/auth.controller.ts`, `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/auth/auth.routes.ts`
-- [x] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.controller.ts` y `backend/src/modules/appointments/admin-appointments.routes.ts`
-- [x] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/ui/login-form.tsx`
-- [x] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/agenda/daily-agenda.tsx`
-- [x] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/agenda/appointment-form.tsx` y `frontend/components/agenda/cancel-appointment-dialog.tsx`
-- [x] T033 [US2] Implementar proteccion de rutas, validaciÃ³n de identidad `admin` y expiracion de sesion en `frontend/app/admin/agenda/page.tsx`, `frontend/lib/auth/session.ts` y `frontend/middleware.ts`
+- [x] T028 [P] [US2] Implementar rutas de login, logout y sesion activa con credenciales `username` y contraseÃ±a en `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/auth/auth.service.ts`, `backend/src/modules/auth/password.service.ts` y `backend/src/modules/auth/session.service.ts`
+- [x] T029 [US2] Implementar endpoints administrativos para listar, crear, mover y cancelar citas en `backend/src/modules/appointments/appointments.routes.ts`, `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/appointments/appointments.repository.ts`
+- [x] T030 [US2] Implementar pagina de login del panel en `frontend/app/admin/login/page.tsx` y `frontend/components/admin/login-form.tsx`
+- [x] T031 [P] [US2] Implementar pagina de agenda y lista diaria de citas en `frontend/app/admin/agenda/page.tsx` y `frontend/components/admin/agenda/agenda-calendar.tsx`
+- [x] T032 [P] [US2] Implementar formulario de cita y dialogo de cancelacion en `frontend/components/admin/agenda/appointment-form.tsx` y `frontend/components/admin/agenda/cancel-dialog.tsx`
+- [x] T033 [US2] Implementar proteccion de rutas, validaciÃ³n de identidad `admin` y expiracion de sesion en `frontend/app/admin/layout.tsx`, `frontend/lib/auth/use-admin-session.ts` y `frontend/lib/auth/session.ts`
 - [x] T034 [US2] Disparar notificaciones de cancelacion desde acciones administrativas en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/reminders.service.ts`
-- [x] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.service.ts` y `backend/src/modules/audit/audit.service.ts`
-- [x] T082 [US2] Aplicar `authenticate` seguido de `authorizeAdminIdentity` a todas las rutas administrativas y auditar denegaciones de identidad o rol en `backend/src/middleware/authorize-admin-identity.ts`, `backend/src/app.ts` y los routers administrativos de `backend/src/modules/`
-- [x] T083 [P] [US2] Implementar endpoint y vista mÃ³vil del directorio de psicÃ³logos/as y pacientes, con citas y pagos pendientes en `backend/src/modules/directory/directory.controller.ts`, `backend/src/modules/directory/directory.routes.ts`, `backend/src/modules/directory/directory.service.ts`, `frontend/app/admin/directorio/page.tsx` y `frontend/components/directorio/user-directory.tsx`
+- [x] T035 [US2] Auditar login exitoso, login fallido y mutaciones administrativas de citas en `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/auth/session.service.ts`, `backend/src/modules/appointments/appointments.routes.ts` y `backend/src/modules/audit/audit.repository.ts`
+- [x] T082 [US2] Aplicar `authenticate` seguido de `authorizeAdminIdentity` a todas las rutas administrativas y auditar denegaciones de identidad o rol en `backend/src/middleware/authorize-admin-identity.ts`, `backend/src/app.ts` y los modulos de rutas administrativos en `backend/src/modules/`
+- [x] T083 [P] [US2] Implementar endpoint y vista mÃ³vil del directorio de psicÃ³logos/as y pacientes, con citas y pagos pendientes en `backend/src/modules/directory/directory.routes.ts`, `backend/src/modules/directory/directory.service.ts`, `backend/src/modules/directory/directory.repository.ts` y `frontend/app/admin/directorio/page.tsx`
 
-**Notas de cierre US2**: los controllers se mantienen como mÃ³dulos de rutas con games inyectables (patrÃ³n serverless de este repo). Archivos efectivos: `auth.routes.ts`, `appointments.routes.ts` (creaciÃ³n admin, reagendamiento y cancelaciÃ³n) en `backend/src/modules/appointments/`, `directory.*` y `authorize-admin-identity.ts` (factory `createAuthorizeAdminIdentity(audit)`). La protecciÃ³n de rutas usa layout cliente + `AdminGuard`/`useAdminSession` en `frontend/app/admin/layout.tsx`, saltando `/admin/login`, y no `middleware.ts` (Next 16 usa `proxy.ts`; el backend conserva toda la autorizaciÃ³n). El E2E T027 requiere base sembrada con `ADMIN_SEED_PASSWORD` e instalaciÃ³n de navegadores Playwright para ejecutarse.
+**Notas de cierre US2**: los controladores se implementan como modulos de rutas con dependencias inyectables. Los archivos efectivos son `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/appointments/appointments.routes.ts` (creacion, reagendamiento, confirmacion y cancelacion), `backend/src/modules/directory/directory.*` y `backend/src/middleware/authorize-admin-identity.ts` (factory `createAuthorizeAdminIdentity(audit)`). La proteccion de rutas usa layout cliente + `AdminGuard`/`useAdminSession` en `frontend/app/admin/layout.tsx`, saltando `/admin/login`, y no `middleware.ts` (Next 16 usa `proxy.ts`; el backend conserva toda la autorizacion). El E2E T027 requiere base sembrada con `ADMIN_SEED_PASSWORD` e instalacion de navegadores Playwright para ejecutarse.
 
 **Punto de control**: Las Historias de Usuario 1 y 2 deben funcionar de forma independiente
 
@@ -126,18 +126,18 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 3
 
-- [ ] T036 [P] [US3] Crear prueba de contrato de pagos en `backend/tests/contract/payments.contract.test.ts`
-- [ ] T037 [P] [US3] Crear prueba de integracion del flujo de pagos en `backend/tests/integration/payments-flow.integration.test.ts`
-- [ ] T038 [P] [US3] Crear prueba E2E movil para registro de pagos en `frontend/tests/e2e/admin-payments.spec.ts`
+- [x] T036 [P] [US3] Crear prueba de contrato de pagos en `backend/tests/contract/payments.contract.test.ts`
+- [x] T037 [P] [US3] Crear prueba de integracion del flujo de pagos en `backend/tests/integration/payments-flow.integration.test.ts`
+- [x] T038 [P] [US3] Crear prueba E2E movil para registro de pagos en `frontend/tests/e2e/admin-payments.spec.ts`
 
 ### Implementacion para Historia de Usuario 3
 
-- [ ] T039 [P] [US3] Implementar persistencia de pagos y reglas de negocio en `backend/src/modules/payments/payments.repository.ts` y `backend/src/modules/payments/payments.service.ts`
-- [ ] T040 [US3] Implementar endpoints de pagos en `backend/src/modules/payments/payments.controller.ts` y `backend/src/modules/payments/payments.routes.ts`
-- [ ] T041 [P] [US3] Implementar agregacion del estado de pago por cita en `backend/src/modules/payments/payment-status.service.ts`
-- [ ] T042 [P] [US3] Implementar pagina de pagos y acciones rapidas en `frontend/app/admin/pagos/page.tsx` y `frontend/components/pagos/payment-actions.tsx`
-- [ ] T043 [US3] Agregar campo de referencia de comprobante y manejo de validacion en `backend/src/modules/payments/payments.service.ts` y `frontend/components/pagos/payment-proof-field.tsx`
-- [ ] T044 [US3] Auditar registro y validacion de pagos en `backend/src/modules/payments/payments.service.ts` y `backend/src/modules/audit/audit.service.ts`
+- [x] T039 [P] [US3] Implementar registro de pagos y reglas de negocio en `backend/src/modules/payments/payments.service.ts`
+- [x] T040 [US3] Implementar endpoints de pagos en `backend/src/modules/payments/payments.routes.ts`
+- [x] T041 [P] [US3] Agregar el estado de pago por cita en `backend/src/modules/appointments/appointments.service.ts`
+- [x] T042 [P] [US3] Implementar pagina de pagos y acciones rapidas en `frontend/app/admin/payments/page.tsx`
+- [x] T043 [US3] Agregar campo de referencia de comprobante y manejo de validacion en `backend/src/modules/payments/payments.service.ts` y `frontend/app/admin/payments/page.tsx`
+- [x] T044 [US3] Auditar el registro y la validacion de pagos en `backend/src/modules/payments/payments.service.ts`
 
 **Punto de control**: La Historia de Usuario 3 debe quedar funcional por si sola
 
@@ -504,3 +504,61 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 - [x] T140 [M] [US1] Implementar cancelacion de cita por WhatsApp con verificacion de identidad (numero registrado + nombre y fecha de nacimiento coincidentes) que cancela la proxima cita activa, audita el resultado y confirma al paciente con oferta de reagendar, en `backend/src/modules/chatbot/chatbot.intents.ts`, `backend/src/modules/chatbot/chatbot.service.ts`, `backend/src/modules/chatbot/response-templates.ts` y `backend/src/modules/appointments/appointments.repository.ts`. per FR-004 (partial)
 - [x] T141 [P] [US1] Crear pruebas de clasificacion del intent `cancel` (sobre `book`/`handoff`), verificacion de identidad fallida sin exponer datos y flujo de cancelacion con auditoria y confirmacion, en `backend/tests/integration/whatsapp-booking.integration.test.ts`. per FR-004, FR-023, FR-024 (partial)
+
+---
+
+## Phase 27: Convergence
+
+**Proposito**: Cerrar la tercera vuelta de pruebas iniciales del panel y los hallazgos de convergencia de US2/US3 contra `spec.md`, `data-model.md`, `quickstart.md` y la Constitucion.
+
+- [x] T142 [L] Documentar la correccion de hidratacion por botones anidados en `frontend/components/admin/agenda/event-card.tsx` (commit `c79ed69`) y registrar la tercera vuelta inicial del panel en `docs/pruebas-panel.md` y `docs/decisions.md`.
+- [x] T143 [L] Alinear la documentacion con el estado real de US3: marcar las tareas implementadas y actualizar `README.md` y `quickstart.md` sin declarar cerrado el flujo completo.
+- [x] T144 [H] Persistir una traza durable del recordatorio manual antes o junto con su despacho para que un fallo de auditoria no deje un envio sin registro, en `backend/src/modules/payments/payments.service.ts` y la infraestructura de auditoria. per FR-016, FR-035, SC-007.
+- [x] T145 [H] Vincular la referencia operativa de comprobantes de WhatsApp a la cita o pago correspondiente y mostrar referencia, fecha y estado en `/admin/payments`, en `backend/src/modules/chatbot/`, `backend/src/modules/payments/` y `frontend/app/admin/payments/page.tsx`. per FR-033, FR-034, FR-035, SC-015.
+- [x] T146 [H] Crear las pruebas de integracion y E2E movil del flujo de pagos, incluida autorizacion, auditoria, anticipo y confirmacion, en `backend/tests/integration/payments-flow.integration.test.ts` y `frontend/tests/e2e/admin-payments.spec.ts`. per Constitution 6.3-6.4, SC-004, SC-008, SC-016.
+- [x] T147 [M] Rechazar la confirmacion de pagos cuyo estado no sea `pendiente_validacion`, dentro de la transaccion de confirmacion de `backend/src/modules/payments/payments.service.ts`. per FR-033, FR-035.
+- [x] T148 [M] Definir una base tarifaria para validar el anticipo del 50% o ajustar el requisito que lo promete, con validacion y pruebas en pagos. per Constitution 4.2, FR-009.
+- [x] T149 [M] Mostrar en la vista diaria las excepciones manuales fuera de horario regular y reestructurar la vista mensual para que no anide botones, en `frontend/components/admin/agenda/agenda-calendar.tsx`. per FR-012.
+- [x] T150 [L] Actualizar las referencias historicas de archivos de US2 en `tasks.md` para que coincidan con los modulos efectivos consignados en la nota de cierre. per trazabilidad del plan.
+
+---
+
+## Phase 28: Convergence
+
+**Proposito**: Cerrar las desviaciones adicionales encontradas al contrastar codigo, `spec.md`, `plan.md` y `tasks.md`.
+
+- [x] T151 [H] Crear y despachar las confirmaciones durables de paciente y grupo al crear una cita desde el panel, con estados verificables de envio, en `backend/src/modules/appointments/appointments.service.ts` y `backend/src/modules/reminders/`. per FR-006, FR-031, plan decision 8 (partial).
+- [x] T152 [H] Persistir los eventos entrantes de WhatsApp en una bandeja durable con procesamiento idempotente y reintentos recuperables tras reinicio, en `backend/src/modules/chatbot/` y la infraestructura de jobs. per FR-001, plan performance goal (partial).
+- [x] T153 [M] Exigir la confirmacion explicita de excepcion manual al reagendar fuera del horario regular, con auditoria de la excepcion, en `backend/src/modules/appointments/` y `frontend/components/admin/agenda/reschedule-dialog.tsx`. per FR-002, plan decision 6 (contradicts).
+- [x] T154 [M] Eliminar o acotar `Patient.notes` y su exposicion para evitar que funcione como expediente clinico, con migracion y prueba de regresion, en `backend/prisma/`, `backend/src/modules/patients/` y `frontend/app/admin/patients/page.tsx`. per plan constraints, spec FR-025 (contradicts).
+- [x] T155 [M] Alinear `contracts/api.yaml` con las rutas y DTOs administrativos reales de citas y pagos, incluyendo confirmacion y recordatorio, en `specs/001-sistema-gestion-consultorio/contracts/api.yaml`. per plan Phase 1 outputs (contradicts).
+- [x] T156 [L] Actualizar `plan.md` con el stack, worker y rutas adoptados, incluido Next 16, scrypt, worker por intervalo y `/admin/payments`. per plan technical context and project structure (unrequested).
+
+---
+
+## Phase 29: Convergence
+
+**Proposito**: Cerrar las brechas restantes de la verificacion final de convergencia.
+
+- [x] T157 [H] Hacer recuperable el despacho de respuestas salientes de WhatsApp cuando el evento entrante ya fue persistido, evitando que un reintento marque procesado un mensaje sin respuesta, en `backend/src/modules/chatbot/` y el inbox durable. per FR-001 (partial).
+- [x] T158 [H] Validar que todo pago `completo` coincida con la tarifa configurada de la sesion antes de confirmarlo, con pruebas de regresion, en `backend/src/modules/payments/` y `backend/tests/`. per Constitution 4.2, FR-009, FR-010 (partial).
+- [x] T159 [M] Eliminar `patient.notes` y alinear las rutas de pacientes y terapeutas en `contracts/api.yaml` con la API administrativa implementada. per plan Phase 1 outputs (contradicts).
+
+---
+
+## Phase 30: Convergence
+
+**Proposito**: Cerrar la identificacion visible de excepciones manuales en la agenda diaria.
+
+- [x] T160 [M] Mostrar una etiqueta visible de excepcion manual en `EventCard` para citas fuera del horario regular y cubrirla con prueba de componente o regresion equivalente. per FR-012 (partial).
+
+---
+
+## Phase 31: Convergence
+
+**Proposito**: Cerrar la recuperacion completa de la bandeja WhatsApp y la cobertura movil pendiente.
+
+- [x] T161 [H] Reintentar la materializacion de respuestas y avisos de comprobante cuando el mensaje entrante ya exista pero no se haya creado su outbox, sin marcar procesado el evento hasta que los efectos salientes esten persistidos. per FR-001, T157 (partial).
+- [x] T162 [H] Habilitar y documentar el worker de inbox WhatsApp para produccion de modo que un webhook aceptado no quede sin procesamiento, en configuracion, `.env.example` y guia operativa. per FR-001 (partial).
+- [x] T163 [M] Completar el E2E movil de pagos con confirmacion manual posterior al registro, en `frontend/tests/e2e/admin-payments.spec.ts`. per SC-016, T146 (partial).
+- [x] T164 [M] Cubrir la etiqueta de excepcion manual de `EventCard` con una regresion frontend ejecutable. per FR-012, T160 (partial).

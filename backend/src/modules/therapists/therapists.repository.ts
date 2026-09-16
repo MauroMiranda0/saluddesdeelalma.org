@@ -20,7 +20,6 @@ export const listPatientsForAdmin = () => {
       birthdate: true,
       preferredModality: true,
       email: true,
-      notes: true,
       assignedTherapistId: true
     }
   });

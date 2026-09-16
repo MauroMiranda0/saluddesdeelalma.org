@@ -1,16 +1,16 @@
 import type { RequestHandler } from "express";
 
 import { env } from "../../config/env";
-import { whatsappGateway } from "../../integrations/whatsapp/whatsapp.gateway";
-import { logger } from "../../lib/logger";
 import { whatsappWebhookSchema } from "../../lib/validators/chatbot";
 import { AppError } from "../../middleware/error-handler";
 import {
-  processIncomingPaymentProof,
-  processIncomingWhatsAppMessage,
   type IncomingPaymentProof,
   type IncomingWhatsAppMessage
 } from "./chatbot.service";
+import {
+  enqueueIncomingWhatsAppEvents,
+  type IncomingWhatsAppInboxEvent
+} from "./whatsapp-inbox.repository";
 
 type MetaMessage = {
   id?: unknown;
@@ -136,7 +136,8 @@ export const extractIncomingPaymentProofs = (
           return [];
         }
         const timestamp =
-          typeof message.timestamp === "string" && /^\d+$/.test(message.timestamp)
+          typeof message.timestamp === "string" &&
+          /^\d+$/.test(message.timestamp)
             ? new Date(Number(message.timestamp) * 1000)
             : new Date();
         return [
@@ -145,7 +146,9 @@ export const extractIncomingPaymentProofs = (
             from: message.from,
             mediaId,
             mediaType,
-            receivedAt: Number.isNaN(timestamp.valueOf()) ? new Date() : timestamp
+            receivedAt: Number.isNaN(timestamp.valueOf())
+              ? new Date()
+              : timestamp
           }
         ];
       });
@@ -180,7 +183,7 @@ export const verifyWhatsAppWebhook: RequestHandler = (
   response.type("text/plain").status(200).send(challenge);
 };
 
-export const receiveWhatsAppWebhook: RequestHandler = (
+export const receiveWhatsAppWebhook: RequestHandler = async (
   request,
   response,
   next
@@ -196,25 +199,36 @@ export const receiveWhatsAppWebhook: RequestHandler = (
     return;
   }
 
-  response.status(202).send();
-
-  void Promise.all(
-    messages.map((message) =>
-      processIncomingWhatsAppMessage(message, {
-        gateway: whatsappGateway,
+  const events: IncomingWhatsAppInboxEvent[] = [
+    ...messages.map((message) => ({
+      waMessageId: message.id,
+      kind: "message" as const,
+      whatsappPhone: message.from,
+      receivedAt: message.receivedAt,
+      payload: {
+        text: message.text,
         ipAddress: request.ip,
-        userAgent: request.header("user-agent")
-      })
-    ).concat(
-      paymentProofs.map((proof) =>
-        processIncomingPaymentProof(proof, {
-          gateway: whatsappGateway,
-          ipAddress: request.ip,
-          userAgent: request.header("user-agent")
-        })
-      )
-    )
-  ).catch((error: unknown) => {
-    logger.error({ error }, "Failed to process WhatsApp webhook message");
-  });
+        userAgent: request.header("user-agent") ?? undefined
+      }
+    })),
+    ...paymentProofs.map((proof) => ({
+      waMessageId: proof.id,
+      kind: "payment_proof" as const,
+      whatsappPhone: proof.from,
+      receivedAt: proof.receivedAt,
+      payload: {
+        mediaId: proof.mediaId,
+        mediaType: proof.mediaType,
+        ipAddress: request.ip,
+        userAgent: request.header("user-agent") ?? undefined
+      }
+    }))
+  ];
+
+  try {
+    await enqueueIncomingWhatsAppEvents(events);
+    response.status(202).send();
+  } catch (error) {
+    next(error);
+  }
 };

@@ -20,7 +20,6 @@ export const fetchDirectory = async () => {
       status: patient.status,
       preferredModality: patient.preferredModality,
       email: patient.email,
-      notes: patient.notes,
       assignedTherapistId: patient.assignedTherapistId
     })),
     therapists: therapists.map((therapist) => ({

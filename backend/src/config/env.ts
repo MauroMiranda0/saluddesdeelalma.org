@@ -23,7 +23,8 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
-  ENABLE_REMINDER_WORKER: z.enum(["true", "false"]).default("false")
+  ENABLE_REMINDER_WORKER: z.enum(["true", "false"]).default("false"),
+  ENABLE_WHATSAPP_INBOX_WORKER: z.enum(["true", "false"]).default("false")
 });
 
 type Environment = z.infer<typeof envSchema>;
@@ -56,6 +57,11 @@ export const assertProductionEnvironment = (environment: Environment) => {
   ) {
     throw new Error(
       "WhatsApp credentials, Jocelyn destination and psychology group destination must be configured in production"
+    );
+  }
+  if (environment.ENABLE_WHATSAPP_INBOX_WORKER !== "true") {
+    throw new Error(
+      "ENABLE_WHATSAPP_INBOX_WORKER must be enabled in production so accepted WhatsApp inbox events are not left unprocessed"
     );
   }
   if (

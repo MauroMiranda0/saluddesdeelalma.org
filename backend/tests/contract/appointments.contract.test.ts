@@ -112,7 +112,13 @@ const withAdminServer = async (
     confirmThrows?: boolean;
   } = {}
 ) => {
-  const events: { audit: AuditEvent[] } = { audit: [] };
+  const events: {
+    audit: AuditEvent[];
+    manualExceptionConfirmations: boolean[];
+  } = {
+    audit: [],
+    manualExceptionConfirmations: []
+  };
   const captureAudit = (input: {
     audit: {
       action: string;
@@ -180,6 +186,9 @@ const withAdminServer = async (
           throw new AppointmentNotMutableError("not mutable");
         }
         captureAudit(input);
+        events.manualExceptionConfirmations.push(
+          input.manualExceptionConfirmed
+        );
         return fakeAppointment({
           scheduledAt: input.scheduledAt,
           therapyType: input.therapyType ?? "individual",
@@ -353,6 +362,26 @@ test("an admin reschedules an appointment and it is audited", async () => {
     events.audit.map((event) => event.action),
     ["appointment_rescheduled"]
   );
+  assert.deepEqual(events.manualExceptionConfirmations, [false]);
+});
+
+test("a reschedule sends explicit manual exception confirmation to the backend", async () => {
+  const events = await withAdminServer(async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/appointments/33333333-3333-4333-8333-333333333333`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          scheduledAt: "2026-09-14T14:30:00.000Z",
+          manualExceptionConfirmed: true
+        })
+      }
+    );
+    assert.equal(response.status, 200);
+  });
+
+  assert.deepEqual(events.manualExceptionConfirmations, [true]);
 });
 
 test("an admin cancels an appointment with a reason and it is audited", async () => {

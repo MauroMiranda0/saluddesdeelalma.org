@@ -88,7 +88,8 @@ test("the admin can register, remind and confirm a payment", async () => {
     });
     assert.equal(registered.status, 201);
     assert.equal(
-      ((await registered.json()) as { payment: { status: string } }).payment.status,
+      ((await registered.json()) as { payment: { status: string } }).payment
+        .status,
       "pendiente_validacion"
     );
 
@@ -98,7 +99,8 @@ test("the admin can register, remind and confirm a payment", async () => {
     );
     assert.equal(confirmed.status, 200);
     assert.equal(
-      ((await confirmed.json()) as { payment: { status: string } }).payment.status,
+      ((await confirmed.json()) as { payment: { status: string } }).payment
+        .status,
       "validado"
     );
 
@@ -150,11 +152,14 @@ test("payment endpoints reject invalid identifiers and payloads", async () => {
   }
 
   try {
-    const invalidPayment = await fetch(`http://127.0.0.1:${address.port}/payments`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({})
-    });
+    const invalidPayment = await fetch(
+      `http://127.0.0.1:${address.port}/payments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({})
+      }
+    );
     assert.equal(invalidPayment.status, 400);
 
     const invalidIdentifier = await fetch(
@@ -167,4 +172,116 @@ test("payment endpoints reject invalid identifiers and payloads", async () => {
       server.close((error) => (error ? reject(error) : resolve()))
     );
   }
+});
+
+test("the admin can configure session rates and manually associate a WhatsApp proof", async () => {
+  const captured: {
+    proof?: {
+      proofId: string;
+      appointmentId: string;
+      audit: { actorUserId?: string };
+    };
+  } = {};
+  const app = express();
+  app.use(express.json());
+  app.use(
+    createPaymentRoutes({
+      authenticate: authenticated,
+      authorizeAdmin: authorized,
+      listSessionRates: (async () => [
+        { therapyType: "individual", amount: { toString: () => "900" } }
+      ]) as never,
+      upsertSessionRateWithAudit: (async () => ({
+        therapyType: "pareja",
+        amount: { toString: () => "1200" }
+      })) as never,
+      listPaymentProofs: (async () => [
+        {
+          id: "55555555-5555-4555-8555-555555555555",
+          mediaId: "media-proof-1",
+          mediaType: "image",
+          receivedAt: new Date("2026-09-15T16:00:00.000Z"),
+          status: "pendiente_asociacion",
+          appointmentId: null,
+          paymentId: null,
+          associatedAt: null
+        }
+      ]) as never,
+      associatePaymentProofWithAudit: (async (input) => {
+        captured.proof = input;
+        return {
+          id: input.proofId,
+          mediaId: "media-proof-1",
+          mediaType: "image",
+          receivedAt: new Date("2026-09-15T16:00:00.000Z"),
+          status: "asociado",
+          appointmentId: input.appointmentId,
+          paymentId: null,
+          associatedAt: new Date("2026-09-15T17:00:00.000Z")
+        };
+      }) as never
+    })
+  );
+  app.use(errorHandler);
+  const server = app.listen(0);
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  const address = server.address();
+
+  if (!address || typeof address === "string") {
+    throw new Error("Test server did not expose a TCP address");
+  }
+
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  try {
+    const rates = await fetch(`${baseUrl}/session-rates`);
+    assert.equal(rates.status, 200);
+    assert.equal(
+      ((await rates.json()) as { sessionRates: Array<{ amount: number }> })
+        .sessionRates[0].amount,
+      900
+    );
+
+    const updatedRate = await fetch(`${baseUrl}/session-rates/pareja`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ amount: 1200 })
+    });
+    assert.equal(updatedRate.status, 200);
+
+    const proofs = await fetch(`${baseUrl}/payment-proofs`);
+    assert.equal(proofs.status, 200);
+    assert.equal(
+      ((await proofs.json()) as { paymentProofs: Array<{ status: string }> })
+        .paymentProofs[0].status,
+      "pendiente_asociacion"
+    );
+
+    const associated = await fetch(
+      `${baseUrl}/payment-proofs/55555555-5555-4555-8555-555555555555/associate`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          appointmentId: "33333333-3333-4333-8333-333333333333"
+        })
+      }
+    );
+    assert.equal(associated.status, 200);
+    assert.equal(
+      ((await associated.json()) as { paymentProof: { status: string } })
+        .paymentProof.status,
+      "asociado"
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    );
+  }
+
+  assert.equal(captured.proof?.proofId, "55555555-5555-4555-8555-555555555555");
+  assert.equal(
+    captured.proof?.appointmentId,
+    "33333333-3333-4333-8333-333333333333"
+  );
+  assert.equal(captured.proof?.audit.actorUserId, requestSession.user.id);
 });

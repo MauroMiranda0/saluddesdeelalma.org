@@ -14,6 +14,7 @@ import {
 import {
   findActiveAppointmentsForTherapist,
   findAppointmentForAdmin,
+  findExistingWhatsAppBooking,
   findOverlappingActiveAppointment,
   listAppointmentsInRange
 } from "./appointments.repository";
@@ -25,7 +26,10 @@ import {
   scheduleAppointmentReminders,
   scheduleCancellationNotice
 } from "../reminders/reminders.service";
-import { whatsappGateway } from "../../integrations/whatsapp/whatsapp.gateway";
+import {
+  whatsappGateway,
+  type WhatsAppGateway
+} from "../../integrations/whatsapp/whatsapp.gateway";
 import { paymentDto } from "../payments/payments.service";
 
 const mexicoTimeZone = "America/Mexico_City";
@@ -39,6 +43,7 @@ const hourFormatter = new Intl.DateTimeFormat("en-US", {
 
 export class AppointmentConflictError extends Error {}
 export class AppointmentScheduleError extends Error {}
+export class ManualExceptionConfirmationRequiredError extends AppointmentScheduleError {}
 export class TherapistAssignmentRequiredError extends Error {}
 export class AppointmentNotFoundError extends Error {}
 export class AppointmentNotMutableError extends Error {}
@@ -59,7 +64,7 @@ const localTimeParts = (scheduledAt: Date) => {
   };
 };
 
-export const assertWhatsAppAppointmentSchedule = (
+export const isRegularAppointmentSchedule = (
   scheduledAt: Date,
   durationMinutes = 60
 ) => {
@@ -67,14 +72,21 @@ export const assertWhatsAppAppointmentSchedule = (
   const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
   const end = localTimeParts(endsAt);
 
-  if (
+  return !(
     weekday === "Sat" ||
     weekday === "Sun" ||
     hour < 9 ||
     end.weekday !== weekday ||
     end.hour > 21 ||
     (end.hour === 21 && end.minute !== 0)
-  ) {
+  );
+};
+
+export const assertWhatsAppAppointmentSchedule = (
+  scheduledAt: Date,
+  durationMinutes = 60
+) => {
+  if (!isRegularAppointmentSchedule(scheduledAt, durationMinutes)) {
     throw new AppointmentScheduleError(
       "WhatsApp appointments must fit Monday through Friday from 09:00 to 21:00 and end by 21:00"
     );
@@ -120,6 +132,18 @@ export const createWhatsAppAppointment = async (
     );
   }
   const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
+
+  // A durable retry may re-run this booking after the appointment was already
+  // persisted. Reuse that exact slot instead of creating a duplicate reserva
+  // or a duplicate audit of the creation.
+  const existing = await findExistingWhatsAppBooking({
+    patientId: patient.id,
+    scheduledAt,
+    endsAt
+  });
+  if (existing) {
+    return { appointment: existing, patient };
+  }
 
   await assertTherapistAvailability({ therapistId, scheduledAt, endsAt });
 
@@ -425,6 +449,7 @@ export const createPanelAppointmentWithAudit = async (input: {
   locationLabel?: string;
   meetingLink?: string;
   actorUserId?: string;
+  confirmationGateway?: WhatsAppGateway;
   audit: AuditCreateInput;
 }) => {
   const patient = await resolvePanelPatient(input.patient);
@@ -459,49 +484,60 @@ export const createPanelAppointmentWithAudit = async (input: {
   });
 
   let appointment;
+  let confirmationReminders;
 
   try {
-    appointment = await prisma.$transaction(async (transaction) => {
-      const created = await transaction.appointment.create({
-        data: {
-          patientId: patient.id,
-          therapistId: patient.assignedTherapistId!,
-          scheduledAt,
-          endsAt,
-          therapyType: input.therapyType,
-          durationMinutes,
-          modality: input.modality,
-          isManualException: input.isManualException,
-          locationLabel: input.locationLabel,
-          meetingLink: input.meetingLink,
-          createdVia: "panel",
-          createdByUserId: input.actorUserId
-        },
-        include: {
-          patient: {
-            select: {
-              id: true,
-              fullName: true,
-              whatsappPhone: true,
-              birthdate: true
-            }
+    const createdWithReminders = await prisma.$transaction(
+      async (transaction) => {
+        const created = await transaction.appointment.create({
+          data: {
+            patientId: patient.id,
+            therapistId: patient.assignedTherapistId!,
+            scheduledAt,
+            endsAt,
+            therapyType: input.therapyType,
+            durationMinutes,
+            modality: input.modality,
+            isManualException: input.isManualException,
+            locationLabel: input.locationLabel,
+            meetingLink: input.meetingLink,
+            createdVia: "panel",
+            createdByUserId: input.actorUserId
           },
-          therapist: {
-            select: {
-              id: true,
-              isActive: true,
-              user: { select: { fullName: true } }
+          include: {
+            patient: {
+              select: {
+                id: true,
+                fullName: true,
+                whatsappPhone: true,
+                birthdate: true
+              }
+            },
+            therapist: {
+              select: {
+                id: true,
+                isActive: true,
+                user: { select: { fullName: true } }
+              }
             }
           }
-        }
-      });
-      await scheduleAppointmentReminders(created, transaction);
-      await createAuditLogInTransaction(transaction, {
-        ...input.audit,
-        entityId: created.id
-      });
-      return created;
-    });
+        });
+        // These rows are part of the booking commit so delivery can be retried
+        // and inspected even if a process stops immediately after committing.
+        const confirmations = await ensureConfirmationReminders(
+          created,
+          transaction
+        );
+        await scheduleAppointmentReminders(created, transaction);
+        await createAuditLogInTransaction(transaction, {
+          ...input.audit,
+          entityId: created.id
+        });
+        return { appointment: created, confirmations };
+      }
+    );
+    appointment = createdWithReminders.appointment;
+    confirmationReminders = createdWithReminders.confirmations;
   } catch (error) {
     if (isActiveAppointmentConflict(error)) {
       throw new AppointmentConflictError(
@@ -511,6 +547,13 @@ export const createPanelAppointmentWithAudit = async (input: {
     throw error;
   }
 
+  await dispatchAppointmentConfirmation({
+    appointment,
+    patient: appointment.patient,
+    gateway: input.confirmationGateway ?? whatsappGateway,
+    confirmationReminders
+  });
+
   return appointment;
 };
 
@@ -519,6 +562,7 @@ export const rescheduleAppointmentWithAudit = async (input: {
   scheduledAt: Date;
   modality?: "online" | "presencial";
   therapyType?: "individual" | "pareja" | "familiar";
+  manualExceptionConfirmed: boolean;
   audit: AuditCreateInput;
 }) => {
   const current = await findAppointmentForAdmin(input.appointmentId);
@@ -538,15 +582,15 @@ export const rescheduleAppointmentWithAudit = async (input: {
   const durationMinutes = therapyDurationMinutes(therapyType);
   const scheduledAt = input.scheduledAt;
   const endsAt = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
-  let isManualException = current.isManualException;
+  const isManualException = !isRegularAppointmentSchedule(
+    scheduledAt,
+    durationMinutes
+  );
 
-  if (!isManualException) {
-    try {
-      assertWhatsAppAppointmentSchedule(scheduledAt, durationMinutes);
-    } catch {
-      // Moving outside regular hours from the panel is a manual exception.
-      isManualException = true;
-    }
+  if (isManualException && !input.manualExceptionConfirmed) {
+    throw new ManualExceptionConfirmationRequiredError(
+      "Confirma explícitamente la excepción manual para reagendar fuera del horario regular"
+    );
   }
 
   await assertTherapistAvailability({
@@ -602,8 +646,21 @@ export const rescheduleAppointmentWithAudit = async (input: {
         lastError: null
       }
     });
+    const originalMetadata = input.audit.metadata;
+    const metadata =
+      originalMetadata &&
+      typeof originalMetadata === "object" &&
+      !Array.isArray(originalMetadata)
+        ? originalMetadata
+        : {};
     await createAuditLogInTransaction(transaction, {
       ...input.audit,
+      action: isManualException
+        ? "appointment_rescheduled_manual_exception"
+        : input.audit.action,
+      metadata: isManualException
+        ? { ...metadata, manualExceptionConfirmed: true }
+        : input.audit.metadata,
       entityId: updated.id
     });
     return updated;
@@ -632,51 +689,57 @@ export const confirmAppointmentWithAudit = async (input: {
     );
   }
 
-  const appointment = await prisma.$transaction(async (transaction) => {
-    const confirmed = await transaction.appointment.update({
-      where: { id: current.id },
-      data: { status: "confirmada" },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            fullName: true,
-            whatsappPhone: true,
-            birthdate: true
-          }
-        },
-        therapist: {
-          select: {
-            id: true,
-            isActive: true,
-            user: { select: { fullName: true } }
+  const confirmedWithReminders = await prisma.$transaction(
+    async (transaction) => {
+      const confirmed = await transaction.appointment.update({
+        where: { id: current.id },
+        data: { status: "confirmada" },
+        include: {
+          patient: {
+            select: {
+              id: true,
+              fullName: true,
+              whatsappPhone: true,
+              birthdate: true
+            }
+          },
+          therapist: {
+            select: {
+              id: true,
+              isActive: true,
+              user: { select: { fullName: true } }
+            }
           }
         }
-      }
-    });
-    // Reservar las confirmaciones anticipadas dentro de la misma transacción
-    // para que el estado confirmada no quede sin su recordatorio.
-    await ensureConfirmationReminders(confirmed, transaction);
-    await createAuditLogInTransaction(transaction, {
-      ...input.audit,
-      entityId: confirmed.id
-    });
-    return confirmed;
-  });
+      });
+      // Reservar las confirmaciones anticipadas dentro de la misma transacción
+      // para que el estado confirmada no quede sin su recordatorio.
+      const confirmationReminders = await ensureConfirmationReminders(
+        confirmed,
+        transaction
+      );
+      await createAuditLogInTransaction(transaction, {
+        ...input.audit,
+        entityId: confirmed.id
+      });
+      return { appointment: confirmed, confirmationReminders };
+    }
+  );
 
   // Despacho best-effort tras el commit: si el envío falla, la cita ya quedó
   // confirmada y el estado de recordatorios registra el error.
   try {
     await dispatchAppointmentConfirmation({
-      appointment,
-      patient: appointment.patient,
-      gateway: whatsappGateway
+      appointment: confirmedWithReminders.appointment,
+      patient: confirmedWithReminders.appointment.patient,
+      gateway: whatsappGateway,
+      confirmationReminders: confirmedWithReminders.confirmationReminders
     });
   } catch {
     // El envío de confirmación es una grieta no crítica para la mutación.
   }
 
-  return appointment;
+  return confirmedWithReminders.appointment;
 };
 
 export const cancelAppointmentWithAudit = async (input: {

@@ -154,6 +154,36 @@ export const findOverlappingActiveAppointment = (input: {
   });
 };
 
+export const findExistingWhatsAppBooking = (input: {
+  patientId: string;
+  scheduledAt: Date;
+  endsAt: Date;
+}) => {
+  return prisma.appointment.findFirst({
+    where: {
+      patientId: input.patientId,
+      createdVia: "whatsapp",
+      scheduledAt: input.scheduledAt,
+      endsAt: input.endsAt
+    }
+  });
+};
+
+export const findRecentCancellationForPatient = (
+  patientId: string,
+  since: Date
+) => {
+  return prisma.appointment.findFirst({
+    where: {
+      patientId,
+      status: "cancelada",
+      cancelledAt: { gte: since }
+    },
+    orderBy: { cancelledAt: "desc" },
+    include: { patient: { select: { id: true, fullName: true } } }
+  });
+};
+
 export const findNextActiveAppointmentForPatient = (
   patientId: string,
   from: Date

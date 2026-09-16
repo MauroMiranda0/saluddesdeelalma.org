@@ -14,6 +14,7 @@
     "test:integration": "npm run test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "reminders:worker": "tsx src/jobs/reminders-worker.entry.ts",
+    "whatsapp-inbox:worker": "tsx src/jobs/whatsapp-inbox-worker.entry.ts",
     "start": "node dist/server.js"
   },
   "dependencies": {

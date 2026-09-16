@@ -42,7 +42,6 @@ export const createPatient = async (
       birthdate: new Date(`${input.birthdate}T00:00:00.000Z`),
       preferredModality: input.preferredModality,
       email: input.email,
-      notes: input.notes,
       assignedTherapistId: assignedTherapistId ?? undefined
     }
   });

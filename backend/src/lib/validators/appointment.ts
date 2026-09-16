@@ -57,7 +57,8 @@ export const createAdminAppointmentSchema = z
 export const rescheduleAppointmentSchema = z.object({
   scheduledAt: z.iso.datetime(),
   modality: modalitySchema.optional(),
-  therapyType: therapyTypeSchema.optional()
+  therapyType: therapyTypeSchema.optional(),
+  manualExceptionConfirmed: z.boolean().default(false)
 });
 
 export const cancelAppointmentSchema = z.object({

@@ -21,6 +21,8 @@ const productionEnvironment = {
   WHATSAPP_ADMIN_PHONE: "5215500000000",
   WHATSAPP_PSYCHOLOGISTS_GROUP_ID: "provider-group-id",
   REMINDER_TIMEZONE: "America/Mexico_City" as const,
+  ENABLE_REMINDER_WORKER: "false" as const,
+  ENABLE_WHATSAPP_INBOX_WORKER: "true" as const,
   AI_PROVIDER_API_KEY: undefined,
   LOG_LEVEL: "info" as const
 };
@@ -117,4 +119,16 @@ test("production rejects an idle timeout different from 30 minutes", () => {
 
 test("DATABASE_URL must be configured", () => {
   assert.throws(() => parseEnvironment({}), /DATABASE_URL/);
+});
+
+test("production requires the WhatsApp inbox worker to be enabled", () => {
+  assert.throws(
+    () =>
+      assertProductionEnvironment({
+        ...productionEnvironment,
+        ENABLE_WHATSAPP_INBOX_WORKER: "false"
+      }),
+    /ENABLE_WHATSAPP_INBOX_WORKER/
+  );
+  assert.doesNotThrow(() => assertProductionEnvironment(productionEnvironment));
 });

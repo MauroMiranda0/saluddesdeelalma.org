@@ -201,7 +201,7 @@ const withAdminServer = async (run: (baseUrl: string) => Promise<void>) => {
           birthdate: new Date("1990-01-15T00:00:00.000Z"),
           preferredModality: "online",
           email: null,
-          notes: null,
+          notes: "removed",
           assignedTherapistId: null
         }
       ],
@@ -441,10 +441,11 @@ test("admin endpoints list therapists, patients and appointments", async () => {
 
     const patients = await fetch(`${baseUrl}/patients`);
     assert.equal(patients.status, 200);
-    assert.equal(
-      ((await patients.json()) as { patients: unknown[] }).patients.length,
-      1
-    );
+    const patientList = (await patients.json()) as {
+      patients: Array<Record<string, unknown>>;
+    };
+    assert.equal(patientList.patients.length, 1);
+    assert.equal("notes" in patientList.patients[0], false);
 
     const appointments = await fetch(`${baseUrl}/appointments`);
     assert.equal(appointments.status, 200);
@@ -504,6 +505,22 @@ test("invalid admin payloads are rejected with a validation error", async () => 
     assert.equal(createPatientBadTherapist.status, 400);
     assert.equal(
       ((await createPatientBadTherapist.json()) as { code: string }).code,
+      "validation_error"
+    );
+
+    const createPatientWithNotes = await fetch(`${baseUrl}/patients`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        fullName: "Paciente Nuevo",
+        whatsappPhone: "5215512345678",
+        birthdate: "1992-05-10",
+        notes: "obsolete"
+      })
+    });
+    assert.equal(createPatientWithNotes.status, 400);
+    assert.equal(
+      ((await createPatientWithNotes.json()) as { code: string }).code,
       "validation_error"
     );
 
