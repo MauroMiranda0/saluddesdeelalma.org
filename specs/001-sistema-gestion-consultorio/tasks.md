@@ -329,7 +329,7 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 ## Notas
 
-- Total de tareas: `86`
+- Total de tareas base: `86` (T001–T086). Con las fases de convergencia y la alineación de interfaz, el total del documento asciende a `171` tareas (T001–T171). El conteo de avance real se verifica con líneas `[x]`/`[ ]`, no con este encabezado histórico.
 - Tareas por historia:
   - `US1`: 10
   - `US2`: 14
@@ -562,3 +562,17 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T162 [H] Habilitar y documentar el worker de inbox WhatsApp para produccion de modo que un webhook aceptado no quede sin procesamiento, en configuracion, `.env.example` y guia operativa. per FR-001 (partial).
 - [x] T163 [M] Completar el E2E movil de pagos con confirmacion manual posterior al registro, en `frontend/tests/e2e/admin-payments.spec.ts`. per SC-016, T146 (partial).
 - [x] T164 [M] Cubrir la etiqueta de excepcion manual de `EventCard` con una regresion frontend ejecutable. per FR-012, T160 (partial).
+
+---
+
+## Phase 32: Alineacion de interfaz al mockup y landing publica
+
+**Proposito**: Redisenar la interfaz del panel para que sea fiel al mockup aprobado `mockupWithDashboard.png` (referencia visual en la raiz del proyecto) y construir la landing publica con la misma identidad. Ejecucion **en paralelo** (ajuste del plan a 32 dias, entrega maxima 1 de octubre de 2026). La replica visual la ejecuta el desarrollador tomando el mockup como referencia directa.
+
+- [ ] T165 [P] Redisenar login y dashboard del panel replicando la composicion, tarjetas y jerarquia del mockup en `frontend/app/admin/login/page.tsx`, `frontend/components/admin/login-form.tsx`, `frontend/app/admin/page.tsx`. per Constitution 2.3, plan Fase 6.
+- [ ] T166 [P] Redisenar agenda (vistas dia/semana/mes), navegacion, leyenda y directorio con la identidad del mockup (paleta verde/sepia, tipografia, espaciados) en `frontend/components/admin/admin-nav.tsx`, `frontend/components/admin/agenda/*`, `frontend/app/admin/agenda/page.tsx`, `frontend/app/admin/directorio/page.tsx`. per Constitution 2.2-2.3.
+- [ ] T167 [P] Redisenar pagos, pacientes y terapeutas con la misma identidad visual en `frontend/app/admin/payments/page.tsx`, `frontend/app/admin/patients/page.tsx`, `frontend/app/admin/therapists/page.tsx` y componentes asociados. per Constitution 2.3.
+- [ ] T168 [P] Implementar landing publica (US6): hero, secciones informativas, CTA a WhatsApp y acceso discreto al panel en `frontend/app/page.tsx`, `frontend/components/landing/hero.tsx`, `frontend/components/landing/consultorio-info.tsx`, `frontend/components/landing/whatsapp-cta.tsx`, `frontend/components/landing/admin-access-link.tsx`. per task.md US6.
+- [ ] T169 [P] Aplicar paleta oficial, tipografia y tokens de diseno de un solo sistema de diseno reutilizado en landing y panel en `frontend/app/globals.css`. per Constitution 2.2-2.3.
+- [ ] T170 [M] Crear prueba E2E movil de la landing publica y prueba de componentes de la landing en `frontend/tests/e2e/public-landing.spec.ts` y `frontend/tests/components/landing-page.test.tsx`. per US6 (T059, T060).
+- [ ] T171 [M] Revisar en movil el panel completo y registrar comparativa antes/despues frente al mockup en `docs/pruebas-panel.md` y `docs/avance-dia-17.md`. per Constitution 2.3, plan Fase 6.

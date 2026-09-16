@@ -147,6 +147,8 @@ backend/
 
 La numeración de las historias en `tasks.md` se conserva para mantener sus IDs. Para eliminar ambigüedad con el cronograma comercial, los entregables que deben cerrarse en cada fase son los siguientes.
 
+**Ajuste del plan (16/09/2026):** el cronograma pasa de 29 a **32 días** con entrega máxima el **1 de octubre de 2026**, para incorporar una fase dedicada de alineación de la interfaz al mockup `mockupWithDashboard.png` que se ejecuta **en paralelo con la landing (US6)**; el conteo de avance real se mide contra `tasks.md` (137/164 al día 17, pendientes US4/US5/US6/UI).
+
 ### Fase 4: Integracion de pagos y recordatorios
 
 - Registrar anticipos, pagos completos y saldos pendientes desde el panel de `admin`.
@@ -163,6 +165,13 @@ La numeración de las historias en `tasks.md` se conserva para mantener sus IDs.
 - Rechazar en login y en cada ruta administrativa toda identidad distinta de la cuenta activa `admin` con rol `admin`.
 - Aplicar `authenticate` seguido de `authorizeAdminIdentity` antes de controladores y repositorios Prisma; auditar login y autorización denegados.
 - No habilitar Supabase RLS porque la constitución establece PostgreSQL privado detrás de Express. Si la arquitectura cambia a Supabase, añadir políticas RLS equivalentes como requisito de migración, no como sustituto del middleware actual.
+
+### Fase UI: Alineacion de interfaz al mockup (en paralelo con US6)
+
+- Rediseñar el panel administrativo (login, dashboard, agenda, pagos, pacientes, terapeutas, directorio) para que sea **fiel al mockup** `mockupWithDashboard.png` de la raíz del proyecto, aplicando la paleta verde/sepia y el sistema de diseño unificado de la constitución.
+- Construir la landing pública (US6) con la misma identidad: hero, secciones informativas, CTA a WhatsApp y acceso discreto al panel.
+- Presentar a la cliente una comparativa antes/después frente al mockup aprobado; la replicación visual la ejecuta el desarrollador tomando la referencia directa de la imagen.
+- Tareas: T165–T171 (Phase 32 de `tasks.md`).
 
 ## Phase Outputs
 

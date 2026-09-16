@@ -3,7 +3,7 @@
 > **Proyecto:** Salud desde el Alma
 > **Eslogan:** "Tu bienestar, nuestro propósito"
 > **Servicio:** Psicología integral (Cuerpo, Mente, Espíritu)
-> **Versión:** 1.4
+> **Versión:** 1.5
 > **Fecha:** 15 de septiembre de 2026
 > **Estado:** Guía constitutiva para el ciclo de vida del proyecto
 
@@ -444,9 +444,14 @@ La persona debe percibir una conversación sencilla, cálida y fluida, similar a
 
 ## 8. Plan de desarrollo detallado
 
-Duración total estimada: **29 días calendario** (inicio propuesto: **31 de agosto de 2026**). Las fechas son estimadas y se ajustan según validaciones y disponibilidad de la cliente.
+Duración total estimada: **32 días calendario** (inicio: **31 de agosto de 2026**, entrega comprometida máxima: **1 de octubre de 2026**). Las fechas son estimadas y se ajustan según validaciones y disponibilidad de la cliente. El ajuste del plan (v1.5) incorpora una fase dedicada de alineación de la interfaz al mockup `mockupWithDashboard.png`, que se ejecuta **en paralelo con el desarrollo de la landing**.
 
-### Fase 1 — Diseño UI/UX (Días 1–5)
+## Estado al día 17 (16 de septiembre de 2026)
+
+- **Completadas:** Fases 1, 2, 3 de este plan (diseño, MVP, pagos y recordatorios parciales), US1 (agendamiento WhatsApp), US2 (panel administrativo) y US3 (pagos). Progreso de tareas **137 de 164 (83.5%)**.
+- **Pendiente funcional:** US4 recordatorios automáticos, US5 FAQ/estado de cita y pago por WhatsApp, US6 landing pública y alineación visual de la interfaz al mockup aprobado.
+
+### Fase 1 — Diseño UI/UX (Días 1–5) · Completada
 
 | Día | Entregable                                                                            |
 | --- | ------------------------------------------------------------------------------------- |
@@ -458,7 +463,7 @@ Duración total estimada: **29 días calendario** (inicio propuesto: **31 de ago
 
 **Criterio de aceptación:** paleta verde/sepia validada, wireframes y guiones del chatbot aprobados.
 
-### Fase 2 — Desarrollo MVP (Días 6–14)
+### Fase 2 — Desarrollo MVP (Días 6–14) · Completada
 
 | Día   | Entregable                                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------- |
@@ -470,40 +475,62 @@ Duración total estimada: **29 días calendario** (inicio propuesto: **31 de ago
 
 **Criterio de aceptación:** cita puede agendarse y cancelarse; no hay traslape de intervalos para una misma psicóloga; garantía de compensación; panel funcional en móvil.
 
-### Fase 3 — Pagos y recordatorios (Días 15–19)
+### Fase 3 — Pagos y recordatorios: pagos (Días 15–16) · Completada
 
 | Día | Entregable                                                |
 | --- | --------------------------------------------------------- |
 | 15  | Registro y confirmación manual de pagos: anticipo 50% y pago completo |
-| 16  | Estados de pago y vista en el panel                       |
-| 17  | Cron de recordatorios en Node (confirmación y 24 h antes) |
-| 18  | Recordatorios de pago pendiente y avisos de cancelación   |
-| 19  | Pruebas de envío y ajuste de plantillas WhatsApp          |
+| 16  | Estados de pago y vista en el panel y comprobantes de WhatsApp |
 
-**Criterio de aceptación:** anticipo y pago completo registrables y confirmables por Jocelyn; comprobantes de WhatsApp generan su aviso individual; recordatorios automáticos y manuales quedan trazables; estados visibles en el panel.
+### Fase 4 — Recordatorios automáticos US4 (Días 17–20)
 
-### Fase 4 — Chatbot IA (Días 20–25)
+Los recordatorios programados quedan como alcance acordado. La confirmación inmediata ya se envía al agendar.
 
-| Día   | Entregable                                                                             |
-| ----- | -------------------------------------------------------------------------------------- |
-| 20    | Configuración de WhatsApp Business Cloud API y webhooks                                |
-| 21–22 | Conexión del chatbot de IA con el backend Node (consulta la agenda real en PostgreSQL) |
-| 23    | Entrenamiento del chatbot con los guiones de la Fase 1 (§7 de este documento)          |
-| 24    | Automatización de agendado, cancelación y consulta de pagos                            |
-| 25    | Pruebas de conversación y ajuste de tono                                               |
+| Día   | Entregable                                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------- |
+| 17–18 | Cron de recordatorios en Node: confirmación y recordatorio del día previo en ventana 18:00–19:00 America/Mexico_City; avisos de pago pendiente y de cancelación con política de 24 horas |
+| 19    | Pruebas de envío, ajuste de plantillas WhatsApp y trazabilidad por destinatario                 |
+| 20    | Cierre: auditoría de envíos, reintentos y supresiones fuera de ventana; estados visibles en agenda y pagos |
 
-**Criterio de aceptación:** el chatbot agenda/cancela citas y consulta pagos en tono natural; deriva temas clínicos; es transparente sobre ser un asistente.
+**Criterio de aceptación:** recordatorios automáticos y manuales quedan trazables por destinatario; fuera de la ventana no se envían ni reintentan; avisos de saldo solo al paciente.
 
-### Fase 5 — Panel y pruebas (Días 26–29)
+### Fase 5 — Consultas por WhatsApp y FAQ US5 (Días 21–22)
+
+| Día | Entregable                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------- |
+| 21  | Catálogo de FAQ, verificación de identidad (número, nombre y fecha de nacimiento) y consulta de estado de cita/pago |
+| 22  | Pruebas de verificación exitosa y fallida sin exponer datos; minimización de contenido sensible; auditoría |
+
+**Criterio de aceptación:** el paciente identificado consulta su cita o saldo; si la verificación falla no se exponen datos y se deriva a la psicóloga.
+
+### Fase 6 — Landing pública + Alineación de interfaz al mockup (Días 23–25, en paralelo)
+
+Trabajo **en paralelo**: se construye la landing pública con la identidad correcta, mientras la interfaz del panel se rediseña para ser **fiel al mockup** `mockupWithDashboard.png` (referencia visual en la raíz del proyecto), no genérica.
+
+| Día | Landing pública (US6)                                                                 | Panel: alineación al mockup                                                          |
+| --- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 23  | Estructura, secciones informativas, CTA a WhatsApp y acceso discreto al panel          | Rediseño de login y dashboard replicando composición, tarjetas y jerarquía del mockup |
+| 24  | Estilos con la paleta oficial verde/sepia y responsive móvil/desktop                   | Agenda (día/semana/mes), navegación y directorio con la misma identidad visual        |
+| 25  | Prueba E2E móvil de la landing                                                         | Pagos, pacientes y terapeutas; revisión móvil y comparativa antes/después frente a la cliente |
+
+**Criterio de aceptación:** la landing y el panel se asemejan de forma evidente al mockup aprobado; a la cliente se le presenta comparativa antes/después.
+
+### Fase 7 — Pulido y seguridad (Días 26–27)
 
 | Día | Entregable                                                                  |
 | --- | --------------------------------------------------------------------------- |
-| 26  | Finalización del panel y detalles finales de UX                             |
-| 27  | Pruebas UAT con la usuaria (escenarios del checklist desde su móvil)        |
-| 28  | Pruebas de seguridad (autenticación JWT, control de accesos, SSL, secretos) |
-| 29  | Despliegue en producción, documentación y capacitación                      |
+| 26  | Pulido final de UX del panel y detalles visuales restantes                  |
+| 27  | Pruebas de seguridad (autenticación JWT, control de accesos, SSL, secretos) |
 
-**Criterio de aceptación:** UAT superado, seguridad aprobada, sistema en producción con SSL y capacitación completada.
+### Fase 8 — UAT, ajustes y despliegue (Días 28–32)
+
+| Día   | Entregable                                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------- |
+| 28–29 | Pruebas UAT con la usuaria (escenarios del checklist desde su móvil)                           |
+| 30–31 | Correcciones derivadas de la UAT y validación final con `quickstart.md`                        |
+| 32    | Despliegue en producción, documentación y capacitación (entrega máxima **1 de octubre**)       |
+
+**Criterio de aceptación:** UAT superado, seguridad aprobada, interfaz alineada al mockup, sistema en producción con SSL y capacitación completada.
 
 ---
 
