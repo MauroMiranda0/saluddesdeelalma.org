@@ -531,3 +531,38 @@ Se extendió el mismo esquema: `sendResponse` recibe `saveOutboundMessage`, y la
 
 - El contrato de producción no cambia; la inyección sigue siendo exclusivamente para pruebas.
 - Las pruebas controladas (PGlite/embebida) y el gate PostgreSQL cubren la integración real.
+
+## 2026-09-15 - Tercera vuelta de pruebas iniciales del panel y auditoria US2/US3
+
+**Contexto**
+
+La tercera vuelta manual del panel cubrio agenda y pagos. Durante ella se
+detecto una estructura HTML invalida que podia producir un error de hidratacion
+en la agenda. Se ejecuto una auditoria de convergencia para contrastar US2 y
+US3 con la especificacion, el modelo de datos, la Constitucion, las pruebas y
+la documentacion operativa.
+
+**Decision**
+
+La correccion de botones anidados se conserva como correccion de producto en
+`event-card.tsx` (commit `c79ed69`). La vuelta queda registrada en
+`docs/pruebas-panel.md` como evidencia inicial, sin declararla UAT formal. Los
+hallazgos de la auditoria se registran como tareas pendientes en Phase 27 para
+no ocultar deuda funcional ni documentacion desactualizada.
+
+**Consecuencias**
+
+- La agenda no debe volver a renderizar botones anidados en ninguna vista.
+- US3 tiene acciones manuales disponibles, pero su cierre requiere pruebas de
+  integracion/E2E, trazabilidad durable del recordatorio y asociacion visible de
+  comprobantes.
+- Las guias operativas distinguen funcionalidad disponible de criterios aun no
+  verificados con Jocelyn.
+
+**Resolucion de convergencia**
+
+Las remediaciones T144-T164 cerraron la auditoria: recordatorios y webhooks
+tienen trazas durables, comprobantes se asocian manualmente, tarifas validan el
+anticipo, agenda exige excepciones explicitas y los contratos, plan y pruebas
+de pagos quedaron alineados. La UAT formal con Jocelyn sigue siendo un gate de
+entrega, no una afirmacion de esta auditoria tecnica.

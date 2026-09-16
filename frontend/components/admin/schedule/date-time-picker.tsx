@@ -168,7 +168,11 @@ export const DateTimePicker = ({
   };
 
   const continueSelection = () => {
-    if (draft.date && draft.time && !isTimeUnavailable(draft.date, draft.time)) {
+    if (
+      draft.date &&
+      draft.time &&
+      !isTimeUnavailable(draft.date, draft.time)
+    ) {
       onChange(`${draft.date}T${draft.time}`);
     }
     setOpen(false);
@@ -185,9 +189,7 @@ export const DateTimePicker = ({
       return false;
     }
 
-    const endsAt = new Date(
-      startsAt.getTime() + durationMinutes * 60 * 1000
-    );
+    const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
 
     return availability.appointments.some((appointment) => {
       const appointmentStartsAt = new Date(appointment.scheduledAt);
@@ -320,8 +322,8 @@ export const DateTimePicker = ({
                           unavailable
                             ? "bg-gray-100 text-gray-400 line-through"
                             : selected
-                            ? "bg-forest font-semibold text-white"
-                            : "text-gray-600 hover:bg-gray-100"
+                              ? "bg-forest font-semibold text-white"
+                              : "text-gray-600 hover:bg-gray-100"
                         }`}
                       >
                         {slot}

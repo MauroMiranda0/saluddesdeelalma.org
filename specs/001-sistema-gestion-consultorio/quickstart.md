@@ -27,6 +27,7 @@ Archivo: `backend/.env.example`
 - `SESSION_IDLE_TIMEOUT_MINUTES`
 - `REMINDER_TIMEZONE` (requerida al implementar Fase comercial 4; valor de producción: `America/Mexico_City`)
 - `ENABLE_REMINDER_WORKER` (`true` arranca el worker de recordatorios cada 5 minutos junto con el backend; recomendado en producción, deshabilitado por defecto)
+- `ENABLE_WHATSAPP_INBOX_WORKER` (`true` arranca el worker del inbox de WhatsApp cada 30 segundos junto con el backend; requerido en producción para que un webhook aceptado no quede sin procesar, deshabilitado por defecto)
 - `WHATSAPP_VERIFY_TOKEN`
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
@@ -173,6 +174,14 @@ npm run reminders:worker --workspace backend
 
 Ejecuta `dispatchDueReminders` al arrancar y repite cada 5 minutos. Requiere base de datos y credenciales de WhatsApp; aun no esta enlazado a ningun scheduler externo.
 
+### 11. Worker de inbox WhatsApp (bajo demanda)
+
+```bash
+npm run whatsapp-inbox:worker --workspace backend
+```
+
+Procesa los eventos entrantes de WhatsApp persistidos en la bandeja durable al arrancar y repite cada 30 segundos. Requiere base de datos y credenciales de WhatsApp; en produccion se exige `ENABLE_WHATSAPP_INBOX_WORKER=true` (arranca junto con el backend) para que ningun webhook aceptado quede sin procesamiento.
+
 ## Limites de la fase
 
 - `/api/v1/auth/login` es funcional y autentica únicamente la cuenta activa `admin` con rol `admin`; toda identidad distinta se rechaza y audita.
@@ -185,6 +194,7 @@ Ejecuta `dispatchDueReminders` al arrancar y repite cada 5 minutos. Requiere bas
 - La cancelación por WhatsApp exige un número registrado y nombre + fecha de nacimiento coincidentes; la petición incompleta o con identidad fallida se rechaza y audita (`appointment_cancellation_denied`) sin exponer datos.
 - El recordatorio del dia previo se programa a las 18:00 `America/Mexico_City` y solo se envia en el dia calendario anterior a una cita aun futura (filas rezagadas se omiten). El destinatario grupal sin destino configurado se marca `omitido`.
 - El worker de recordatorios arranca con el backend si `ENABLE_REMINDER_WORKER=true` o bajo demanda con `npm run reminders:worker`; su scheduler externo se decide en produccion.
-- Pagos (`US3`), recordatorios visibles en agenda/pagos, FAQ y consultas de estado (`US5`) y la landing publica (`US6`) siguen pendientes de sus historias correspondientes; el panel de agenda, cancelaciones y reagendamiento por `admin` ya estan implementados.
-- Las pruebas unitarias de la ventana de recordatorios ya existen; las pruebas E2E del panel requieren `ADMIN_E2E_PASSWORD` y se agregan en fases posteriores.
+- El worker de inbox WhatsApp se exige en produccion (`ENABLE_WHATSAPP_INBOX_WORKER=true`) para procesar todos los eventos aceptados del webhook; arranca con el backend o bajo demanda con `npm run whatsapp-inbox:worker`.
+- US3 permite registrar pagos, enviar recordatorios manuales y confirmar pagos desde `/admin/payments`. Los comprobantes de WhatsApp se reciben en una bandeja durable para asociacion manual, y las tarifas por tipo de sesion validan el anticipo del 50%. Los recordatorios visibles en agenda, FAQ y consultas de estado (`US5`) y la landing publica (`US6`) siguen pendientes.
+- Las pruebas unitarias de la ventana de recordatorios ya existen. Los E2E de agenda y pagos requieren `ADMIN_E2E_PASSWORD` y datos de prueba sembrados.
 - La landing publica no forma parte de esta fase; `/` redirige a `/admin/agenda`.

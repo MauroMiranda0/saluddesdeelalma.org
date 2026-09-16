@@ -16,7 +16,6 @@ export type AdminPatient = {
   birthdate: string | null;
   preferredModality: "online" | "presencial" | null;
   email: string | null;
-  notes: string | null;
   assignedTherapistId: string | null;
 };
 
@@ -68,6 +67,22 @@ export type AdminPayment = {
   createdAt: string;
 };
 
+export type SessionRate = {
+  therapyType: "individual" | "pareja" | "familiar";
+  amount: number;
+};
+
+export type PaymentProof = {
+  id: string;
+  reference: string;
+  mediaType: string;
+  receivedAt: string;
+  status: "pendiente_asociacion" | "asociado";
+  appointmentId: string | null;
+  paymentId: string | null;
+  associatedAt: string | null;
+};
+
 export type DirectoryPatient = {
   id: string;
   fullName: string;
@@ -76,7 +91,6 @@ export type DirectoryPatient = {
   status: "activo" | "inactivo";
   preferredModality: "online" | "presencial" | null;
   email: string | null;
-  notes: string | null;
   assignedTherapistId: string | null;
 };
 
@@ -130,7 +144,6 @@ export const createAdminPatient = (input: {
   birthdate: string;
   preferredModality?: "online" | "presencial";
   email?: string;
-  notes?: string;
   therapistId?: string;
 }) => {
   return apiRequest<{ patient: AdminPatient }>("/admin/patients", {
@@ -208,6 +221,7 @@ export const rescheduleAdminAppointment = (
     scheduledAt: string;
     modality?: "online" | "presencial";
     therapyType?: "individual" | "pareja" | "familiar";
+    manualExceptionConfirmed?: boolean;
   }
 ) => {
   return apiRequest<{ appointment: AdminAppointmentEvent }>(
@@ -241,15 +255,49 @@ export const registerPayment = (input: {
 };
 
 export const confirmPayment = (paymentId: string) => {
-  return apiRequest<{ payment: AdminPayment }>(`/payments/${paymentId}/confirm`, {
-    method: "POST"
-  });
+  return apiRequest<{ payment: AdminPayment }>(
+    `/payments/${paymentId}/confirm`,
+    {
+      method: "POST"
+    }
+  );
 };
 
 export const sendPaymentReminder = (appointmentId: string) => {
   return apiRequest<void>(`/appointments/${appointmentId}/payment-reminder`, {
     method: "POST"
   });
+};
+
+export const listSessionRates = () => {
+  return apiRequest<{ sessionRates: SessionRate[] }>("/session-rates");
+};
+
+export const updateSessionRate = (
+  therapyType: SessionRate["therapyType"],
+  amount: number
+) => {
+  return apiRequest<{ sessionRate: SessionRate }>(
+    `/session-rates/${therapyType}`,
+    {
+      method: "PUT",
+      body: { amount }
+    }
+  );
+};
+
+export const listPaymentProofs = () => {
+  return apiRequest<{ paymentProofs: PaymentProof[] }>("/payment-proofs");
+};
+
+export const associatePaymentProof = (
+  proofId: string,
+  input: { appointmentId: string; paymentId?: string }
+) => {
+  return apiRequest<{ paymentProof: PaymentProof }>(
+    `/payment-proofs/${proofId}/associate`,
+    { method: "POST", body: input }
+  );
 };
 
 export const fetchDirectory = () => {

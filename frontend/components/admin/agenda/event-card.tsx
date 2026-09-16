@@ -51,6 +51,11 @@ export const EventCard = ({
             : event.subtitle}
         </span>
       )}
+      {variant === "day" && event.appointment.isManualException && (
+        <span className="mt-1 w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
+          Excepción manual
+        </span>
+      )}
     </>
   );
 

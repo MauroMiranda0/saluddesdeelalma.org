@@ -16,6 +16,7 @@ import {
   AppointmentNotFoundError,
   AppointmentNotMutableError,
   AppointmentScheduleError,
+  ManualExceptionConfirmationRequiredError,
   TherapistAssignmentRequiredError,
   appointmentCalendarDto,
   cancelAppointmentWithAudit,
@@ -63,6 +64,9 @@ const appointmentError = (error: unknown) => {
   }
   if (error instanceof AppointmentConflictError) {
     return conflict();
+  }
+  if (error instanceof ManualExceptionConfirmationRequiredError) {
+    return new AppError(422, "unprocessable_entity", error.message);
   }
   if (error instanceof AppointmentScheduleError) {
     return schedule();
@@ -200,6 +204,7 @@ export const createAdminAppointmentRoutes = (
           scheduledAt: new Date(parsed.data.scheduledAt),
           modality: parsed.data.modality,
           therapyType: parsed.data.therapyType,
+          manualExceptionConfirmed: parsed.data.manualExceptionConfirmed,
           audit: {
             actorUserId: request.adminSession?.user.id,
             actorChannel: "admin_panel",

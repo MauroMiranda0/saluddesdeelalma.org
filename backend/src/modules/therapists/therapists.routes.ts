@@ -58,6 +58,26 @@ const therapistProfileDto = (profile: {
   isActive: profile.isActive
 });
 
+const adminPatientDto = (patient: {
+  id: string;
+  fullName: string;
+  whatsappPhone: string;
+  status: "activo" | "inactivo";
+  birthdate: Date;
+  preferredModality: "online" | "presencial" | null;
+  email: string | null;
+  assignedTherapistId: string | null;
+}) => ({
+  id: patient.id,
+  fullName: patient.fullName,
+  whatsappPhone: patient.whatsappPhone,
+  status: patient.status,
+  birthdate: patient.birthdate,
+  preferredModality: patient.preferredModality,
+  email: patient.email,
+  assignedTherapistId: patient.assignedTherapistId
+});
+
 type TherapistAdminRouteDependencies = {
   authenticate: RequestHandler;
   authorizeAdmin: RequestHandler;
@@ -189,7 +209,7 @@ export const createTherapistAdminRoutes = (
     authorizeRequest,
     asyncHandler(async (_request, response) => {
       const patients = await listPatients();
-      response.json({ patients });
+      response.json({ patients: patients.map(adminPatientDto) });
     })
   );
 
@@ -362,7 +382,11 @@ export const createTherapistAdminRoutes = (
           throw new AppError(404, "not_found", "La cita no existe");
         }
         if (error instanceof AppointmentNotMutableError) {
-          throw new AppError(409, "conflict", "La cita aún no puede completarse");
+          throw new AppError(
+            409,
+            "conflict",
+            "La cita aún no puede completarse"
+          );
         }
         throw error;
       }

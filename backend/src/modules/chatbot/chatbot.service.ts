@@ -11,14 +11,23 @@ import {
   createWhatsAppAppointment,
   findNextAvailableSlots
 } from "../appointments/appointments.service";
-import { findNextActiveAppointmentForPatient } from "../appointments/appointments.repository";
+import {
+  findNextActiveAppointmentForPatient,
+  findRecentCancellationForPatient
+} from "../appointments/appointments.repository";
 import { findPatientWithAssignedTherapist } from "../patients/patients.service";
 import { sendAppointmentConfirmation } from "../reminders/reminders.service";
 import {
+  findPaymentProofByWhatsappMessageId,
+  recordIncomingPaymentProof
+} from "../payments/payment-proofs.service";
+import {
+  findConversationByIncomingMessage,
   saveIncomingMessage,
   saveOutboundMessage,
   updateConversation
 } from "./chat-messages.repository";
+import type { PendingWhatsAppOutboundMessage } from "./whatsapp-inbox.repository";
 import {
   classifyIntent,
   containsSensitiveClinicalContent,
@@ -59,10 +68,14 @@ type ProcessingContext = {
   gateway: WhatsAppGateway;
   ipAddress?: string;
   userAgent?: string;
+  queueOutboundMessage?: (
+    message: PendingWhatsAppOutboundMessage
+  ) => Promise<unknown>;
 };
 
 type ProcessingDependencies = {
   saveIncomingMessage: typeof saveIncomingMessage;
+  findConversationByIncomingMessage: typeof findConversationByIncomingMessage;
   updateConversation: typeof updateConversation;
   createWhatsAppAppointment: typeof createWhatsAppAppointment;
   findVerifiedCancellableAppointment: typeof findVerifiedCancellableAppointment;
@@ -98,6 +111,7 @@ export const findVerifiedCancellableAppointment = async (input: {
 
 const defaultProcessingDependencies: ProcessingDependencies = {
   saveIncomingMessage,
+  findConversationByIncomingMessage,
   updateConversation,
   createWhatsAppAppointment,
   findVerifiedCancellableAppointment,
@@ -113,59 +127,104 @@ const clinicalSummary =
 export const sanitizeIncomingWhatsAppContent = (text: string) =>
   containsSensitiveClinicalContent(text) ? clinicalSummary : text;
 
+type PaymentProofProcessingDependencies = {
+  recordIncomingPaymentProof: typeof recordIncomingPaymentProof;
+  findPaymentProofByWhatsappMessageId: typeof findPaymentProofByWhatsappMessageId;
+  saveIncomingMessage: typeof saveIncomingMessage;
+  findConversationByIncomingMessage: typeof findConversationByIncomingMessage;
+  updateConversation: typeof updateConversation;
+  audit: typeof audit;
+};
+
+const defaultPaymentProofDependencies: PaymentProofProcessingDependencies = {
+  recordIncomingPaymentProof,
+  findPaymentProofByWhatsappMessageId,
+  saveIncomingMessage,
+  findConversationByIncomingMessage,
+  updateConversation,
+  audit
+};
+
 export const processIncomingPaymentProof = async (
   proof: IncomingPaymentProof,
-  context: ProcessingContext
+  context: ProcessingContext,
+  dependencies: Partial<PaymentProofProcessingDependencies> = {}
 ) => {
-  const conversation = await saveIncomingMessage({
+  const proofDependencies = {
+    ...defaultPaymentProofDependencies,
+    ...dependencies
+  };
+  // A proof is intentionally only an inbox item. It is never matched to a
+  // patient, appointment, or payment from its WhatsApp sender.
+  const paymentProof = await proofDependencies.recordIncomingPaymentProof({
+    whatsappMessageId: proof.id,
+    mediaId: proof.mediaId,
+    mediaType: proof.mediaType,
+    receivedAt: proof.receivedAt,
+    audit: {
+      actorChannel: "whatsapp",
+      action: "payment_proof_received",
+      entityType: "payment_proof",
+      result: "success",
+      metadata: { mediaType: proof.mediaType },
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent
+    }
+  });
+  // null means a previous attempt already persisted the prueba; the required
+  // outgoing notice must still be materialized without duplicating it.
+  const replayed = paymentProof === null;
+  const proofId =
+    paymentProof?.id ??
+    (await proofDependencies.findPaymentProofByWhatsappMessageId(proof.id))?.id;
+
+  let conversation = await proofDependencies.saveIncomingMessage({
     whatsappPhone: proof.from,
     waMessageId: proof.id,
-    contentText: "Comprobante de pago recibido; pendiente de validación manual.",
+    contentText:
+      "Comprobante de pago recibido; pendiente de validación manual.",
     receivedAt: proof.receivedAt,
     intent: "unknown",
     containsSensitiveClinicalContent: false,
     metadata: { mediaId: proof.mediaId, mediaType: proof.mediaType }
   });
-
   if (!conversation) {
-    return;
+    conversation = await proofDependencies.findConversationByIncomingMessage(
+      proof.id
+    );
   }
 
-  const patient = await findPatientWithAssignedTherapist(proof.from);
-  await updateConversation(conversation.id, {
-    intent: "unknown",
-    patientId: patient?.id,
-    lastMessageAt: proof.receivedAt
-  });
-  await audit({
-    actorChannel: "whatsapp",
-    action: "payment_proof_received",
-    entityType: "chat_conversation",
-    entityId: conversation.id,
-    result: "success",
-    metadata: { mediaType: proof.mediaType, patientId: patient?.id },
-    ipAddress: context.ipAddress,
-    userAgent: context.userAgent
-  });
-
+  if (conversation) {
+    await proofDependencies.updateConversation(conversation.id, {
+      intent: "unknown",
+      lastMessageAt: proof.receivedAt
+    });
+  }
   if (!env.WHATSAPP_ADMIN_PHONE) {
     return;
   }
 
-  await context.gateway.sendText({
+  if (!replayed && proofId) {
+    await proofDependencies.audit({
+      actorChannel: "system",
+      action: "payment_proof_review_requested",
+      entityType: "payment_proof",
+      entityId: proofId,
+      result: "success",
+      metadata: {},
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent
+    });
+  }
+  const adminMessage = {
     to: env.WHATSAPP_ADMIN_PHONE,
-    text: `Jocelyn, ${patient?.fullName ?? "una paciente"} envió un comprobante de pago. Revíselo y confirme el pago desde el panel.`
-  });
-  await audit({
-    actorChannel: "system",
-    action: "payment_confirmation_requested",
-    entityType: "chat_conversation",
-    entityId: conversation.id,
-    result: "success",
-    metadata: { patientId: patient?.id },
-    ipAddress: context.ipAddress,
-    userAgent: context.userAgent
-  });
+    text: "Jocelyn, recibió un comprobante de pago. Revíselo y asígnelo manualmente desde el panel."
+  };
+  if (context.queueOutboundMessage) {
+    await context.queueOutboundMessage(adminMessage);
+  } else {
+    await context.gateway.sendText(adminMessage);
+  }
 };
 
 const sendResponse = async (input: {
@@ -175,7 +234,18 @@ const sendResponse = async (input: {
   intent: SupportedIntent;
   gateway: WhatsAppGateway;
   saveOutboundMessage: typeof saveOutboundMessage;
+  queueOutboundMessage?: ProcessingContext["queueOutboundMessage"];
 }) => {
+  if (input.queueOutboundMessage) {
+    await input.queueOutboundMessage({
+      to: input.to,
+      text: input.text,
+      conversationId: input.conversationId,
+      intent: input.intent
+    });
+    return;
+  }
+
   const sent = await input.gateway.sendText({ to: input.to, text: input.text });
   await input.saveOutboundMessage({
     conversationId: input.conversationId,
@@ -193,6 +263,7 @@ const sendAvailability = async (input: {
   therapyType?: "individual" | "pareja" | "familiar";
   gateway: WhatsAppGateway;
   saveOutboundMessage: typeof saveOutboundMessage;
+  queueOutboundMessage?: ProcessingContext["queueOutboundMessage"];
 }) => {
   const patient = await findPatientWithAssignedTherapist(input.whatsappPhone);
   const slots =
@@ -223,7 +294,7 @@ export const processIncomingWhatsAppMessage = async (
     message.text
   );
   const classifiedIntent = classifyIntent(message.text);
-  const conversation = await processingDependencies.saveIncomingMessage({
+  let conversation = await processingDependencies.saveIncomingMessage({
     whatsappPhone: message.from,
     waMessageId: message.id,
     contentText: sanitizeIncomingWhatsAppContent(message.text),
@@ -231,6 +302,17 @@ export const processIncomingWhatsAppMessage = async (
     intent: classifiedIntent,
     containsSensitiveClinicalContent: hasSensitiveClinicalContent
   });
+  // saveIncomingMessage returns null when a durable retry re-processes a
+  // message that was already persisted. Resume from the existing conversation
+  // so the required outgoing effects are materialized and the event is only
+  // marked processed once every salida is persisted.
+  const replayed = !conversation;
+  if (!conversation) {
+    conversation =
+      await processingDependencies.findConversationByIncomingMessage(
+        message.id
+      );
+  }
 
   if (!conversation) {
     return;
@@ -254,7 +336,8 @@ export const processIncomingWhatsAppMessage = async (
       text: automationDisclosureResponse,
       intent,
       gateway: context.gateway,
-      saveOutboundMessage: processingDependencies.saveOutboundMessage
+      saveOutboundMessage: processingDependencies.saveOutboundMessage,
+      queueOutboundMessage: context.queueOutboundMessage
     });
     return;
   }
@@ -265,23 +348,26 @@ export const processIncomingWhatsAppMessage = async (
       state: "derivada",
       lastMessageAt: message.receivedAt
     });
-    await processingDependencies.audit({
-      actorChannel: "whatsapp",
-      action: "clinical_handoff",
-      entityType: "chat_conversation",
-      entityId: conversation.id,
-      result: "success",
-      metadata: {},
-      ipAddress: context.ipAddress,
-      userAgent: context.userAgent
-    });
+    if (!replayed) {
+      await processingDependencies.audit({
+        actorChannel: "whatsapp",
+        action: "clinical_handoff",
+        entityType: "chat_conversation",
+        entityId: conversation.id,
+        result: "success",
+        metadata: {},
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent
+      });
+    }
     await sendResponse({
       conversationId: conversation.id,
       to: message.from,
       text: clinicalHandoffResponse,
       intent,
       gateway: context.gateway,
-      saveOutboundMessage: processingDependencies.saveOutboundMessage
+      saveOutboundMessage: processingDependencies.saveOutboundMessage,
+      queueOutboundMessage: context.queueOutboundMessage
     });
     return;
   }
@@ -301,7 +387,8 @@ export const processIncomingWhatsAppMessage = async (
         text: cancellationVerificationPrompt,
         intent,
         gateway: context.gateway,
-        saveOutboundMessage: processingDependencies.saveOutboundMessage
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
       });
       return;
     }
@@ -314,34 +401,64 @@ export const processIncomingWhatsAppMessage = async (
       });
 
     if (cancellable.status === "denied") {
-      await processingDependencies.audit({
-        actorChannel: "whatsapp",
-        action: "appointment_cancellation_denied",
-        entityType: "appointment",
-        result: "failure",
-        metadata: { reason: "identity_verification_failed" },
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent
-      });
+      if (!replayed) {
+        await processingDependencies.audit({
+          actorChannel: "whatsapp",
+          action: "appointment_cancellation_denied",
+          entityType: "appointment",
+          result: "failure",
+          metadata: { reason: "identity_verification_failed" },
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent
+        });
+      }
       await sendResponse({
         conversationId: conversation.id,
         to: message.from,
         text: cancellationVerificationFailedResponse,
         intent,
         gateway: context.gateway,
-        saveOutboundMessage: processingDependencies.saveOutboundMessage
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
       });
       return;
     }
 
     if (cancellable.status === "none") {
+      // A durable retry may re-run a cancellation that a previous attempt
+      // already completed (the verified appointment is no longer active).
+      // Re-materialize the confirmation instead of duplicating the mutation.
+      if (replayed) {
+        const cancelled = await findRecentCancellationForPatient(
+          cancellable.patient.id,
+          message.receivedAt
+        );
+        if (cancelled) {
+          await processingDependencies.updateConversation(conversation.id, {
+            intent,
+            patientId: cancelled.patient.id,
+            lastMessageAt: message.receivedAt
+          });
+          await sendResponse({
+            conversationId: conversation.id,
+            to: message.from,
+            text: cancellationConfirmedText(cancelled),
+            intent,
+            gateway: context.gateway,
+            saveOutboundMessage: processingDependencies.saveOutboundMessage,
+            queueOutboundMessage: context.queueOutboundMessage
+          });
+          return;
+        }
+      }
       await sendResponse({
         conversationId: conversation.id,
         to: message.from,
         text: cancellationNotFoundResponse,
         intent,
         gateway: context.gateway,
-        saveOutboundMessage: processingDependencies.saveOutboundMessage
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
       });
       return;
     }
@@ -374,7 +491,8 @@ export const processIncomingWhatsAppMessage = async (
         text: cancellationConfirmedText(cancelled),
         intent,
         gateway: context.gateway,
-        saveOutboundMessage: processingDependencies.saveOutboundMessage
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
       });
     } catch (error) {
       if (
@@ -387,7 +505,8 @@ export const processIncomingWhatsAppMessage = async (
           text: cancellationNotFoundResponse,
           intent,
           gateway: context.gateway,
-          saveOutboundMessage: processingDependencies.saveOutboundMessage
+          saveOutboundMessage: processingDependencies.saveOutboundMessage,
+          queueOutboundMessage: context.queueOutboundMessage
         });
         return;
       }
@@ -408,7 +527,8 @@ export const processIncomingWhatsAppMessage = async (
       whatsappPhone: message.from,
       intent,
       gateway: context.gateway,
-      saveOutboundMessage: processingDependencies.saveOutboundMessage
+      saveOutboundMessage: processingDependencies.saveOutboundMessage,
+      queueOutboundMessage: context.queueOutboundMessage
     });
     return;
   }
@@ -427,7 +547,8 @@ export const processIncomingWhatsAppMessage = async (
         whatsappPhone: message.from,
         intent,
         gateway: context.gateway,
-        saveOutboundMessage: processingDependencies.saveOutboundMessage
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
       });
       return;
     }
@@ -465,7 +586,8 @@ export const processIncomingWhatsAppMessage = async (
         appointment,
         patient,
         conversationId: conversation.id,
-        gateway: context.gateway
+        gateway: context.gateway,
+        queueOutboundMessage: context.queueOutboundMessage
       });
       return;
     } catch (error) {
@@ -474,25 +596,28 @@ export const processIncomingWhatsAppMessage = async (
         error instanceof AppointmentScheduleError ||
         error instanceof TherapistAssignmentRequiredError
       ) {
-        await processingDependencies.audit({
-          actorChannel: "whatsapp",
-          action:
-            error instanceof AppointmentConflictError
-              ? "appointment_conflict"
-              : "appointment_schedule_rejected",
-          entityType: "appointment",
-          result: "failure",
-          metadata: {},
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent
-        });
+        if (!replayed) {
+          await processingDependencies.audit({
+            actorChannel: "whatsapp",
+            action:
+              error instanceof AppointmentConflictError
+                ? "appointment_conflict"
+                : "appointment_schedule_rejected",
+            entityType: "appointment",
+            result: "failure",
+            metadata: {},
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent
+          });
+        }
         await sendResponse({
           conversationId: conversation.id,
           to: message.from,
           text: bookingConflictResponse,
           intent,
           gateway: context.gateway,
-          saveOutboundMessage: processingDependencies.saveOutboundMessage
+          saveOutboundMessage: processingDependencies.saveOutboundMessage,
+          queueOutboundMessage: context.queueOutboundMessage
         });
         await sendAvailability({
           conversationId: conversation.id,
@@ -501,7 +626,8 @@ export const processIncomingWhatsAppMessage = async (
           intent,
           therapyType: details.therapyType,
           gateway: context.gateway,
-          saveOutboundMessage: processingDependencies.saveOutboundMessage
+          saveOutboundMessage: processingDependencies.saveOutboundMessage,
+          queueOutboundMessage: context.queueOutboundMessage
         });
         return;
       }
@@ -520,6 +646,7 @@ export const processIncomingWhatsAppMessage = async (
     text: genericGreetingResponse,
     intent: "unknown",
     gateway: context.gateway,
-    saveOutboundMessage: processingDependencies.saveOutboundMessage
+    saveOutboundMessage: processingDependencies.saveOutboundMessage,
+    queueOutboundMessage: context.queueOutboundMessage
   });
 };

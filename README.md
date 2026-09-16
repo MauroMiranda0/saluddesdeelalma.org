@@ -35,14 +35,15 @@ En este punto existe:
 - pruebas de contrato del webhook, pruebas de integracion del flujo de agendamiento y de cancelación (clasificación del intent, verificación de identidad, flujo completo y denegación auditable), pruebas unitarias de la ventana de recordatorios y un gate opt-in de integración con PostgreSQL real (`RUN_POSTGRES_INTEGRATION`)
 - **Panel `admin` (US2)**: login real con `username` + contraseña scrypt y cookie HttpOnly en `POST /api/v1/auth/login`, sesión activa en `GET /api/v1/auth/me` y logout en `POST /api/v1/auth/logout`, todo auditable y transaccional (`createAdminSessionWithAudit`)
 - guard de identidad inyectable `createAuthorizeAdminIdentity(audit)` aplicado a las rutas administrativas, rechazando cualquier usuario distinto de `admin` sin cookie y con auditoría de denegación (constraints `users_single_admin_key` / `users_access_profile_check`)
-- endpoints administrativos de citas en `GET /api/v1/appointments`, `POST /api/v1/appointments`, `PATCH /api/v1/appointments/:id` y `POST /api/v1/appointments/:id/cancel`, con DTO de calendario (`startsAt`, `paymentStatus`, fin de cita), mapeo `400/404/409/422` y notificaciones `scheduleCancellationNotice`
+- endpoints administrativos de citas en `GET /api/v1/appointments`, `POST /api/v1/appointments`, `PATCH /api/v1/appointments/:id` y `POST /api/v1/appointments/:id/cancel`, con DTO de calendario (`scheduledAt`, `paymentStatus`, pagos y fin de cita), mapeo `400/404/409/422` y notificaciones `scheduleCancellationNotice`
 - módulo de directorio en `GET /api/v1/directory` con psicólogas/os y pacientes (citas y pagos en los próximos 30 días)
-- frontend del panel: layout con `AdminGuard` (protege rutas salvo `/admin/login`), páginas de login, agenda (vistas día/semana/mes con `EVENT_COLOR_MAP` y leyenda de colores con contadores), directorio, dashboard, formulario de cita y diálogo de cancelación; la raíz `/` redirige a `/admin/agenda`
+- frontend del panel: layout con `AdminGuard` (protege rutas salvo `/admin/login`), paginas de login, agenda (vistas dia/semana/mes con `EVENT_COLOR_MAP` y leyenda de colores con contadores), directorio, dashboard, formulario de cita, dialogo de cancelacion y pagos; la raiz `/` redirige a `/admin/agenda`
+- modulo de pagos administrativo en `POST /api/v1/payments`, `POST /api/v1/payments/:paymentId/confirm` y `POST /api/v1/appointments/:appointmentId/payment-reminder`, con vista `/admin/payments` para registrar, recordar y confirmar pagos manualmente
 - prueba E2E móvil de Playwright en `frontend/tests/e2e/admin-agenda.spec.ts` (login + agenda diaria + leyenda + logout) y suite de contrato/integración/unitarias de US2 en el backend
 
 En este punto todavia no existe:
 
-- pagos desde el panel (anticipo/completo), agenda de pagos ni landing publica funcional
+- landing publica funcional; tampoco FAQ ni consultas de estado por WhatsApp (US5)
 - scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta bajo demanda); tampoco FAQ y consultas de estado por WhatsApp (US5)
 - ejecución de la suite E2E automatizada en CI; requiere navegadores Playwright instalados y base sembrada (ver sección de comandos)
 

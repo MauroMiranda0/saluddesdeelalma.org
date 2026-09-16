@@ -5,6 +5,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { prisma } from "../../src/lib/prisma.js";
 import { createWhatsAppAppointment } from "../../src/modules/appointments/appointments.service.js";
 import { rescheduleAppointmentWithAudit } from "../../src/modules/appointments/appointments.service.js";
+import { createPanelAppointmentWithAudit } from "../../src/modules/appointments/appointments.service.js";
 import { previousDayReminderAt } from "../../src/modules/reminders/reminders.service.js";
 import { dispatchDueReminders } from "../../src/modules/reminders/reminder-dispatcher.js";
 
@@ -226,6 +227,131 @@ test(
 );
 
 test(
+  "panel booking commits durable confirmations and records independent delivery outcomes",
+  { skip: !enabled },
+  async (t) => {
+    const created: Created = {
+      users: [],
+      patients: [],
+      appointments: [],
+      phones: []
+    };
+    registerCleanup(t, created);
+
+    const therapist = await createTherapist(created);
+    const patient = await createBookingPatient(created, therapist.id);
+    const deliveries: string[] = [];
+    const appointment = await createPanelAppointmentWithAudit({
+      patient: { patientId: patient.id },
+      scheduledAt: new Date("2026-10-05T15:00:00.000Z"),
+      modality: "online",
+      therapyType: "individual",
+      isManualException: false,
+      actorUserId: therapist.userId,
+      audit: {
+        actorUserId: therapist.userId,
+        actorChannel: "admin_panel",
+        action: "appointment_created",
+        entityType: "appointment",
+        result: "success"
+      },
+      confirmationGateway: {
+        sendText: async ({ to }) => {
+          deliveries.push(to);
+          if (to !== patient.whatsappPhone) {
+            throw new Error("group delivery failed");
+          }
+          return { messageId: "wamid.patient" };
+        }
+      }
+    });
+    created.appointments.push(appointment.id);
+
+    assert.equal(deliveries.length, 2);
+    const rows = await prisma.appointmentReminder.findMany({
+      where: { appointmentId: appointment.id }
+    });
+    const byKey = Object.fromEntries(
+      rows.map((row) => [`${row.reminderType}:${row.recipient}`, row])
+    );
+    assert.equal(rows.length, 5);
+    assert.equal(byKey["confirmacion:paciente"].status, "enviado");
+    assert.equal(
+      byKey["confirmacion:paciente"].providerMessageId,
+      "wamid.patient"
+    );
+    assert.equal(byKey["confirmacion:grupo_psicologas"].status, "fallido");
+    assert.equal(byKey["confirmacion:grupo_psicologas"].attemptsCount, 1);
+    assert.match(
+      byKey["confirmacion:grupo_psicologas"].lastError ?? "",
+      /group delivery failed/
+    );
+    assert.equal(byKey["recordatorio_24h:paciente"].status, "pendiente");
+    assert.equal(
+      byKey["recordatorio_24h:grupo_psicologas"].status,
+      "pendiente"
+    );
+    assert.equal(byKey["pago_pendiente:paciente"].status, "pendiente");
+  }
+);
+
+test(
+  "a failed panel booking audit rolls back confirmation and reminder rows before dispatch",
+  { skip: !enabled },
+  async (t) => {
+    const created: Created = {
+      users: [],
+      patients: [],
+      appointments: [],
+      phones: []
+    };
+    registerCleanup(t, created);
+
+    const therapist = await createTherapist(created);
+    const patient = await createBookingPatient(created, therapist.id);
+    await installAuditFailureTrigger();
+    let sends = 0;
+
+    await assert.rejects(
+      createPanelAppointmentWithAudit({
+        patient: { patientId: patient.id },
+        scheduledAt: new Date("2026-10-05T15:00:00.000Z"),
+        modality: "online",
+        therapyType: "individual",
+        isManualException: false,
+        actorUserId: therapist.userId,
+        audit: {
+          actorUserId: therapist.userId,
+          actorChannel: "admin_panel",
+          action: "appointment_created",
+          entityType: "appointment",
+          result: "success"
+        },
+        confirmationGateway: {
+          sendText: async () => {
+            sends += 1;
+            return { messageId: "wamid.should-not-send" };
+          }
+        }
+      }),
+      /forced audit failure/
+    );
+
+    assert.equal(sends, 0);
+    assert.equal(
+      await prisma.appointment.count({ where: { patientId: patient.id } }),
+      0
+    );
+    assert.equal(
+      await prisma.appointmentReminder.count({
+        where: { appointment: { patientId: patient.id } }
+      }),
+      0
+    );
+  }
+);
+
+test(
   "cancellation notices are dispatched and stale reminders are omitted",
   { skip: !enabled },
   async (t) => {
@@ -355,6 +481,7 @@ test(
     await rescheduleAppointmentWithAudit({
       appointmentId: appointment.id,
       scheduledAt: to,
+      manualExceptionConfirmed: false,
       audit: {
         actorUserId: created.users[0],
         actorChannel: "admin_panel",

@@ -9,6 +9,7 @@ import {
 export class PaymentNotFoundError extends Error {}
 export class PaymentNotMutableError extends Error {}
 export class PaymentValidationConflictError extends Error {}
+export class SessionRateNotConfiguredError extends Error {}
 
 export const paymentDto = (payment: {
   id: string;
@@ -30,13 +31,83 @@ export const paymentDto = (payment: {
   createdAt: payment.createdAt.toISOString()
 });
 
+export const sessionRateDto = (rate: {
+  therapyType: "individual" | "pareja" | "familiar";
+  amount: { toString(): string };
+}) => ({
+  therapyType: rate.therapyType,
+  amount: Number(rate.amount.toString())
+});
+
+export const listSessionRates = async () => {
+  return prisma.sessionRate.findMany({
+    orderBy: { therapyType: "asc" }
+  });
+};
+
+export const upsertSessionRateWithAudit = (input: {
+  therapyType: "individual" | "pareja" | "familiar";
+  amount: number;
+  audit: AuditCreateInput;
+}) =>
+  prisma.$transaction(async (transaction) => {
+    const rate = await transaction.sessionRate.upsert({
+      where: { therapyType: input.therapyType },
+      create: { therapyType: input.therapyType, amount: input.amount },
+      update: { amount: input.amount }
+    });
+    await createAuditLogInTransaction(transaction, {
+      ...input.audit,
+      action: "session_rate_updated",
+      entityType: "session_rate",
+      entityId: rate.id,
+      metadata: {
+        auditMetadata: input.audit.metadata ?? {},
+        therapyType: rate.therapyType
+      }
+    });
+    return rate;
+  });
+
+export const amountMatchesAdvanceRate = (
+  amount: number,
+  rateAmount: { toString(): string }
+) =>
+  Math.round(amount * 100) === Math.round(Number(rateAmount.toString()) * 50);
+
+export const amountMatchesFullRate = (
+  amount: number,
+  rateAmount: { toString(): string }
+) =>
+  Math.round(amount * 100) === Math.round(Number(rateAmount.toString()) * 100);
+
+export const assertPaymentCanBeConfirmed = (input: {
+  paymentStatus: "pendiente_validacion" | "validado" | "rechazado";
+  appointmentStatus: "programada" | "confirmada" | "completada" | "cancelada";
+}) => {
+  if (
+    input.appointmentStatus === "cancelada" ||
+    input.paymentStatus !== "pendiente_validacion"
+  ) {
+    throw new PaymentNotMutableError("Payment cannot be confirmed");
+  }
+};
+
+export const dispatchManualPaymentReminder = async (input: {
+  persistTrace: () => Promise<unknown>;
+  dispatch: () => Promise<unknown>;
+}) => {
+  await input.persistTrace();
+  await input.dispatch();
+};
+
 export const createPaymentWithAudit = async (input: {
   payment: CreatePaymentInput;
   audit: AuditCreateInput;
 }) => {
   const appointment = await prisma.appointment.findUnique({
     where: { id: input.payment.appointmentId },
-    select: { patientId: true, status: true }
+    select: { patientId: true, status: true, therapyType: true }
   });
 
   if (!appointment) {
@@ -46,10 +117,31 @@ export const createPaymentWithAudit = async (input: {
     appointment.status === "cancelada" ||
     appointment.patientId !== input.payment.patientId
   ) {
-    throw new PaymentNotMutableError("Payment cannot be registered for this appointment");
+    throw new PaymentNotMutableError(
+      "Payment cannot be registered for this appointment"
+    );
   }
 
   return prisma.$transaction(async (transaction) => {
+    const rate = await transaction.sessionRate.findUnique({
+      where: { therapyType: appointment.therapyType }
+    });
+    if (!rate) {
+      throw new SessionRateNotConfiguredError(
+        "A session rate must be configured before registering a payment"
+      );
+    }
+    const amountMatchesRate =
+      input.payment.paymentType === "anticipo"
+        ? amountMatchesAdvanceRate(input.payment.amount, rate.amount)
+        : amountMatchesFullRate(input.payment.amount, rate.amount);
+    if (!amountMatchesRate) {
+      throw new PaymentNotMutableError(
+        input.payment.paymentType === "anticipo"
+          ? "An advance must equal 50% of the configured session rate"
+          : "A full payment must equal the configured session rate"
+      );
+    }
     const payment = await transaction.payment.create({
       data: {
         ...input.payment,
@@ -72,36 +164,51 @@ export const confirmPaymentWithAudit = async (input: {
   paymentId: string;
   audit: AuditCreateInput;
 }) => {
-  const payment = await prisma.payment.findUnique({
-    where: { id: input.paymentId },
-    include: { appointment: { select: { status: true } } }
-  });
-
-  if (!payment) {
-    throw new PaymentNotFoundError("Payment does not exist");
-  }
-  if (payment.appointment.status === "cancelada") {
-    throw new PaymentNotMutableError("Payment cannot be confirmed for a cancelled appointment");
-  }
-
-  if (payment.status !== "validado" && payment.paymentType === "completo") {
-    const validatedFullPayment = await prisma.payment.findFirst({
-      where: {
-        appointmentId: payment.appointmentId,
-        paymentType: "completo",
-        status: "validado",
-        id: { not: payment.id }
-      },
-      select: { id: true }
-    });
-    if (validatedFullPayment) {
-      throw new PaymentValidationConflictError(
-        "The appointment already has a validated full payment"
-      );
-    }
-  }
-
   return prisma.$transaction(async (transaction) => {
+    const payment = await transaction.payment.findUnique({
+      where: { id: input.paymentId },
+      include: { appointment: { select: { status: true, therapyType: true } } }
+    });
+    if (!payment) {
+      throw new PaymentNotFoundError("Payment does not exist");
+    }
+    assertPaymentCanBeConfirmed({
+      paymentStatus: payment.status,
+      appointmentStatus: payment.appointment.status
+    });
+
+    if (payment.paymentType === "completo") {
+      const rate = await transaction.sessionRate.findUnique({
+        where: { therapyType: payment.appointment.therapyType }
+      });
+      if (!rate) {
+        throw new SessionRateNotConfiguredError(
+          "A session rate must be configured before confirming a full payment"
+        );
+      }
+      if (
+        !amountMatchesFullRate(Number(payment.amount.toString()), rate.amount)
+      ) {
+        throw new PaymentNotMutableError(
+          "A full payment must equal the configured session rate"
+        );
+      }
+      const validatedFullPayment = await transaction.payment.findFirst({
+        where: {
+          appointmentId: payment.appointmentId,
+          paymentType: "completo",
+          status: "validado",
+          id: { not: payment.id }
+        },
+        select: { id: true }
+      });
+      if (validatedFullPayment) {
+        throw new PaymentValidationConflictError(
+          "The appointment already has a validated full payment"
+        );
+      }
+    }
+
     const confirmed = await transaction.payment.update({
       where: { id: payment.id },
       data: { status: "validado", paidAt: payment.paidAt ?? new Date() }
@@ -129,24 +236,27 @@ export const sendPaymentReminderWithAudit = async (input: {
     throw new PaymentNotFoundError("Appointment does not exist");
   }
   if (appointment.status === "cancelada") {
-    throw new PaymentNotMutableError("A cancelled appointment cannot receive reminders");
+    throw new PaymentNotMutableError(
+      "A cancelled appointment cannot receive reminders"
+    );
   }
 
-  await whatsappGateway.sendText({
-    to: appointment.patient.whatsappPhone,
-    text: "Buen día. Le recordamos amablemente que su saldo de sesión continúa pendiente. Si ya realizó el pago, por favor envíe su comprobante por este medio."
-  });
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: input.audit.actorUserId,
-      actorChannel: input.audit.actorChannel,
-      action: "payment_reminder_sent",
-      entityType: "appointment",
-      entityId: appointment.id,
-      result: "success",
-      metadata: input.audit.metadata ?? {},
-      ipAddress: input.audit.ipAddress,
-      userAgent: input.audit.userAgent
-    }
+  // Persisting intent before the external side effect guarantees that a send
+  // can never succeed merely because audit storage was temporarily unavailable.
+  await dispatchManualPaymentReminder({
+    persistTrace: () =>
+      prisma.$transaction((transaction) =>
+        createAuditLogInTransaction(transaction, {
+          ...input.audit,
+          action: "payment_reminder_requested",
+          entityType: "appointment",
+          entityId: appointment.id
+        })
+      ),
+    dispatch: () =>
+      whatsappGateway.sendText({
+        to: appointment.patient.whatsappPhone,
+        text: "Buen día. Le recordamos amablemente que su saldo de sesión continúa pendiente. Si ya realizó el pago, por favor envíe su comprobante por este medio."
+      })
   });
 };

@@ -46,6 +46,57 @@ test("Login + agenda diaria con leyenda de colores", async ({ page }) => {
   await expect(page.getByText("09:00", { exact: true })).toBeVisible();
 });
 
+test("Agenda diaria identifica citas de excepción manual", async ({ page }) => {
+  const scheduledAt = new Date();
+  scheduledAt.setHours(10, 0, 0, 0);
+  const endsAt = new Date(scheduledAt.getTime() + 60 * 60_000);
+
+  await page.route(/\/api\/v1\/appointments\?/, async (route) => {
+    await route.fulfill({
+      json: {
+        appointments: [
+          {
+            id: "manual-exception-appointment",
+            scheduledAt: scheduledAt.toISOString(),
+            endsAt: endsAt.toISOString(),
+            therapyType: "individual",
+            durationMinutes: 60,
+            modality: "online",
+            status: "programada",
+            isManualException: true,
+            locationLabel: null,
+            meetingLink: null,
+            cancelReason: null,
+            cancelledAt: null,
+            cancellationNotice: null,
+            createdVia: "panel",
+            paymentStatus: "pendiente",
+            payments: [],
+            patientId: "manual-exception-patient",
+            patientName: "Paciente de excepción",
+            patientPhone: "5555555555",
+            patientBirthdate: null,
+            therapistId: "manual-exception-therapist",
+            therapistName: "Jocelyn",
+            therapistIsActive: true
+          }
+        ]
+      }
+    });
+  });
+
+  await page.goto("/admin/login");
+  await page.getByPlaceholder("admin").fill("admin");
+  await page.getByPlaceholder("••••••••").fill(ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+
+  await page.getByRole("button", { name: "Día", exact: true }).click();
+  await expect(page.getByText("Paciente de excepción")).toBeVisible();
+  await expect(
+    page.getByText("Excepción manual", { exact: true })
+  ).toBeVisible();
+});
+
 test("Volver al login desde el panel cierra la sesión", async ({ page }) => {
   await page.goto("/admin/login");
   await page.getByPlaceholder("admin").fill("admin");

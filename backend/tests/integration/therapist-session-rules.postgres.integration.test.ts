@@ -5,6 +5,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { prisma } from "../../src/lib/prisma.js";
 import {
   AppointmentConflictError,
+  AppointmentScheduleError,
   completeAppointmentWithAudit,
   createPanelAppointmentWithAudit,
   createWhatsAppAppointment,
@@ -249,10 +250,74 @@ test(
         appointmentId: later.id,
         scheduledAt: new Date("2026-10-05T15:30:00.000Z"),
         therapyType: "pareja",
+        manualExceptionConfirmed: false,
         audit
       }),
       AppointmentConflictError
     );
+  }
+);
+
+test(
+  "rescheduling outside regular hours requires confirmation and audits the exception",
+  { skip: !enabled },
+  async (t) => {
+    const created: Created = { users: [], patients: [], appointments: [] };
+    registerCleanup(t, created);
+
+    const therapistUser = await createPsychologistUser("Terapeuta Excepción");
+    created.users.push(therapistUser.id);
+    const therapist = await prisma.therapistProfile.create({
+      data: { userId: therapistUser.id, phone: "5215500000000" }
+    });
+    const patient = await createPatient(
+      "Paciente Excepción",
+      created,
+      therapist.id
+    );
+    const appointment = await createAppointment({
+      patientId: patient.id,
+      therapistId: therapist.id,
+      scheduledAt: new Date("2026-10-05T15:00:00.000Z")
+    });
+    created.appointments.push(appointment.id);
+    const scheduledAt = new Date("2026-10-05T14:30:00.000Z");
+    const audit = auditFor(therapistUser.id);
+
+    await assert.rejects(
+      rescheduleAppointmentWithAudit({
+        appointmentId: appointment.id,
+        scheduledAt,
+        manualExceptionConfirmed: false,
+        audit
+      }),
+      AppointmentScheduleError
+    );
+
+    const unchanged = await prisma.appointment.findUniqueOrThrow({
+      where: { id: appointment.id }
+    });
+    assert.equal(unchanged.isManualException, false);
+    assert.equal(
+      unchanged.scheduledAt.getTime(),
+      appointment.scheduledAt.getTime()
+    );
+
+    const rescheduled = await rescheduleAppointmentWithAudit({
+      appointmentId: appointment.id,
+      scheduledAt,
+      manualExceptionConfirmed: true,
+      audit
+    });
+    assert.equal(rescheduled.isManualException, true);
+
+    const auditLog = await prisma.auditLog.findFirstOrThrow({
+      where: {
+        entityId: appointment.id,
+        action: "appointment_rescheduled_manual_exception"
+      }
+    });
+    assert.deepEqual(auditLog.metadata, { manualExceptionConfirmed: true });
   }
 );
 

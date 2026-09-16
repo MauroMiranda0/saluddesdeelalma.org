@@ -30,6 +30,35 @@ const toIsoFromLocalInput = (value: string) => {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 };
 
+const isOutsideRegularSchedule = (
+  iso: string | undefined,
+  therapyType: "individual" | "pareja" | "familiar"
+) => {
+  if (!iso) {
+    return false;
+  }
+
+  const scheduledAt = new Date(iso);
+
+  if (Number.isNaN(scheduledAt.getTime())) {
+    return false;
+  }
+
+  const endsAt = new Date(
+    scheduledAt.getTime() + (therapyType === "individual" ? 60 : 90) * 60_000
+  );
+  const weekday = scheduledAt.getDay();
+
+  return (
+    weekday === 0 ||
+    weekday === 6 ||
+    scheduledAt.getHours() < 9 ||
+    endsAt.getDate() !== scheduledAt.getDate() ||
+    endsAt.getHours() > 21 ||
+    (endsAt.getHours() === 21 && endsAt.getMinutes() !== 0)
+  );
+};
+
 export const RescheduleDialog = ({
   appointment,
   onRescheduled,
@@ -44,6 +73,8 @@ export const RescheduleDialog = ({
   const [therapyType, setTherapyType] = useState<
     "individual" | "pareja" | "familiar"
   >(appointment.therapyType);
+  const [manualExceptionConfirmed, setManualExceptionConfirmed] =
+    useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +86,15 @@ export const RescheduleDialog = ({
       return;
     }
 
+    const outsideRegularSchedule = isOutsideRegularSchedule(iso, therapyType);
+
+    if (outsideRegularSchedule && !manualExceptionConfirmed) {
+      setError(
+        "Confirma la excepción manual para reagendar fuera del horario regular."
+      );
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -62,7 +102,8 @@ export const RescheduleDialog = ({
       await rescheduleAdminAppointment(appointment.id, {
         scheduledAt: iso,
         modality,
-        therapyType
+        therapyType,
+        manualExceptionConfirmed: outsideRegularSchedule
       });
       onRescheduled();
     } catch (requestError) {
@@ -131,6 +172,24 @@ export const RescheduleDialog = ({
           </div>
         </div>
 
+        {isOutsideRegularSchedule(
+          toIsoFromLocalInput(scheduledAt),
+          therapyType
+        ) && (
+          <label className="mb-3 flex items-start gap-2 rounded bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              checked={manualExceptionConfirmed}
+              onChange={(event) =>
+                setManualExceptionConfirmed(event.target.checked)
+              }
+              className="mt-0.5"
+            />
+            Confirmo esta excepción manual fuera del horario regular (Lun–Vie,
+            09:00–21:00).
+          </label>
+        )}
+
         {error && (
           <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
@@ -149,7 +208,14 @@ export const RescheduleDialog = ({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting}
+            disabled={
+              submitting ||
+              (isOutsideRegularSchedule(
+                toIsoFromLocalInput(scheduledAt),
+                therapyType
+              ) &&
+                !manualExceptionConfirmed)
+            }
             className="rounded bg-forest px-4 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-60"
           >
             {submitting ? "Moviendo…" : "Confirmar cambio"}

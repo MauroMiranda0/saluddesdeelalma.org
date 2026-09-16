@@ -63,6 +63,11 @@ enum PaymentValidationStatus {
   rechazado
 }
 
+enum PaymentProofStatus {
+  pendiente_asociacion
+  asociado
+}
+
 enum ReminderType {
   confirmacion
   recordatorio_24h
@@ -126,6 +131,25 @@ enum ContentMode {
   admin_summary
 }
 
+enum IncomingWhatsAppEventKind {
+  message
+  payment_proof
+}
+
+enum IncomingWhatsAppEventStatus {
+  pendiente
+  procesando
+  procesado
+  fallido
+}
+
+enum OutgoingWhatsAppEventStatus {
+  pendiente
+  procesando
+  enviado
+  fallido
+}
+
 enum ActorChannel {
   admin_panel
   whatsapp
@@ -154,6 +178,7 @@ model User {
   therapistProfile  TherapistProfile?
   appointmentsCreated Appointment[] @relation("AppointmentCreator")
   payments          Payment[]
+  associatedPaymentProofs PaymentProof[] @relation("PaymentProofAssociator")
   auditLogs         AuditLog[]
 
   @@map("users")
@@ -199,7 +224,6 @@ model Patient {
   birthdate         DateTime           @db.Date
   preferredModality Modality?          @map("preferred_modality")
   email             String?            @db.VarChar(255)
-  notes             String?
   status            PatientStatus      @default(activo)
   assignedTherapistId String?           @map("assigned_therapist_id") @db.Uuid
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -239,6 +263,7 @@ model Appointment {
   createdBy         User?                 @relation("AppointmentCreator", fields: [createdByUserId], references: [id])
   payments          Payment[]
   reminders         AppointmentReminder[]
+  paymentProofs     PaymentProof[]
 
   @@index([patientId])
   @@index([scheduledAt])
@@ -264,12 +289,45 @@ model Payment {
   appointment      Appointment             @relation(fields: [appointmentId], references: [id])
   patient          Patient                 @relation(fields: [patientId], references: [id])
   recordedBy       User                    @relation(fields: [recordedByUserId], references: [id])
+  paymentProofs    PaymentProof[]
 
   @@index([appointmentId])
   @@index([patientId])
   /// La migracion inicial agrega indices unicos parciales para impedir mas de
   /// un anticipo validado y mas de un pago completo validado por cita.
   @@map("payments")
+}
+
+model SessionRate {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  therapyType TherapyType @unique @map("therapy_type")
+  amount      Decimal     @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("session_rates")
+}
+
+model PaymentProof {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  whatsappMessageId  String             @unique @map("whatsapp_message_id") @db.VarChar(120)
+  mediaId            String             @map("media_id") @db.VarChar(255)
+  mediaType          String             @map("media_type") @db.VarChar(20)
+  receivedAt         DateTime           @map("received_at") @db.Timestamptz(6)
+  status             PaymentProofStatus @default(pendiente_asociacion)
+  appointmentId      String?            @map("appointment_id") @db.Uuid
+  paymentId          String?            @map("payment_id") @db.Uuid
+  associatedByUserId String?            @map("associated_by_user_id") @db.Uuid
+  associatedAt       DateTime?          @map("associated_at") @db.Timestamptz(6)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  appointment        Appointment?       @relation(fields: [appointmentId], references: [id])
+  payment            Payment?           @relation(fields: [paymentId], references: [id])
+  associatedBy       User?               @relation("PaymentProofAssociator", fields: [associatedByUserId], references: [id])
+
+  @@index([status, receivedAt])
+  @@index([appointmentId])
+  @@index([paymentId])
+  @@map("payment_proofs")
 }
 
 model AppointmentReminder {
@@ -305,6 +363,7 @@ model ChatConversation {
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   patient            Patient?           @relation(fields: [patientId], references: [id])
   messages           ChatMessage[]
+  outgoingEvents     OutgoingWhatsAppEvent[]
 
   @@index([whatsappPhone])
   @@index([patientId])
@@ -327,6 +386,56 @@ model ChatMessage {
 
   @@index([conversationId])
   @@map("chat_messages")
+}
+
+model IncomingWhatsAppEvent {
+  id                String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  waMessageId       String                       @unique @map("wa_message_id") @db.VarChar(120)
+  kind              IncomingWhatsAppEventKind
+  whatsappPhone     String                       @map("whatsapp_phone") @db.VarChar(30)
+  payload           Json
+  receivedAt        DateTime                     @map("received_at") @db.Timestamptz(6)
+  status            IncomingWhatsAppEventStatus @default(pendiente)
+  attemptsCount     Int                          @default(0) @map("attempts_count")
+  lastError         String?                      @map("last_error")
+  availableAt       DateTime                     @default(now()) @map("available_at") @db.Timestamptz(6)
+  processingStartedAt DateTime?                  @map("processing_started_at") @db.Timestamptz(6)
+  processingToken   String?                      @map("processing_token") @db.Uuid
+  processedAt       DateTime?                    @map("processed_at") @db.Timestamptz(6)
+  createdAt         DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  outgoingEvents    OutgoingWhatsAppEvent[]
+
+  @@index([status, availableAt])
+  @@index([status, processingStartedAt])
+  @@map("incoming_whatsapp_events")
+}
+
+model OutgoingWhatsAppEvent {
+  id                  String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incomingEventId     String                       @map("incoming_event_id") @db.Uuid
+  sequence            Int
+  conversationId      String?                      @map("conversation_id") @db.Uuid
+  whatsappPhone       String                       @map("whatsapp_phone") @db.VarChar(30)
+  contentText         String                       @map("content_text")
+  intent              String?                      @db.VarChar(60)
+  status              OutgoingWhatsAppEventStatus @default(pendiente)
+  attemptsCount       Int                          @default(0) @map("attempts_count")
+  lastError           String?                      @map("last_error")
+  availableAt         DateTime                     @default(now()) @map("available_at") @db.Timestamptz(6)
+  processingStartedAt DateTime?                    @map("processing_started_at") @db.Timestamptz(6)
+  processingToken     String?                      @map("processing_token") @db.Uuid
+  providerMessageId   String?                      @map("provider_message_id") @db.VarChar(120)
+  sentAt              DateTime?                    @map("sent_at") @db.Timestamptz(6)
+  createdAt           DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  incomingEvent       IncomingWhatsAppEvent       @relation(fields: [incomingEventId], references: [id])
+  conversation        ChatConversation?           @relation(fields: [conversationId], references: [id])
+
+  @@unique([incomingEventId, sequence])
+  @@index([status, availableAt])
+  @@index([status, processingStartedAt])
+  @@map("outgoing_whatsapp_events")
 }
 
 model AuditLog {
