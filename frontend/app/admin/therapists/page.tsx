@@ -64,13 +64,18 @@ export default function AdminTherapistsPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl p-4">
-      <h1 className="mb-4 text-2xl font-semibold">Perfiles clínicos</h1>
+    <main className="admin-page">
+      <div className="mb-5">
+        <p className="text-sm text-[--muted]">
+          Perfiles clínicos sin acceso al panel
+        </p>
+        <h1 className="page-title">Psicólogos/as</h1>
+      </div>
       {error ? <p className="mb-2 text-red-700">{error}</p> : null}
       {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
 
       <form
-        className="mb-6 flex flex-col gap-2 rounded border p-3"
+        className="panel-card mb-6 flex flex-col gap-3 p-5"
         onSubmit={handleCreate}
       >
         <h2 className="font-medium">Crear perfil clínico</h2>
@@ -118,7 +123,7 @@ export default function AdminTherapistsPage() {
         {therapists.map((therapist) => (
           <li
             key={therapist.id}
-            className="flex items-center justify-between rounded border p-3"
+            className="panel-card flex items-center justify-between p-4"
           >
             <div>
               <p className="font-medium">{therapist.fullName}</p>

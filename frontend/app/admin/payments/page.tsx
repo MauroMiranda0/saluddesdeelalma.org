@@ -201,17 +201,24 @@ export default function AdminPaymentsPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl p-4">
-      <h1 className="mb-1 text-2xl font-semibold">Pagos</h1>
-      <p className="mb-4 text-sm text-gray-600">
+    <main className="admin-page">
+      <div className="mb-5">
+        <p className="text-sm text-[--muted]">
+          Control de pagos y comprobantes
+        </p>
+        <h1 className="page-title">Pagos</h1>
+      </div>
+      <p className="mb-4 text-sm text-[--muted]">
         Registre, recuerde y confirme pagos. Los comprobantes de WhatsApp se
         asocian manualmente.
       </p>
       {error ? <p className="mb-2 text-red-700">{error}</p> : null}
       {notice ? <p className="mb-2 text-emerald-800">{notice}</p> : null}
 
-      <section className="mb-6 rounded border border-sand p-3">
-        <h2 className="font-semibold">Tarifas por tipo de sesión</h2>
+      <section className="panel-card mb-6 p-5">
+        <h2 className="font-serif text-xl font-medium">
+          Tarifas por tipo de sesión
+        </h2>
         <p className="mb-2 text-xs text-gray-600">
           El anticipo debe ser exactamente el 50% de la tarifa configurada.
         </p>
@@ -253,8 +260,10 @@ export default function AdminPaymentsPage() {
         </div>
       </section>
 
-      <section className="mb-6 rounded border border-sand p-3">
-        <h2 className="font-semibold">Comprobantes de WhatsApp</h2>
+      <section className="panel-card mb-6 p-5">
+        <h2 className="font-serif text-xl font-medium">
+          Comprobantes de WhatsApp
+        </h2>
         <p className="mb-2 text-xs text-gray-600">
           Bandeja manual de Jocelyn. No se vinculan por número telefónico ni
           automáticamente.
@@ -300,7 +309,7 @@ export default function AdminPaymentsPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {pendingAppointments.map((appointment) => (
-            <li key={appointment.id} className="rounded border p-3">
+            <li key={appointment.id} className="panel-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium">{appointment.patientName}</p>

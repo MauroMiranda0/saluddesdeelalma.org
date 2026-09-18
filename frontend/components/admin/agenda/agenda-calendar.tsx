@@ -129,15 +129,15 @@ const MonthView = ({
   const todayKey = dayKeyOf(new Date());
 
   return (
-    <div className="overflow-hidden rounded border border-gray-200 bg-white">
-      <div className="grid grid-cols-7 divide-x divide-gray-100 border-b border-gray-200 bg-gray-50 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+    <div className="panel-card overflow-hidden">
+      <div className="grid grid-cols-7 divide-x divide-[#eee5d9] border-b border-[--border] bg-[#f8f3eb] text-center text-[11px] font-semibold uppercase tracking-wide text-[--muted]">
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} className="py-2">
             {label}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 divide-x divide-y divide-gray-100">
+      <div className="grid grid-cols-7 divide-x divide-y divide-[#eee5d9]">
         {dates.map((day) => {
           const key = dayKeyOf(day);
           const dayEvents = (byDay.get(key) ?? []).sort(eventSort);
@@ -147,7 +147,7 @@ const MonthView = ({
             <div
               key={key}
               className={`flex min-h-24 flex-col gap-1 p-1.5 ${
-                inMonth ? "bg-white" : "bg-gray-50/60"
+                inMonth ? "bg-[#fffdfa]" : "bg-[#f8f3eb]"
               }`}
             >
               <div className="flex justify-between px-0.5">
@@ -241,8 +241,8 @@ const WeekView = ({
   const todayKey = dayKeyOf(new Date());
 
   return (
-    <div className="overflow-hidden rounded border border-gray-200 bg-white">
-      <div className="grid grid-cols-7 divide-x divide-gray-100 border-b border-gray-200 bg-gray-50">
+    <div className="panel-card overflow-hidden">
+      <div className="grid grid-cols-7 divide-x divide-[#eee5d9] border-b border-[--border] bg-[#f8f3eb]">
         {days.map((day) => {
           const isToday = dayKeyOf(day) === todayKey;
 
@@ -280,7 +280,7 @@ const WeekView = ({
           );
         })}
       </div>
-      <div className="grid grid-cols-7 divide-x divide-gray-100">
+      <div className="grid grid-cols-7 divide-x divide-[#eee5d9]">
         {days.map((day) => {
           const key = dayKeyOf(day);
           const dayEvents = (byDay.get(key) ?? []).sort(eventSort);
@@ -345,11 +345,11 @@ const DayView = ({
   }
 
   return (
-    <div className="overflow-hidden rounded border border-gray-200 bg-white">
-      <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700">
+    <div className="panel-card overflow-hidden">
+      <div className="border-b border-[--border] bg-[#f8f3eb] px-4 py-2 text-sm font-semibold text-[--foreground]">
         {formatFullDayLabel(day)}
       </div>
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-[#eee5d9]">
         {Array.from(hours)
           .sort((a, b) => a - b)
           .map((hour) => {
@@ -357,7 +357,7 @@ const DayView = ({
 
             return (
               <div key={hour} className="flex min-h-14 items-stretch">
-                <div className="w-16 shrink-0 border-r border-gray-100 py-2 pr-2 text-right text-[11px] font-medium text-gray-400">
+                <div className="w-16 shrink-0 border-r border-[#eee5d9] py-2 pr-2 text-right text-[11px] font-medium text-[--muted]">
                   {String(hour).padStart(2, "0")}:00
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-1.5">

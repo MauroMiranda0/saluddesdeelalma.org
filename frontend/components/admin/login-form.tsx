@@ -51,30 +51,30 @@ export const LoginForm = () => {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+      className="w-full max-w-sm rounded-xl border border-[--border] bg-[#fffdfa] p-7 shadow-[var(--shadow)]"
     >
       <div className="mb-5 text-center">
-        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-forest text-lg font-bold text-white">
+        <span className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-sepia/40 bg-[#f5e9dc] font-serif text-xl italic text-sepia">
           SdA
         </span>
-        <h1 className="text-lg font-semibold text-gray-800">
+        <h1 className="font-serif text-2xl font-medium text-[--foreground]">
           Panel del consultorio
         </h1>
-        <p className="text-sm text-gray-500">Salud desde el Alma</p>
+        <p className="mt-1 text-sm text-[--muted]">Salud desde el Alma</p>
       </div>
 
-      <label className="mb-1 block text-xs font-medium text-gray-500">
+      <label className="mb-1 block text-xs font-semibold text-[--foreground]">
         Usuario
       </label>
       <input
         autoComplete="username"
         value={username}
         onChange={(event) => setUsername(event.target.value)}
-        className="mb-3 w-full rounded border border-gray-300 px-2 py-2 text-sm focus:border-forest focus:outline-none"
+        className="mb-4 w-full rounded-md border px-3 py-2.5 text-sm"
         placeholder="admin"
       />
 
-      <label className="mb-1 block text-xs font-medium text-gray-500">
+      <label className="mb-1 block text-xs font-semibold text-[--foreground]">
         Contraseña
       </label>
       <div className="relative mb-4">
@@ -83,13 +83,13 @@ export const LoginForm = () => {
           type={showPassword ? "text" : "password"}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded border border-gray-300 px-2 py-2 pr-10 text-sm focus:border-forest focus:outline-none"
+          className="w-full rounded-md border px-3 py-2.5 pr-12 text-sm"
           placeholder="••••••••"
         />
         <button
           type="button"
           onClick={() => setShowPassword((visible) => !visible)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[--muted] hover:text-forest"
           aria-label={
             showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
           }
@@ -99,7 +99,7 @@ export const LoginForm = () => {
       </div>
 
       {error && (
-        <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -107,7 +107,7 @@ export const LoginForm = () => {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded bg-forest py-2 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-60"
+        className="primary-action w-full py-2.5 text-sm disabled:opacity-60"
       >
         {submitting ? "Entrando…" : "Iniciar sesión"}
       </button>

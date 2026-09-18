@@ -102,13 +102,18 @@ export default function AdminPatientsPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl p-4">
-      <h1 className="mb-4 text-2xl font-semibold">Pacientes y terapeutas</h1>
+    <main className="admin-page">
+      <div className="mb-5">
+        <p className="text-sm text-[--muted]">
+          Gestione asignaciones y datos de contacto
+        </p>
+        <h1 className="page-title">Pacientes</h1>
+      </div>
       {error ? <p className="mb-2 text-red-700">{error}</p> : null}
       {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
 
       <form
-        className="mb-6 flex flex-col gap-2 rounded border p-3"
+        className="panel-card mb-6 flex flex-col gap-3 p-5"
         onSubmit={handleCreate}
       >
         <h2 className="font-medium">Crear paciente</h2>
@@ -195,7 +200,7 @@ export default function AdminPatientsPage() {
 
       <ul className="flex flex-col gap-2">
         {patients.map((patient) => (
-          <li key={patient.id} className="rounded border p-3">
+          <li key={patient.id} className="panel-card p-4">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="font-medium">{patient.fullName}</p>

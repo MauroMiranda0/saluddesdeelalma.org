@@ -88,15 +88,16 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Resumen del día
-        </h1>
+        <div>
+          <p className="text-sm text-[--muted]">Panel administrativo</p>
+          <h1 className="page-title">Bienvenida, Admin</h1>
+        </div>
         <div className="flex gap-2">
           <Link
             href="/admin/agenda"
-            className="rounded bg-forest px-3 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep"
+            className="primary-action px-4 py-2 text-sm"
           >
             Ir a la agenda
           </Link>
@@ -114,16 +115,16 @@ export default function AdminDashboardPage() {
           <Link
             key={card.label}
             href={card.href}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-harmony"
+            className="panel-card p-5 transition hover:-translate-y-0.5 hover:border-harmony"
           >
-            <p className="text-3xl font-bold text-gray-800">{card.value}</p>
-            <p className="text-sm text-gray-500">{card.label}</p>
+            <p className="text-3xl font-semibold text-forest">{card.value}</p>
+            <p className="mt-1 text-sm text-[--muted]">{card.label}</p>
           </Link>
         ))}
       </div>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="mb-3 text-base font-semibold text-gray-800">
+      <section className="panel-card p-5">
+        <h2 className="mb-3 font-serif text-xl font-medium text-[--foreground]">
           Citas de hoy
         </h2>
         {today.length === 0 && (
@@ -171,8 +172,8 @@ export default function AdminDashboardPage() {
         </ul>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="mb-3 text-base font-semibold text-gray-800">
+      <section className="panel-card p-5">
+        <h2 className="mb-3 font-serif text-xl font-medium text-[--foreground]">
           Próximos 7 días
         </h2>
         {upcoming.length === 0 && (

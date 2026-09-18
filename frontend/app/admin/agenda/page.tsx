@@ -176,24 +176,29 @@ export default function AdminAgendaPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="admin-page space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-gray-800">Agenda</h1>
+        <div>
+          <p className="text-sm text-[--muted]">
+            Gestione sus citas y disponibilidad
+          </p>
+          <h1 className="page-title">Agenda</h1>
+        </div>
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="rounded bg-forest px-3 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep"
+          className="primary-action px-4 py-2 text-sm"
         >
           + Nueva cita
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+      <div className="panel-card flex flex-wrap items-center justify-between gap-3 px-3 py-2">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="rounded border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded-md border border-[--border] px-2 py-1 text-sm text-[--muted] hover:bg-[#f0e9dc]"
             aria-label="Anterior"
           >
             ‹
@@ -201,23 +206,23 @@ export default function AdminAgendaPage() {
           <button
             type="button"
             onClick={() => setVisibleDate(new Date())}
-            className="rounded border border-gray-300 bg-white px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded-md border border-[--border] bg-white px-2.5 py-1 text-sm text-[--muted] hover:bg-[#f0e9dc]"
           >
             Hoy
           </button>
           <button
             type="button"
             onClick={() => navigate(1)}
-            className="rounded border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded-md border border-[--border] px-2 py-1 text-sm text-[--muted] hover:bg-[#f0e9dc]"
             aria-label="Siguiente"
           >
             ›
           </button>
-          <span className="ml-2 min-w-28 text-sm font-semibold text-gray-700">
+          <span className="ml-2 min-w-28 text-sm font-semibold text-[--foreground]">
             {formatMonthLabel(visibleDate)}
           </span>
         </div>
-        <div className="flex rounded-lg border border-gray-300 p-0.5">
+        <div className="flex rounded-lg bg-[#f0e9dc] p-1">
           {(["dia", "semana", "mes"] as AgendaView[]).map((option) => (
             <button
               key={option}
@@ -225,8 +230,8 @@ export default function AdminAgendaPage() {
               onClick={() => setView(option)}
               className={`rounded px-3 py-1 text-sm font-medium ${
                 view === option
-                  ? "bg-forest text-white"
-                  : "text-gray-600 hover:bg-forest/10"
+                  ? "bg-[#fffdfa] text-forest shadow-sm"
+                  : "text-[--muted] hover:text-forest"
               }`}
             >
               {option === "dia"
@@ -248,7 +253,7 @@ export default function AdminAgendaPage() {
       )}
 
       {loading ? (
-        <p className="rounded border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
+        <p className="panel-card p-6 text-center text-sm text-[--muted]">
           Cargando agenda…
         </p>
       ) : (

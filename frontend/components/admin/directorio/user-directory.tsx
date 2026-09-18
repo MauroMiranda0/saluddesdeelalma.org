@@ -90,8 +90,8 @@ export const UserDirectory = () => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <section>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">
+      <section className="panel-card p-5">
+        <h2 className="mb-4 font-serif text-xl font-medium text-[--foreground]">
           Psicólogas y psicólogos
         </h2>
         <div className="space-y-2">
@@ -101,7 +101,7 @@ export const UserDirectory = () => {
           {directory.therapists.map((therapist) => (
             <article
               key={therapist.id}
-              className="flex items-center gap-3 rounded border border-gray-200 bg-white p-3"
+              className="flex items-center gap-3 rounded-lg border border-[--border] bg-[#fffdfa] p-3"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/15 text-sm font-semibold text-forest">
                 {therapist.fullName
@@ -133,8 +133,8 @@ export const UserDirectory = () => {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">
+      <section className="panel-card p-5">
+        <h2 className="mb-4 font-serif text-xl font-medium text-[--foreground]">
           Pacientes
         </h2>
         <div className="space-y-2">
@@ -147,7 +147,7 @@ export const UserDirectory = () => {
             return (
               <article
                 key={patient.id}
-                className="space-y-1 rounded border border-gray-200 bg-white p-3"
+                className="space-y-1 rounded-lg border border-[--border] bg-[#fffdfa] p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-semibold text-gray-800">

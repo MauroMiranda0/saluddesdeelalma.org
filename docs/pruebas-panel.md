@@ -48,3 +48,18 @@ La auditoria contrasto la implementacion, pruebas y documentacion con
   sus credenciales y datos de prueba configurados.
 
 Las remediaciones T144-T164 estan cerradas en `tasks.md`.
+
+## Alineación visual y landing - 17/09/2026
+
+### Comparativa contra el mockup aprobado
+
+- Antes: la navegación era una barra superior genérica, las vistas usaban fondos planos y la raíz redirigía directamente a la agenda.
+- Después: el panel usa una barra lateral en escritorio y navegación inferior táctil en móvil; login, resumen, agenda, directorio, citas, pagos, pacientes y perfiles clínicos comparten superficies crema, bordes suaves, tipografía serif en jerarquías y acciones verde oliva.
+- La agenda conserva las vistas de día, semana y mes, pero presenta controles agrupados, calendario en tarjeta y la leyenda existente con el mismo sistema visual.
+- La raíz publica ahora muestra hero, servicios, modalidades de atención, contacto, CTA de WhatsApp y enlace administrativo discreto; en móvil las columnas se convierten en una sola columna y la navegación pública se simplifica al CTA.
+
+### Evidencia técnica
+
+- `npm run typecheck --workspace frontend` y `npm run build --workspace frontend` finalizaron correctamente después del rediseño.
+- `npm run test:components --workspace frontend` y la prueba Playwright móvil `public-landing.spec.ts` finalizaron correctamente el 17/09/2026.
+- La prueba E2E autenticada del panel sigue requiriendo `ADMIN_SEED_PASSWORD`, `ADMIN_E2E_PASSWORD`, PostgreSQL sembrado y navegadores Playwright; debe ejecutarse como parte de la UAT formal antes del despliegue.

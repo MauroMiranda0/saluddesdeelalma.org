@@ -9,8 +9,13 @@ export const metadata: Metadata = {
 
 export default function AdminDirectorioPage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-gray-800">Directorio</h1>
+    <div className="admin-page space-y-5">
+      <div>
+        <p className="text-sm text-[--muted]">
+          Psicólogas, psicólogos y pacientes
+        </p>
+        <h1 className="page-title">Directorio</h1>
+      </div>
       <UserDirectory />
     </div>
   );

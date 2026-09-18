@@ -101,8 +101,13 @@ export default function AdminAppointmentsPage() {
   );
 
   return (
-    <main className="mx-auto max-w-3xl p-4">
-      <h1 className="mb-4 text-2xl font-semibold">Citas</h1>
+    <main className="admin-page">
+      <div className="mb-5">
+        <p className="text-sm text-[--muted]">
+          Acciones y seguimiento de citas
+        </p>
+        <h1 className="page-title">Citas</h1>
+      </div>
       {error ? <p className="mb-2 text-red-700">{error}</p> : null}
       {notice ? <p className="mb-2 text-green-700">{notice}</p> : null}
 
@@ -110,7 +115,7 @@ export default function AdminAppointmentsPage() {
         {sorted.map((appointment) => (
           <li
             key={appointment.id}
-            className="flex items-center justify-between gap-2 rounded border p-3"
+            className="panel-card flex items-center justify-between gap-2 p-4"
           >
             <div>
               <p className="font-medium">{appointment.patientName}</p>

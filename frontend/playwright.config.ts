@@ -15,7 +15,10 @@ export default defineConfig({
     {
       name: "movil",
       use: {
-        ...devices["iPhone 13"]
+        ...devices["iPhone 13"],
+        // WebKit on Windows requires DLLs not bundled by Playwright. Chromium
+        // preserves the iPhone viewport and touch emulation in local and CI runs.
+        browserName: "chromium"
       }
     }
   ],

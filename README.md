@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp**, la **Fase comercial 6: Historia de Usuario 2 - Gestionar la agenda y las citas desde el panel** y las convergencias **Phase 23** a **Phase 26** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones `T091`-`T095`, `T115`-`T141`, la implementación completa de `US2` (`T025`-`T035`, `T081`-`T083`) y la cancelación de citas por WhatsApp con verificación de identidad (`T140`-`T141`) están cerradas y verificadas con gates.
+Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp**, la **Fase comercial 6: Historia de Usuario 2 - Gestionar la agenda y las citas desde el panel**, las convergencias **Phase 23** a **Phase 31** y la **Phase 32: alineación de interfaz y landing pública** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones `T091`-`T164`, la implementación completa de `US2` (`T025`-`T035`, `T081`-`T083`), la cancelación de citas por WhatsApp con verificación de identidad (`T140`-`T141`) y la landing pública (`T165`-`T171`) están cerradas y verificadas con sus gates disponibles.
 
 En este punto existe:
 
@@ -37,14 +37,15 @@ En este punto existe:
 - guard de identidad inyectable `createAuthorizeAdminIdentity(audit)` aplicado a las rutas administrativas, rechazando cualquier usuario distinto de `admin` sin cookie y con auditoría de denegación (constraints `users_single_admin_key` / `users_access_profile_check`)
 - endpoints administrativos de citas en `GET /api/v1/appointments`, `POST /api/v1/appointments`, `PATCH /api/v1/appointments/:id` y `POST /api/v1/appointments/:id/cancel`, con DTO de calendario (`scheduledAt`, `paymentStatus`, pagos y fin de cita), mapeo `400/404/409/422` y notificaciones `scheduleCancellationNotice`
 - módulo de directorio en `GET /api/v1/directory` con psicólogas/os y pacientes (citas y pagos en los próximos 30 días)
-- frontend del panel: layout con `AdminGuard` (protege rutas salvo `/admin/login`), paginas de login, agenda (vistas dia/semana/mes con `EVENT_COLOR_MAP` y leyenda de colores con contadores), directorio, dashboard, formulario de cita, dialogo de cancelacion y pagos; la raiz `/` redirige a `/admin/agenda`
+- frontend del panel: layout con `AdminGuard` (protege rutas salvo `/admin/login`), sidebar en escritorio y navegación táctil inferior en móvil, login, agenda (vistas dia/semana/mes con `EVENT_COLOR_MAP` y leyenda de colores con contadores), directorio, dashboard, formulario de cita, dialogo de cancelacion y pagos
+- landing pública en `/`: hero, servicios, modalidades de atención, contacto, CTA de WhatsApp y acceso administrativo discreto; comparte tokens verde/sepia, superficies crema y jerarquía tipográfica con el panel
 - modulo de pagos administrativo en `POST /api/v1/payments`, `POST /api/v1/payments/:paymentId/confirm` y `POST /api/v1/appointments/:appointmentId/payment-reminder`, con vista `/admin/payments` para registrar, recordar y confirmar pagos manualmente
 - prueba E2E móvil de Playwright en `frontend/tests/e2e/admin-agenda.spec.ts` (login + agenda diaria + leyenda + logout) y suite de contrato/integración/unitarias de US2 en el backend
 
 En este punto todavia no existe:
 
-- landing publica funcional; tampoco FAQ ni consultas de estado por WhatsApp (US5)
-- scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta bajo demanda); tampoco FAQ y consultas de estado por WhatsApp (US5)
+- FAQ y consultas de estado por WhatsApp (US5)
+- scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta bajo demanda)
 - ejecución de la suite E2E automatizada en CI; requiere navegadores Playwright instalados y base sembrada (ver sección de comandos)
 
 ## Estructura actual
@@ -168,7 +169,7 @@ Levantar frontend compilado:
 npm run start:frontend
 ```
 
-El servidor de Next.js inicia en `http://localhost:3000`. Verificado con build: `/`, `/admin`, `/admin/agenda`, `/admin/directorio`, `/admin/login`, `/admin/patients`, `/admin/therapists` y `/admin/appointments` compilan; `/` redirige a `/admin/agenda` y las rutas del panel requieren sesión `admin` (redirigen a `/admin/login`).
+El servidor de Next.js inicia en `http://localhost:3000`. Verificado con build: `/`, `/admin`, `/admin/agenda`, `/admin/directorio`, `/admin/login`, `/admin/patients`, `/admin/therapists` y `/admin/appointments` compilan; `/` es la landing pública y las rutas del panel requieren sesión `admin` (redirigen a `/admin/login`).
 
 Suite E2E del panel (requiere navegadores de Playwright y una base sembrada con la cuenta `admin`):
 
@@ -183,6 +184,13 @@ npx playwright install --with-deps   # Linux/macOS
 npx playwright install               # Windows
 # 4) Ejecutar (levanta backend y frontend automáticamente)
 npm run test:e2e --workspace frontend
+```
+
+Pruebas de landing (sin sesión ni base de datos):
+
+```bash
+npm run test:components --workspace frontend
+npx playwright test tests/e2e/public-landing.spec.ts # desde frontend/
 ```
 
 Gate de integración con PostgreSQL real (reglas de sesión y recordatorios):
@@ -215,6 +223,7 @@ npm run reminders:worker --workspace backend
 - Sin `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`, el adaptador de WhatsApp simula el envio fuera de produccion; en produccion ambas credenciales, `WHATSAPP_ADMIN_PHONE` para los avisos de comprobantes a Jocelyn y el destino interno son obligatorios.
 - El panel es funcional, pero la asignación de psicóloga a pacientes sigue requiriendo el listado legado de `therapists`/`patients`; el directorio las presenta solamente en modo lectura.
 - La suite E2E de Playwright no corre en CI: exige navegadores instalados, base sembrada (`ADMIN_SEED_PASSWORD`) y sesión `admin` real.
+- La prueba E2E pública de la landing se ejecuta en Chromium con el viewport y táctil de iPhone 13. WebKit no es portable en este Windows por DLLs del sistema no incluidas por Playwright.
 - Las migraciones se aplicaron y verificaron contra un PostgreSQL 16 real mediante el gate `RUN_POSTGRES_INTEGRATION` (incluida `20261101000000_convergence_hardening`); la configuracion de destino y credenciales de produccion sigue pendiente.
 - La cancelación por WhatsApp exige un número registrado y nombre + fecha de nacimiento coincidentes; sin esos datos la petición se rechaza y audita sin exponer información.
 - `ENABLE_REMINDER_WORKER` está deshabilitado por defecto; producción debe activarlo o ejecutar el worker de forma externa. El arranque en producción valida `SESSION_IDLE_TIMEOUT_MINUTES=30`.

@@ -16,8 +16,10 @@ export default function AdminLayout({
 
   return (
     <AdminGuard>
-      <AdminNav />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
+      <div className="admin-shell">
+        <AdminNav />
+        <main className="admin-content">{children}</main>
+      </div>
     </AdminGuard>
   );
 }

@@ -53,10 +53,10 @@ Vamos **83.5% del plan** (137 de 164 actividades terminadas). El sistema ya perm
 
 ## Imágenes del proyecto
 
-| Archivo | Qué es |
-|---------|--------|
-| `logo.jpg` | logo de Salud desde el Alma |
-| `mockup.png` | diseño inicial del proyecto |
+| Archivo      | Qué es                                                      |
+| ------------ | ----------------------------------------------------------- |
+| `logo.jpg`   | logo de Salud desde el Alma                                 |
+| `mockup.png` | diseño inicial del proyecto                                 |
 | `paleta.png` | colores oficiales (verdes y sepia) que ya usa la plataforma |
 
 El sitio ya sigue tu identidad visual (verde armonía, verde profundo, sepia y dorado tenue).
@@ -67,11 +67,10 @@ El sitio ya sigue tu identidad visual (verde armonía, verde profundo, sepia y d
 
 1. **Recordatorios automáticos (10 actividades):** el aviso del día previo entre 6 y 7 de la tarde, el aviso de pago pendiente y las notificaciones de cancelación. La confirmación ya llega al agendar; falta el envío programado.
 2. **Consultas de pacientes por WhatsApp (7 actividades):** que el paciente pregunte "¿cuál es el estado de mi cita o mi pago?" y reciba respuesta verificando su identidad.
-3. **Alineación de la interfaz al mockup aprobado (7 actividades):** el panel se verá y usará como el diseño acordado (`mockup.png`), replicando fielmente la referencia visual. Se trabaja en paralelo con la landing para que todo comparta la misma identidad.
-4. **Página pública del consultorio (parte de lo anterior):** una página sencilla con la información del consultorio y un botón para abrir WhatsApp, reutilizando el mismo diseño.
-5. **Pulido y seguridad (5 actividades):** refuerzos técnicos de seguridad y revisión final.
-6. **Conexión del WhatsApp real:** hoy se simula el envío porque aún no tenemos las claves oficiales de WhatsApp Business; al conectarlas, los mensajes saldrán de verdad.
-7. **Prueba contigo (UAT):** una sesión guiada desde tu celular para confirmar que todo funciona en tu día a día.
+3. **Alineación de la interfaz y landing pública:** completadas. El panel replica la composición del mockup con barra lateral, tarjetas y jerarquía serena, mientras que la página pública ya ofrece información, contacto, WhatsApp y acceso discreto al panel.
+4. **Pulido y seguridad (5 actividades):** refuerzos técnicos de seguridad y revisión final.
+5. **Conexión del WhatsApp real:** hoy se simula el envío porque aún no tenemos las claves oficiales de WhatsApp Business; al conectarlas, los mensajes saldrán de verdad.
+6. **Prueba contigo (UAT):** una sesión guiada desde tu celular para confirmar que todo funciona en tu día a día.
 
 ---
 
@@ -79,15 +78,15 @@ El sitio ya sigue tu identidad visual (verde armonía, verde profundo, sepia y d
 
 El plan pasó de 29 a **32 días** (el proyecto llevaba 29 al iniciar; la entrega máxima será el **1 de octubre de 2026**) para garantizar que la interfaz quede fiel al mockup aprobado sin sacrificar pruebas ni la prueba contigo.
 
-| Día | Fecha | Trabajo |
-|-----|-------|---------|
-| 18–20 | 17–19 sep | Recordatorios automáticos |
-| 21–22 | 20–21 sep | Consultas de pacientes por WhatsApp (FAQ y estado de cita/pago) |
+| Día   | Fecha     | Trabajo                                                                            |
+| ----- | --------- | ---------------------------------------------------------------------------------- |
+| 18–20 | 17–19 sep | Recordatorios automáticos                                                          |
+| 21–22 | 20–21 sep | Consultas de pacientes por WhatsApp (FAQ y estado de cita/pago)                    |
 | 23–25 | 22–24 sep | **Landing pública + rediseño del panel para que sea fiel al mockup** (en paralelo) |
-| 26–27 | 25–26 sep | Pulido y seguridad |
-| 28–29 | 27–28 sep | Prueba contigo (UAT) desde tu celular |
-| 30–31 | 29–30 sep | Ajustes derivados de esa prueba |
-| 32 | 1 oct | Puesta en producción, documentación y capacitación |
+| 26–27 | 25–26 sep | Pulido y seguridad                                                                 |
+| 28–29 | 27–28 sep | Prueba contigo (UAT) desde tu celular                                              |
+| 30–31 | 29–30 sep | Ajustes derivados de esa prueba                                                    |
+| 32    | 1 oct     | Puesta en producción, documentación y capacitación                                 |
 
 ---
 
