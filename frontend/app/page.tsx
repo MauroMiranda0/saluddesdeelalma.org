@@ -2,34 +2,33 @@ import { AdminAccessLink } from "../components/landing/admin-access-link";
 import { ConsultorioInfo } from "../components/landing/consultorio-info";
 import { Hero } from "../components/landing/hero";
 import { WhatsAppCta } from "../components/landing/whatsapp-cta";
+import { BrandLogo } from "../components/ui/brand-logo";
 
 export default function HomePage() {
   return (
     <main className="landing-shell">
       <div className="landing-frame">
-        <header className="flex items-center justify-between gap-4 border-b border-sepia/20 px-2 py-4 sm:px-5">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[--border]/30 bg-[#fff8f3]/85 px-3 py-4 backdrop-blur-md sm:px-6">
           <a
             href="#inicio"
             className="flex items-center gap-2 text-[--foreground] no-underline"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-sepia/40 bg-[#fff9ef] font-serif text-xs italic text-sepia">
-              SdA
-            </span>
-            <span className="hidden font-serif text-lg sm:block">
+            <BrandLogo className="h-12 w-12 shadow-sm" priority />
+            <span className="hidden font-serif text-2xl text-[#78583c] sm:block">
               Salud desde el Alma
             </span>
           </a>
           <nav
             aria-label="Navegación principal"
-            className="hidden items-center gap-5 text-sm text-[#54493d] md:flex"
+            className="hidden items-center gap-6 text-sm font-semibold text-[--muted] md:flex"
           >
             <a href="#nosotros" className="hover:text-sepia">
               Nosotros
             </a>
-            <a href="#servicios" className="hover:text-sepia">
+            <a href="#servicios" className="hover:text-forest">
               Servicios
             </a>
-            <a href="#contacto" className="hover:text-sepia">
+            <a href="#contacto" className="hover:text-forest">
               Contacto
             </a>
           </nav>
@@ -37,7 +36,7 @@ export default function HomePage() {
         </header>
         <Hero />
         <ConsultorioInfo />
-        <section className="grid gap-6 bg-[#59633d] px-6 py-12 text-[#fffaf0] md:grid-cols-3 md:px-12">
+        <section className="grid gap-10 bg-[#868564] px-6 py-20 text-[#fffaf0] md:grid-cols-3 md:px-16">
           {[
             [
               "Enfoque integral",
@@ -54,7 +53,7 @@ export default function HomePage() {
           ].map(([title, text]) => (
             <article
               key={title}
-              className="border-[#d9cbb3]/40 md:border-r md:px-6 md:last:border-0"
+              className="text-center md:border-r md:border-[#e7e4be]/35 md:px-8 md:last:border-0"
             >
               <span
                 className="mb-3 block text-2xl text-gold"
@@ -62,16 +61,14 @@ export default function HomePage() {
               >
                 ✦
               </span>
-              <h2 className="landing-serif text-xl">{title}</h2>
-              <p className="mt-2 text-sm leading-6 text-[#f2e6d4]">{text}</p>
+              <h2 className="text-lg font-semibold">{title}</h2>
+              <p className="mt-3 text-sm leading-7 text-[#f2e6d4]">{text}</p>
             </article>
           ))}
         </section>
-        <section className="bg-[#fffaf3] px-6 py-12 text-center md:px-12">
-          <p className="text-sm uppercase tracking-[0.2em] text-sepia">
-            Testimonios
-          </p>
-          <blockquote className="landing-serif mx-auto mt-4 max-w-2xl text-xl leading-8 text-[#514338]">
+        <section className="bg-[#fef2e5] px-6 py-20 text-center md:px-12">
+          <h2 className="landing-serif text-4xl text-[#78583c]">Testimonios</h2>
+          <blockquote className="landing-serif mx-auto mt-7 max-w-2xl text-2xl leading-9 text-[--foreground]">
             "Un espacio para volver a mí, con tranquilidad y propósito."
           </blockquote>
           <p className="mt-3 text-sm text-[--muted]">
@@ -80,7 +77,7 @@ export default function HomePage() {
         </section>
         <footer
           id="contacto"
-          className="grid gap-7 bg-[#88562e] px-6 py-10 text-[#fff7e9] sm:grid-cols-2 md:grid-cols-3 md:px-12"
+          className="grid gap-7 bg-[#78583c] px-6 py-14 text-[#fff7e9] sm:grid-cols-2 md:grid-cols-3 md:px-16"
         >
           <div>
             <p className="landing-serif text-xl">Salud desde el Alma</p>

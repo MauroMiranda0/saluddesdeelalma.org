@@ -8,7 +8,7 @@ test("la landing contiene información operativa y caminos de acceso", () => {
   const markup = renderToStaticMarkup(<HomePage />);
 
   assert.match(markup, /Salud desde el Alma/);
-  assert.match(markup, /Terapia individual/);
+  assert.match(markup, /Terapia Individual/);
   assert.match(markup, /Valle del Ciprés #148/);
   assert.match(markup, /https:\/\/wa\.me\/525660950665/);
   assert.match(markup, /\/admin\/login/);

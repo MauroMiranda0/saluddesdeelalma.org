@@ -9,7 +9,7 @@ test("Landing pública móvil informa y abre el canal de WhatsApp", async ({
     page.getByRole("heading", { name: "Salud desde el Alma", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Acompañamiento a su medida" })
+    page.getByRole("heading", { name: "Nuestros Servicios" })
   ).toBeVisible();
 
   const whatsappLink = page.getByRole("link", {

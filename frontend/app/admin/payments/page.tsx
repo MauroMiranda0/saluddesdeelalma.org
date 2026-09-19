@@ -143,6 +143,10 @@ export default function AdminPaymentsPage() {
   const pendingAppointments = appointments.filter(
     (appointment) => appointment.paymentStatus !== "completado"
   );
+  const collectedAmount = appointments
+    .flatMap((appointment) => appointment.payments)
+    .filter((payment) => payment.status === "validado")
+    .reduce((total, payment) => total + payment.amount, 0);
 
   const submitPayment = async () => {
     if (!registeringFor || !Number(amount) || Number(amount) <= 0) {
@@ -212,6 +216,33 @@ export default function AdminPaymentsPage() {
         Registre, recuerde y confirme pagos. Los comprobantes de WhatsApp se
         asocian manualmente.
       </p>
+      <section className="mb-6 grid gap-4 sm:grid-cols-3">
+        <article className="panel-card p-5">
+          <p className="text-sm text-[--muted]">Cobros validados</p>
+          <p className="mt-2 font-serif text-3xl text-[#78583c]">
+            $
+            {collectedAmount.toLocaleString("es-MX", {
+              minimumFractionDigits: 2
+            })}
+          </p>
+        </article>
+        <article className="panel-card p-5">
+          <p className="text-sm text-[--muted]">Pagos pendientes</p>
+          <p className="mt-2 font-serif text-3xl text-forest">
+            {pendingAppointments.length}
+          </p>
+        </article>
+        <article className="panel-card p-5">
+          <p className="text-sm text-[--muted]">Comprobantes por asociar</p>
+          <p className="mt-2 font-serif text-3xl text-[#78583c]">
+            {
+              paymentProofs.filter(
+                (proof) => proof.status === "pendiente_asociacion"
+              ).length
+            }
+          </p>
+        </article>
+      </section>
       {error ? <p className="mb-2 text-red-700">{error}</p> : null}
       {notice ? <p className="mb-2 text-emerald-800">{notice}</p> : null}
 

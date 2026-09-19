@@ -40,14 +40,14 @@ export const AgendaFilters = ({
   const toggleAll = () => onChange(new Set());
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 border-b border-[--border]/40 pb-4">
       <button
         type="button"
         onClick={toggleAll}
         className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
           allActive
-            ? "border-gray-800 bg-gray-900 text-white"
-            : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+            ? "border-forest bg-forest text-white"
+            : "border-[--border] bg-white text-[--muted] hover:bg-[#fef2e5]"
         }`}
       >
         Todas

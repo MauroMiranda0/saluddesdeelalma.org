@@ -69,9 +69,11 @@ export const AppointmentForm = ({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-5 shadow-lg">
+      <div className="w-full max-w-md rounded-2xl border border-[--border] bg-white p-6 shadow-[var(--shadow)]">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Nueva cita</h2>
+          <h2 className="font-serif text-2xl font-medium text-[--foreground]">
+            Nueva cita
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -88,7 +90,7 @@ export const AppointmentForm = ({
         <select
           value={patientId}
           onChange={(event) => setPatientId(event.target.value)}
-          className="mb-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+          className="admin-input mb-3 text-sm"
         >
           <option value="">Seleccionar paciente…</option>
           {patients.map((patient) => (
@@ -119,7 +121,7 @@ export const AppointmentForm = ({
               onChange={(event) =>
                 setModality(event.target.value as "online" | "presencial")
               }
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="admin-input text-sm"
             >
               <option value="online">En línea</option>
               <option value="presencial">Presencial</option>
@@ -136,7 +138,7 @@ export const AppointmentForm = ({
                   event.target.value as "individual" | "pareja" | "familiar"
                 )
               }
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="admin-input text-sm"
             >
               <option value="individual">Individual</option>
               <option value="pareja">Pareja</option>
@@ -165,7 +167,7 @@ export const AppointmentForm = ({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+            className="admin-secondary-action px-4 py-2 text-sm"
           >
             Cancelar
           </button>
@@ -173,7 +175,7 @@ export const AppointmentForm = ({
             type="button"
             onClick={submit}
             disabled={submitting}
-            className="rounded bg-forest px-4 py-1.5 text-sm font-semibold text-white hover:bg-forest-deep disabled:opacity-60"
+            className="primary-action px-5 py-2 text-sm disabled:opacity-60"
           >
             {submitting ? "Guardando…" : "Guardar cita"}
           </button>

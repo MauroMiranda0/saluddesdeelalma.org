@@ -1,70 +1,72 @@
 const services = [
   [
-    "Terapia individual",
-    "Un espacio seguro para comprender y acompañar su proceso."
+    "◯",
+    "Terapia Individual",
+    "Un espacio confidencial para explorar sus emociones y encontrar bienestar emocional."
   ],
   [
-    "Terapia de pareja",
-    "Comunicación y herramientas para construir vínculos conscientes."
+    "❦",
+    "Terapias de Relajación",
+    "Técnicas para reducir el estrés y reconectar con su paz interior."
   ],
   [
-    "Terapia familiar",
-    "Orientación para fortalecer el diálogo y el bienestar compartido."
+    "✦",
+    "Talleres y Cursos",
+    "Sesiones grupales para crecimiento personal y desarrollo de habilidades emocionales."
   ]
 ];
 
-export const ConsultorioInfo = () => {
-  return (
-    <>
-      <section id="servicios" className="bg-[#fffaf3] px-6 py-12 md:px-12">
-        <div className="text-center">
-          <p className="text-sm uppercase tracking-[0.2em] text-sepia">
-            Nuestros servicios
-          </p>
-          <h2 className="landing-serif mt-2 text-3xl text-[#463d31]">
-            Acompañamiento a su medida
-          </h2>
-        </div>
-        <div className="mt-9 grid gap-6 md:grid-cols-3">
-          {services.map(([title, description]) => (
-            <article
-              key={title}
-              className="border-l border-sepia/30 px-5 text-center first:border-l-0"
-            >
-              <span className="text-3xl text-sepia" aria-hidden="true">
-                ◒
-              </span>
-              <h3 className="landing-serif mt-3 text-xl text-[#463d31]">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[#66594e]">
-                {description}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section id="nosotros" className="grid bg-[#eee0ce] md:grid-cols-2">
-        <div
-          className="min-h-72 bg-[linear-gradient(150deg,#c69867,#755234)]"
-          aria-hidden="true"
-        />
-        <article className="flex flex-col justify-center px-7 py-12 md:px-12">
-          <p className="text-sm uppercase tracking-[0.2em] text-sepia">
-            Un espacio para usted
-          </p>
-          <h2 className="landing-serif mt-3 text-3xl text-[#463d31]">
-            Bienestar integral
-          </h2>
-          <p className="mt-5 max-w-md leading-7 text-[#5f5144]">
-            En Salud desde el Alma le acompañamos a encontrar un espacio para su
-            bienestar, serenidad y crecimiento.
-          </p>
-          <p className="mt-4 text-sm text-[#5f5144]">
-            Atención en línea y presencial, con previa cita.
-          </p>
-        </article>
-      </section>
-    </>
-  );
-};
+const MEDITATION_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuDqpgx05bEEbItyzJLxIg6gxCYa4Xmn53nsHzx5JD3X1ZPJhnQ3poQ5SXbrB0CLQNHsjgT-frid9QGMA-CE04n6Wev6QeTNd5OvZIG3x5tDOJNDbzPPZJqLe15sMBwxU9YH-wtZRdAjqQ4ZO5Oei4Wun2wrypngyuKcGHkU2ejJDRl5XkD3-RxXPfZPOeh_evHhCRn_7ZKfU9eRQyZyGoJ_BpVINSpETNqkN9v92iGUMkzpYT922PNQ";
+
+export const ConsultorioInfo = () => (
+  <>
+    <section id="servicios" className="bg-[--background] px-5 py-20 md:px-16">
+      <div className="text-center">
+        <p className="text-2xl text-[#715735]">❦</p>
+        <h2 className="landing-serif mt-2 text-4xl text-[#78583c]">
+          Nuestros Servicios
+        </h2>
+      </div>
+      <div className="mx-auto mt-12 grid max-w-7xl gap-6 md:grid-cols-3">
+        {services.map(([icon, title, description]) => (
+          <article
+            key={title}
+            className="panel-card flex min-h-72 flex-col items-center p-8 text-center transition hover:-translate-y-1"
+          >
+            <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fef2e5] text-3xl text-[#715735]">
+              {icon}
+            </span>
+            <h3 className="text-lg font-semibold text-[--foreground]">
+              {title}
+            </h3>
+            <p className="mt-4 leading-7 text-[--muted]">{description}</p>
+            <span className="mt-auto pt-5 text-sm font-semibold text-forest">
+              Saber más →
+            </span>
+          </article>
+        ))}
+      </div>
+    </section>
+    <section
+      id="nosotros"
+      className="relative min-h-130 bg-[#ece1d5] bg-cover bg-center px-5 py-16 md:px-16"
+      style={{
+        backgroundImage: `linear-gradient(90deg, rgb(255 248 243 / 94%), rgb(255 248 243 / 25%)), url(${MEDITATION_IMAGE})`
+      }}
+    >
+      <article className="panel-card mx-auto max-w-xl p-8 md:ml-[10%] md:p-10">
+        <h2 className="landing-serif text-4xl text-[#78583c]">
+          Un espacio para su bienestar integral
+        </h2>
+        <p className="mt-5 text-lg leading-8 text-[--muted]">
+          Le acompañamos a alcanzar su paz interior con un enfoque holístico,
+          seguro y confidencial.
+        </p>
+        <p className="mt-5 text-sm text-[--muted]">
+          Atención en línea y presencial, con previa cita.
+        </p>
+      </article>
+    </section>
+  </>
+);

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -11,17 +12,17 @@
 
 :root {
   color-scheme: light;
-  --background: #f6f1e8;
-  --foreground: #29372c;
-  --muted: #667369;
-  --surface: #fffdfa;
-  --surface-muted: #f0e9dc;
-  --border: #e2d7c6;
-  --accent: #8a5a30;
-  --accent-hover: #6d4324;
-  --olive: #56613b;
-  --forest: #3c5a44;
-  --shadow: 0 14px 34px rgb(60 90 68 / 9%);
+  --background: #fff8f3;
+  --foreground: #201b14;
+  --muted: #48473d;
+  --surface: #ffffff;
+  --surface-muted: #f2e6da;
+  --border: #c9c7ba;
+  --accent: #78583c;
+  --accent-hover: #5e4027;
+  --olive: #5e5d3f;
+  --forest: #5e5d3f;
+  --shadow: 0 10px 40px -10px rgb(126 93 65 / 15%);
 }
 
 * {
@@ -38,7 +39,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-family: "Manrope", Arial, "Helvetica Neue", sans-serif;
   line-height: 1.5;
 }
 
@@ -78,37 +79,37 @@ textarea:focus {
 
 .admin-shell {
   min-height: 100dvh;
-  background: #f8f4ed;
+  background: var(--background);
 }
 
 .admin-content {
   min-width: 0;
   flex: 1;
-  padding: 1.5rem 1rem 5.5rem;
+  padding: 1.5rem 1rem 6rem;
 }
 
 .admin-page {
   margin: 0 auto;
-  max-width: 84rem;
+  max-width: 80rem;
 }
 
 .panel-card {
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 
 .page-title {
   color: var(--foreground);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "EB Garamond", Georgia, "Times New Roman", serif;
   font-size: clamp(1.7rem, 3vw, 2.25rem);
   font-weight: 500;
   letter-spacing: -0.025em;
 }
 
 .primary-action {
-  border-radius: 0.45rem;
+  border-radius: 9999px;
   background: var(--olive);
   color: white;
   font-weight: 700;
@@ -121,18 +122,63 @@ textarea:focus {
 
 .landing-shell {
   overflow: hidden;
-  background: #f4eadf;
-  color: #3b332b;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .landing-frame {
   margin: 0 auto;
-  max-width: 76rem;
+  max-width: 80rem;
   padding: 0.75rem;
 }
 
 .landing-serif {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "EB Garamond", Georgia, "Times New Roman", serif;
+}
+
+.admin-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: rgb(242 230 218 / 55%);
+  padding: 0.625rem 0.75rem;
+}
+
+.admin-secondary-action {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 65%);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.admin-table th {
+  background: #fef2e5;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid #ece1d5;
+  padding: 0.9rem 1rem;
+}
+
+.status-chip {
+  border-radius: 9999px;
+  background: #e7e4be;
+  color: #49482c;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 @media (min-width: 768px) {
@@ -141,6 +187,6 @@ textarea:focus {
   }
 
   .admin-content {
-    padding: 2.25rem 2.5rem;
+    padding: 2.5rem 3rem;
   }
 }

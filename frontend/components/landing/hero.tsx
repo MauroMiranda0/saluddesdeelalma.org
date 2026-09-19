@@ -1,40 +1,37 @@
 import { WhatsAppCta } from "./whatsapp-cta";
 
-export const Hero = () => {
-  return (
-    <section
-      id="inicio"
-      className="grid overflow-hidden bg-[#f8ecdd] md:grid-cols-[1.1fr_0.9fr]"
-    >
-      <div className="flex min-h-96 flex-col justify-center px-7 py-14 sm:px-12">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-sepia">
-          Psicología integral
-        </p>
-        <h1 className="landing-serif max-w-xl text-5xl leading-[1.03] text-[#4c4a28] sm:text-6xl">
+const HERO_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuDgyM6rmphBJZZ9XodhLjR_L3Xx7mgCWR_-NNDdzUf1lI9qAd7eWgh6477lOKucFQMNu0K5Gd0muDuyggn-6MS1GwaBvc2xAhH6jDN_jcU_qIXqUVqFAqsm2y02SUQK6T19PrEvQCeBRJwTzGwD_rcubnONjsILQMV__wj-jHpPDekDO8UiesPxR5Ku6ZISIbRfssDoeMwh_Al2TVHFpWR7jUdv2PbK4Uofyp5CX2jPios2K6BG5LYNwyYFBua4ISKwHg";
+
+export const Hero = () => (
+  <section
+    id="inicio"
+    className="overflow-hidden bg-[#fef2e5] px-5 py-16 md:px-16 md:py-28"
+  >
+    <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
+      <div>
+        <h1 className="landing-serif max-w-xl text-5xl leading-[1.03] text-[#78583c] sm:text-6xl md:text-7xl">
           Salud desde el Alma
         </h1>
-        <p className="mt-4 text-sm font-medium tracking-wide text-sepia">
+        <p className="mt-5 text-sm font-semibold tracking-[0.22em] text-[#715735]">
           CUERPO · MENTE · ESPÍRITU
         </p>
-        <p className="mt-6 max-w-md text-base leading-7 text-[#5f5144]">
-          Acompañamiento psicológico integral para una vida en paz, con
-          propósito y cuidado.
+        <p className="mt-7 max-w-md text-lg leading-8 text-[--muted]">
+          Acompañamiento psicológico integral para una vida plena, tranquila y
+          armoniosa.
         </p>
-        <div className="mt-8">
+        <div className="mt-9">
           <WhatsAppCta />
         </div>
       </div>
-      <div
-        className="relative min-h-80 overflow-hidden bg-[radial-gradient(circle_at_45%_38%,#eed7ba_0,transparent_28%),linear-gradient(145deg,#d8b98f,#9e7046)]"
-        aria-label="Un espacio cálido para su bienestar"
-        role="img"
-      >
-        <div className="absolute inset-x-[16%] top-[12%] aspect-square rounded-full border border-[#fff7e9]/80 bg-[#d4a66f]/30" />
-        <div className="absolute bottom-0 left-[22%] h-[65%] w-[42%] rounded-t-[48%] bg-[#7a4b2b] shadow-[-42px_28px_0_5px_#ba8452]" />
-        <div className="absolute bottom-8 right-8 rounded-full border border-[#fff7e9]/70 px-4 py-2 text-xs text-[#fff7e9]">
-          Un lugar para respirar
-        </div>
+      <div className="relative mx-auto w-full max-w-xl">
+        <div className="absolute inset-4 rounded-full bg-[#fed2af]/45 blur-3xl" />
+        <img
+          src={HERO_IMAGE}
+          alt="León y cordero en reposo"
+          className="relative w-full rounded-2xl drop-shadow-xl"
+        />
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);

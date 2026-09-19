@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { logoutAdminSession } from "../../lib/auth/session";
+import { BrandLogo } from "../ui/brand-logo";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Resumen", icon: "⌂" },
+  { href: "/admin", label: "Dashboard", icon: "⌂" },
   { href: "/admin/agenda", label: "Agenda", icon: "◫" },
   { href: "/admin/directorio", label: "Directorio", icon: "◌" },
   { href: "/admin/patients", label: "Pacientes", icon: "♙" },
@@ -32,16 +33,18 @@ export const AdminNav = () => {
   };
 
   return (
-    <header className="fixed inset-x-0 bottom-0 z-30 border-t border-[--border] bg-[#fffdfa]/95 backdrop-blur md:sticky md:top-0 md:bottom-auto md:flex md:min-h-dvh md:w-56 md:shrink-0 md:flex-col md:border-t-0 md:border-r">
-      <div className="hidden w-full border-b border-[--border] px-5 py-6 md:block">
-        <Link href="/admin" className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-sepia/40 bg-[#f7ecdd] font-serif text-sm italic text-sepia">
-            SdA
+    <header className="fixed inset-x-0 bottom-0 z-30 border-t border-[--border] bg-[#fff8f3]/95 backdrop-blur md:sticky md:top-0 md:bottom-auto md:flex md:min-h-dvh md:w-72 md:shrink-0 md:flex-col md:rounded-r-2xl md:border-t-0 md:border-r md:bg-[#fef2e5] md:shadow-[var(--shadow)]">
+      <div className="hidden w-full border-b border-[--border]/40 px-5 py-7 md:block">
+        <Link href="/admin" className="flex flex-col items-center text-center">
+          <BrandLogo
+            className="h-28 w-28 border-2 border-white shadow-sm"
+            priority
+          />
+          <span className="mt-3 font-serif text-2xl leading-tight text-forest">
+            Salud desde el Alma
           </span>
-          <span className="text-sm font-semibold leading-tight text-[--foreground]">
-            Salud desde
-            <br />
-            el Alma
+          <span className="mt-1 text-xs tracking-[0.12em] text-[--muted]">
+            GESTIÓN HOLÍSTICA
           </span>
         </Link>
       </div>
@@ -57,10 +60,10 @@ export const AdminNav = () => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-w-12 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition md:flex-row md:gap-3 md:px-3 md:py-2 md:text-sm ${
+                className={`flex min-w-12 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition md:flex-row md:gap-3 md:px-4 md:py-3 md:text-sm ${
                   active
-                    ? "bg-[#e8dfcd] text-forest"
-                    : "text-[--muted] hover:bg-[#f0e9dc] hover:text-forest"
+                    ? "translate-x-1 bg-[#fed2af] text-[#79583d] shadow-sm"
+                    : "text-[--muted] hover:bg-[#ece1d5] hover:text-forest"
                 }`}
               >
                 <span className="text-base leading-none" aria-hidden="true">

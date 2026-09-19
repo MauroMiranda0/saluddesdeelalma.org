@@ -61,7 +61,7 @@ export const EventCard = ({
 
   return (
     <div
-      className="group relative overflow-hidden rounded border border-gray-100 px-2 py-1.5 shadow-sm transition-shadow hover:shadow-md"
+      className="group relative overflow-hidden rounded-lg border border-white/80 px-2 py-1.5 shadow-sm transition-shadow hover:shadow-md"
       style={styles.card}
       title={
         event.appointment?.cancelReason
