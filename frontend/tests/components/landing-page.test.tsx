@@ -12,4 +12,6 @@ test("la landing contiene información operativa y caminos de acceso", () => {
   assert.match(markup, /Valle del Ciprés #148/);
   assert.match(markup, /https:\/\/wa\.me\/525660950665/);
   assert.match(markup, /\/admin\/login/);
+  assert.match(markup, /src="\/logo.jpg"/);
+  assert.match(markup, /Profesional de salud mental en un espacio de atención cálido/);
 });

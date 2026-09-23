@@ -4,7 +4,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Salud desde el Alma",
-  description: "Sistema de gestion del consultorio Salud desde el Alma"
+  description: "Sistema de gestion del consultorio Salud desde el Alma",
+  icons: {
+    icon: "/logo.jpg",
+    apple: "/logo.jpg"
+  }
 };
 
 export default function RootLayout({

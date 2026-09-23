@@ -1,7 +1,7 @@
 import { WhatsAppCta } from "./whatsapp-cta";
 
 const HERO_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDgyM6rmphBJZZ9XodhLjR_L3Xx7mgCWR_-NNDdzUf1lI9qAd7eWgh6477lOKucFQMNu0K5Gd0muDuyggn-6MS1GwaBvc2xAhH6jDN_jcU_qIXqUVqFAqsm2y02SUQK6T19PrEvQCeBRJwTzGwD_rcubnONjsILQMV__wj-jHpPDekDO8UiesPxR5Ku6ZISIbRfssDoeMwh_Al2TVHFpWR7jUdv2PbK4Uofyp5CX2jPios2K6BG5LYNwyYFBua4ISKwHg";
+  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1400&q=85";
 
 export const Hero = () => (
   <section
@@ -28,8 +28,9 @@ export const Hero = () => (
         <div className="absolute inset-4 rounded-full bg-[#fed2af]/45 blur-3xl" />
         <img
           src={HERO_IMAGE}
-          alt="León y cordero en reposo"
-          className="relative w-full rounded-2xl drop-shadow-xl"
+          alt="Profesional de salud mental en un espacio de atención cálido"
+          className="relative aspect-[4/3] w-full rounded-2xl object-cover object-center drop-shadow-xl"
+          fetchPriority="high"
         />
       </div>
     </div>
