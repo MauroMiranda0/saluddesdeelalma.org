@@ -306,56 +306,56 @@ export default function HomePage() {
           </div>
         </section>
         <footer
-          className="bg-[#78583c] px-6 py-14 text-[#fff7e9] md:px-16"
+          className="bg-[#3c5a44] px-6 py-14 text-white md:px-16"
         >
           <div className="mx-auto grid max-w-7xl gap-9 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-3">
                 <BrandLogo className="h-12 w-12 border border-white/60" />
-                <p className="landing-serif text-2xl">Salud desde el Alma</p>
+                <p className="landing-serif text-2xl text-white">Salud desde el Alma</p>
               </div>
-              <p className="mt-3 text-sm text-[#f7dfbb]">
+              <p className="mt-3 text-sm text-[#f5ead7]">
                 "Tu bienestar, nuestro propósito"
               </p>
             </div>
             <div>
-              <p className="font-semibold">Enlaces rápidos</p>
+              <p className="font-semibold text-white">Enlaces rápidos</p>
               <nav aria-label="Enlaces del pie de página" className="mt-3 grid gap-2 text-sm">
-                <a href="#nosotros" className="text-[#f7dfbb] hover:text-white">
+                <a href="#nosotros" className="!text-white hover:!text-[#d9cbb3]">
                   Sobre nosotros
                 </a>
-                <a href="#servicios" className="text-[#f7dfbb] hover:text-white">
+                <a href="#servicios" className="!text-white hover:!text-[#d9cbb3]">
                   Servicios
                 </a>
-                <a href="#testimonios" className="text-[#f7dfbb] hover:text-white">
+                <a href="#testimonios" className="!text-white hover:!text-[#d9cbb3]">
                   Testimonios
                 </a>
-                <a href="#preguntas-frecuentes" className="text-[#f7dfbb] hover:text-white">
+                <a href="#preguntas-frecuentes" className="!text-white hover:!text-[#d9cbb3]">
                   Preguntas frecuentes
                 </a>
-                <a href="#contacto" className="text-[#f7dfbb] hover:text-white">
+                <a href="#contacto" className="!text-white hover:!text-[#d9cbb3]">
                   Contacto
                 </a>
               </nav>
             </div>
             <div>
-              <p className="font-semibold">Contacto</p>
-              <p className="mt-3 text-sm text-[#f7dfbb]">WhatsApp: 56 6095 0665</p>
-              <p className="text-sm text-[#f7dfbb]">Tel. 427 427 9168</p>
-              <p className="mt-5 font-semibold">Redes sociales</p>
-              <p className="mt-2 text-sm text-[#f7dfbb]">Facebook · Instagram</p>
+              <p className="font-semibold text-white">Contacto</p>
+              <p className="mt-3 text-sm text-[#f5ead7]">WhatsApp: 56 6095 0665</p>
+              <p className="text-sm text-[#f5ead7]">Tel. 427 427 9168</p>
+              <p className="mt-5 font-semibold text-white">Redes sociales</p>
+              <p className="mt-2 text-sm text-[#f5ead7]">Facebook · Instagram</p>
             </div>
             <div>
-              <p className="font-semibold">Consultorio</p>
-              <p className="mt-3 text-sm leading-6 text-[#f7dfbb]">
+              <p className="font-semibold text-white">Consultorio</p>
+              <p className="mt-3 text-sm leading-6 text-[#f5ead7]">
                 Valle del Ciprés #148, Jardines del Valle, San Juan del Río,
                 Querétaro.
               </p>
               <AdminAccessLink />
-              <p className="mt-2 text-xs text-[#f7dfbb]">Solo para el equipo</p>
+              <p className="mt-2 text-xs text-[#f5ead7]">Solo para el equipo</p>
             </div>
           </div>
-          <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/25 pt-6 text-xs text-[#f7dfbb] sm:flex-row sm:justify-between">
+          <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/40 pt-6 text-xs text-[#f5ead7] sm:flex-row sm:justify-between">
             <p>© 2026 Salud desde el Alma. Todos los derechos reservados.</p>
             <p>Aviso de privacidad · Términos y condiciones</p>
           </div>

@@ -3,7 +3,7 @@ import Link from "next/link";
 export const AdminAccessLink = () => (
   <Link
     href="/admin/login"
-    className="mt-4 inline-block text-xs text-[#f7dfbb] underline underline-offset-4 hover:text-white"
+    className="mt-4 inline-block text-xs !text-white underline underline-offset-4 hover:!text-[#d9cbb3]"
   >
     Acceso administrativo
   </Link>
