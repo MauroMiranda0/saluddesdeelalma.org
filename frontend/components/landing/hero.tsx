@@ -10,18 +10,27 @@ export const Hero = () => (
   >
     <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
       <div>
-        <h1 className="landing-serif max-w-xl text-5xl leading-[1.03] text-[#78583c] sm:text-6xl md:text-7xl">
-          Salud desde el Alma
+        <p className="text-sm font-semibold tracking-[0.22em] text-[#715735]">
+          SALUD DESDE EL ALMA
+        </p>
+        <h1 className="landing-serif mt-5 max-w-xl text-5xl leading-[1.03] text-[#78583c] sm:text-6xl md:text-7xl">
+          Un espacio para encontrarte contigo mismo
         </h1>
-        <p className="mt-5 text-sm font-semibold tracking-[0.22em] text-[#715735]">
-          CUERPO · MENTE · ESPÍRITU
-        </p>
         <p className="mt-7 max-w-md text-lg leading-8 text-[--muted]">
-          Acompañamiento psicológico integral para una vida plena, tranquila y
-          armoniosa.
+          Psicología integral para cuerpo, mente y espíritu. Te acompañamos en
+          las temporadas difíciles y te ayudamos a construir una vida plena.
         </p>
-        <div className="mt-9">
+        <p className="mt-5 font-serif text-xl italic text-[#78583c]">
+          "Tu bienestar, nuestro propósito"
+        </p>
+        <div className="mt-9 flex flex-wrap items-center gap-4">
           <WhatsAppCta />
+          <a
+            href="#nosotros"
+            className="rounded-md border border-[#78583c] px-5 py-3 text-sm font-semibold text-[#78583c] no-underline transition hover:bg-[#78583c] hover:text-white"
+          >
+            Conoce nuestro enfoque
+          </a>
         </div>
       </div>
       <div className="relative mx-auto w-full max-w-xl">

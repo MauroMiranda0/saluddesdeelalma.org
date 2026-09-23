@@ -6,18 +6,21 @@ test("Landing pública móvil informa y abre el canal de WhatsApp", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "Salud desde el Alma", exact: true })
+    page.getByRole("heading", {
+      name: "Un espacio para encontrarte contigo mismo",
+      exact: true
+    })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Nuestros Servicios" })
+    page.getByRole("heading", { name: "Terapia para cada etapa de tu vida" })
   ).toBeVisible();
 
-  const whatsappLink = page.getByRole("link", {
-    name: "Agenda tu consulta por WhatsApp"
+  const whatsappLink = page.locator("#inicio").getByRole("link", {
+    name: "Agenda tu cita por WhatsApp"
   });
   await expect(whatsappLink).toHaveAttribute(
     "href",
-    "https://wa.me/525660950665"
+    "https://wa.me/525660950665?text=Hola%2C%20me%20gustar%C3%ADa%20agendar%20una%20cita"
   );
 
   await expect(
