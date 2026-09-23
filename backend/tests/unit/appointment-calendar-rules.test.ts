@@ -24,12 +24,12 @@ test("payment status resolves a validated full payment to completado", () => {
   );
 });
 
-test("payment status surfaces anticipo regardless of its validation state", () => {
+test("payment status only surfaces a validated advance", () => {
   assert.equal(
     paymentStatusOf([
       { paymentType: "anticipo", status: "pendiente_validacion" }
     ]),
-    "anticipo"
+    "pendiente"
   );
   assert.equal(
     paymentStatusOf([{ paymentType: "anticipo", status: "validado" }]),

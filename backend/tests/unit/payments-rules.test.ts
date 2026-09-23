@@ -5,6 +5,7 @@ import {
   assertPaymentCanBeConfirmed,
   amountMatchesAdvanceRate,
   amountMatchesFullRate,
+  amountMatchesRemainingBalance,
   dispatchManualPaymentReminder,
   PaymentNotMutableError
 } from "../../src/modules/payments/payments.service.js";
@@ -26,6 +27,14 @@ test("a full payment must equal the configured session rate", () => {
   assert.equal(amountMatchesFullRate(1000, rate), true);
   assert.equal(amountMatchesFullRate(999.99, rate), false);
   assert.equal(amountMatchesFullRate(1000.01, rate), false);
+});
+
+test("a remaining payment deducts the validated advance", () => {
+  const rate = { toString: () => "1000.00" };
+
+  assert.equal(amountMatchesRemainingBalance(500, rate, 500), true);
+  assert.equal(amountMatchesRemainingBalance(1000, rate, 500), false);
+  assert.equal(amountMatchesRemainingBalance(500.01, rate, 500), false);
 });
 
 test("only pending payments can be confirmed", () => {

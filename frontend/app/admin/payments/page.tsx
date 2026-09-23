@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "../../../lib/api/client";
+import { APPOINTMENTS_UPDATED_EVENT } from "../../../lib/admin/appointment-updates";
 import {
   associatePaymentProof,
   confirmPayment,
@@ -85,11 +86,42 @@ export default function AdminPaymentsPage() {
     );
   }, [refresh]);
 
+  useEffect(() => {
+    const refreshAfterAppointmentChange = () => {
+      refresh().catch((reason: unknown) =>
+        setError(errorMessage(reason, "No se pudo actualizar los pagos"))
+      );
+    };
+
+    window.addEventListener(
+      APPOINTMENTS_UPDATED_EVENT,
+      refreshAfterAppointmentChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        APPOINTMENTS_UPDATED_EVENT,
+        refreshAfterAppointmentChange
+      );
+    };
+  }, [refresh]);
+
   const openRegister = (appointment: AdminAppointmentEvent) => {
     setRegisteringFor(appointment);
     setPaymentType("completo");
     setMethod("transferencia");
-    setAmount("");
+    const rate = Number(rateInputs[appointment.therapyType] ?? 0);
+    const validatedAdvance = appointment.payments
+      .filter(
+        (payment) =>
+          payment.paymentType === "anticipo" && payment.status === "validado"
+      )
+      .reduce((total, payment) => total + payment.amount, 0);
+    setAmount(
+      appointment.paymentStatus === "anticipo" && rate > 0
+        ? (rate - validatedAdvance).toFixed(2)
+        : ""
+    );
     setProofReference("");
     setError(null);
   };
@@ -141,7 +173,10 @@ export default function AdminPaymentsPage() {
   };
 
   const pendingAppointments = appointments.filter(
-    (appointment) => appointment.paymentStatus !== "completado"
+    (appointment) =>
+      (appointment.status === "confirmada" ||
+        appointment.status === "completada") &&
+      appointment.paymentStatus !== "completado"
   );
   const collectedAmount = appointments
     .flatMap((appointment) => appointment.payments)
@@ -356,9 +391,9 @@ export default function AdminPaymentsPage() {
                       : "bg-emerald-100 text-emerald-800"
                   }`}
                 >
-                  {appointment.paymentStatus === "anticipo"
-                    ? "Anticipo"
-                    : "Pendiente"}
+                    {appointment.paymentStatus === "anticipo"
+                      ? "Anticipo recibido: saldo pendiente"
+                      : "Pendiente de pago"}
                 </span>
               </div>
 
@@ -406,7 +441,9 @@ export default function AdminPaymentsPage() {
                   disabled={submitting}
                   className="rounded bg-forest px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  Registrar pago
+                  {appointment.paymentStatus === "anticipo"
+                    ? "Liquidar saldo pendiente"
+                    : "Registrar pago"}
                 </button>
                 <button
                   type="button"
@@ -438,8 +475,14 @@ export default function AdminPaymentsPage() {
                 }
                 className="mt-1 w-full rounded border p-2"
               >
-                <option value="anticipo">Anticipo</option>
-                <option value="completo">Pago completo</option>
+                {registeringFor.paymentStatus !== "anticipo" ? (
+                  <option value="anticipo">Anticipo (50%)</option>
+                ) : null}
+                <option value="completo">
+                  {registeringFor.paymentStatus === "anticipo"
+                    ? "Liquidar saldo pendiente"
+                    : "Pago completo"}
+                </option>
               </select>
             </label>
             <label className="mb-3 block text-sm font-medium">
@@ -477,8 +520,9 @@ export default function AdminPaymentsPage() {
               />
             </label>
             <p className="mb-4 text-xs text-gray-500">
-              El pago quedará pendiente de confirmación hasta que revise el
-              comprobante.
+              {registeringFor.paymentStatus === "anticipo"
+                ? "El monto sugerido descuenta el anticipo validado y quedará pendiente de confirmación."
+                : "El pago quedará pendiente de confirmación hasta que revise el comprobante."}
             </p>
             <div className="flex justify-end gap-2">
               <button

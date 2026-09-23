@@ -116,7 +116,6 @@ export const scheduleAppointmentReminders = async (
       lastError
     }
   });
-  // The dispatcher omits this first payment notice if the balance is settled.
   await db.appointmentReminder.upsert({
     where: {
       appointmentId_reminderType_recipient: {
@@ -135,7 +134,33 @@ export const scheduleAppointmentReminders = async (
       lastError
     }
   });
-  await db.appointmentReminder.upsert({
+};
+
+export const schedulePriorDayPaymentReminder = async (
+  appointment: Pick<Appointment, "id" | "scheduledAt">,
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) => {
+  const fullPayment = await db.payment.findFirst({
+    where: {
+      appointmentId: appointment.id,
+      paymentType: "completo",
+      status: "validado"
+    },
+    select: { id: true }
+  });
+
+  if (fullPayment) {
+    return null;
+  }
+
+  const scheduledAt = previousDayReminderAt(appointment.scheduledAt);
+  const status = scheduledAt <= new Date() ? "omitido" : "pendiente";
+  const lastError =
+    status === "omitido" ? "Created after the prior-day reminder window" : null;
+
+  // An advance still leaves a balance, so only a validated full payment
+  // suppresses this reminder.
+  return db.appointmentReminder.upsert({
     where: {
       appointmentId_reminderType_recipient: {
         appointmentId: appointment.id,

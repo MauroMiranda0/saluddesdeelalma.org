@@ -1,4 +1,5 @@
 import { apiRequest } from "../api/client";
+import { notifyAppointmentsUpdated } from "./appointment-updates";
 
 export type TherapistProfile = {
   id: string;
@@ -175,17 +176,23 @@ export const listAdminAppointments = () => {
   );
 };
 
-export const completeAppointment = (appointmentId: string) => {
-  return apiRequest<{
+export const completeAppointment = async (appointmentId: string) => {
+  const response = await apiRequest<{
     appointment: { id: string; status: string; completedAt: string | null };
   }>(`/admin/appointments/${appointmentId}/complete`, { method: "POST" });
+
+  notifyAppointmentsUpdated();
+  return response;
 };
 
-export const confirmAppointment = (appointmentId: string) => {
-  return apiRequest<{ appointment: AdminAppointmentEvent }>(
+export const confirmAppointment = async (appointmentId: string) => {
+  const response = await apiRequest<{ appointment: AdminAppointmentEvent }>(
     `/appointments/${appointmentId}/confirm`,
     { method: "POST" }
   );
+
+  notifyAppointmentsUpdated();
+  return response;
 };
 
 export const listAppointmentsRange = (from: string, to: string) => {
@@ -194,7 +201,7 @@ export const listAppointmentsRange = (from: string, to: string) => {
   );
 };
 
-export const createAdminAppointment = (input: {
+export const createAdminAppointment = async (input: {
   patientId?: string;
   patient?: {
     fullName: string;
@@ -209,13 +216,19 @@ export const createAdminAppointment = (input: {
   locationLabel?: string;
   meetingLink?: string;
 }) => {
-  return apiRequest<{ appointment: AdminAppointmentEvent }>("/appointments", {
-    method: "POST",
-    body: input
-  });
+  const response = await apiRequest<{ appointment: AdminAppointmentEvent }>(
+    "/appointments",
+    {
+      method: "POST",
+      body: input
+    }
+  );
+
+  notifyAppointmentsUpdated();
+  return response;
 };
 
-export const rescheduleAdminAppointment = (
+export const rescheduleAdminAppointment = async (
   appointmentId: string,
   input: {
     scheduledAt: string;
@@ -224,20 +237,26 @@ export const rescheduleAdminAppointment = (
     manualExceptionConfirmed?: boolean;
   }
 ) => {
-  return apiRequest<{ appointment: AdminAppointmentEvent }>(
+  const response = await apiRequest<{ appointment: AdminAppointmentEvent }>(
     `/appointments/${appointmentId}`,
     { method: "PATCH", body: input }
   );
+
+  notifyAppointmentsUpdated();
+  return response;
 };
 
-export const cancelAdminAppointment = (
+export const cancelAdminAppointment = async (
   appointmentId: string,
   reason: string
 ) => {
-  return apiRequest<{ appointment: AdminAppointmentEvent }>(
+  const response = await apiRequest<{ appointment: AdminAppointmentEvent }>(
     `/appointments/${appointmentId}/cancel`,
     { method: "POST", body: { reason } }
   );
+
+  notifyAppointmentsUpdated();
+  return response;
 };
 
 export const registerPayment = (input: {

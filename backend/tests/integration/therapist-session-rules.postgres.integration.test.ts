@@ -7,6 +7,7 @@ import {
   AppointmentConflictError,
   AppointmentScheduleError,
   completeAppointmentWithAudit,
+  confirmAppointmentWithAudit,
   createPanelAppointmentWithAudit,
   createWhatsAppAppointment,
   rescheduleAppointmentWithAudit
@@ -517,7 +518,7 @@ test(
 );
 
 test(
-  "reminder scheduling is idempotent for patient and group destinations",
+  "confirming an appointment schedules its pending payment reminder",
   { skip: !enabled },
   async (t) => {
     const created: Created = { users: [], patients: [], appointments: [] };
@@ -557,12 +558,40 @@ test(
 
     assert.equal(counts["recordatorio_24h:paciente"], 1);
     assert.equal(counts["recordatorio_24h:grupo_psicologas"], 1);
-    assert.equal(counts["pago_pendiente:paciente"], 1);
+    assert.equal(counts["pago_pendiente:paciente"], undefined);
     assert.equal(counts["pago_pendiente:grupo_psicologas"], undefined);
     assert.equal(
       counts["pago_pendiente_post_cita:grupo_psicologas"],
       undefined
     );
+
+    await prisma.payment.create({
+      data: {
+        appointmentId: appointment.id,
+        patientId: patient.id,
+        paymentType: "anticipo",
+        amount: 30,
+        method: "transferencia",
+        status: "validado",
+        recordedByUserId: therapistAUser.id,
+        paidAt: new Date()
+      }
+    });
+    await confirmAppointmentWithAudit({
+      appointmentId: appointment.id,
+      audit: auditFor(therapistAUser.id)
+    });
+
+    const paymentReminder = await prisma.appointmentReminder.findUnique({
+      where: {
+        appointmentId_reminderType_recipient: {
+          appointmentId: appointment.id,
+          reminderType: "pago_pendiente",
+          recipient: "paciente"
+        }
+      }
+    });
+    assert.equal(paymentReminder?.status, "pendiente");
   }
 );
 

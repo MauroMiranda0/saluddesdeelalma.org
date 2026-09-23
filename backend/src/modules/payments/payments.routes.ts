@@ -54,7 +54,7 @@ const paymentError = (error: unknown) => {
     return new AppError(
       409,
       "conflict",
-      "La cita ya tiene un pago completo validado"
+      "La cita ya tiene un pago validado de este tipo"
     );
   }
   if (error instanceof SessionRateNotConfiguredError) {

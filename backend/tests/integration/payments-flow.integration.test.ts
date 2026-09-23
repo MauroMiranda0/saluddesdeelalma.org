@@ -232,7 +232,24 @@ test(
         "validado"
       );
 
-      for (const amount of [999.99, 1000.01]) {
+      const duplicateAdvance = await request(`${baseUrl}/payments`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          appointmentId: appointment.id,
+          patientId: patient.id,
+          paymentType: "anticipo",
+          amount: 500,
+          method: "transferencia"
+        })
+      });
+      assert.equal(duplicateAdvance.status, 409);
+      assert.equal(
+        await prisma.payment.count({ where: { appointmentId: appointment.id } }),
+        1
+      );
+
+      for (const amount of [499.99, 500.01]) {
         const rejectedFullPayment = await request(`${baseUrl}/payments`, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -260,7 +277,7 @@ test(
           appointmentId: appointment.id,
           patientId: patient.id,
           paymentType: "completo",
-          amount: 999.99,
+          amount: 499.99,
           method: "transferencia",
           status: "pendiente_validacion",
           recordedByUserId: admin.id,
@@ -309,7 +326,7 @@ test(
           appointmentId: appointment.id,
           patientId: patient.id,
           paymentType: "completo",
-          amount: 1000,
+          amount: 500,
           method: "transferencia"
         })
       });

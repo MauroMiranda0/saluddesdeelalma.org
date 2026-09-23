@@ -24,6 +24,7 @@ import {
   ensureConfirmationReminders,
   previousDayReminderAt,
   scheduleAppointmentReminders,
+  schedulePriorDayPaymentReminder,
   scheduleCancellationNotice
 } from "../reminders/reminders.service";
 import {
@@ -315,7 +316,12 @@ export const paymentStatusOf = (payments: PaymentSignal[]) => {
     return "completado";
   }
 
-  if (payments.some((payment) => payment.paymentType === "anticipo")) {
+  if (
+    payments.some(
+      (payment) =>
+        payment.paymentType === "anticipo" && payment.status === "validado"
+    )
+  ) {
     return "anticipo";
   }
 
@@ -630,12 +636,12 @@ export const rescheduleAppointmentWithAudit = async (input: {
         }
       }
     });
-    // Realign the prior-day reminders to the new date within the same
-    // transaction so moving an appointment does not leave stale windows.
+    // Realign appointment reminders, while the payment notice is recreated
+    // only when the moved appointment is confirmed again.
     await transaction.appointmentReminder.updateMany({
       where: {
         appointmentId: current.id,
-        reminderType: { in: ["recordatorio_24h", "pago_pendiente"] }
+        reminderType: "recordatorio_24h"
       },
       data: {
         scheduledAt: previousDayReminderAt(scheduledAt),
@@ -644,6 +650,12 @@ export const rescheduleAppointmentWithAudit = async (input: {
         sentAt: null,
         providerMessageId: null,
         lastError: null
+      }
+    });
+    await transaction.appointmentReminder.deleteMany({
+      where: {
+        appointmentId: current.id,
+        reminderType: "pago_pendiente"
       }
     });
     const originalMetadata = input.audit.metadata;
@@ -718,6 +730,7 @@ export const confirmAppointmentWithAudit = async (input: {
         confirmed,
         transaction
       );
+      await schedulePriorDayPaymentReminder(confirmed, transaction);
       await createAuditLogInTransaction(transaction, {
         ...input.audit,
         entityId: confirmed.id

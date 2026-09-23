@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "../../lib/prisma";
 import type { CreatePaymentInput } from "../../lib/validators/payment";
 import { whatsappGateway } from "../../integrations/whatsapp/whatsapp.gateway";
@@ -81,6 +83,14 @@ export const amountMatchesFullRate = (
 ) =>
   Math.round(amount * 100) === Math.round(Number(rateAmount.toString()) * 100);
 
+export const amountMatchesRemainingBalance = (
+  amount: number,
+  rateAmount: { toString(): string },
+  validatedAdvanceAmount: number
+) =>
+  Math.round(amount * 100) ===
+  Math.round((Number(rateAmount.toString()) - validatedAdvanceAmount) * 100);
+
 export const assertPaymentCanBeConfirmed = (input: {
   paymentStatus: "pendiente_validacion" | "validado" | "rechazado";
   appointmentStatus: "programada" | "confirmada" | "completada" | "cancelada";
@@ -131,15 +141,46 @@ export const createPaymentWithAudit = async (input: {
         "A session rate must be configured before registering a payment"
       );
     }
+    const validatedAdvances =
+      input.payment.paymentType === "completo"
+        ? await transaction.payment.aggregate({
+            where: {
+              appointmentId: input.payment.appointmentId,
+              paymentType: "anticipo",
+              status: "validado"
+            },
+            _sum: { amount: true }
+          })
+        : null;
+    const validatedAdvanceAmount = Number(
+      validatedAdvances?._sum.amount?.toString() ?? "0"
+    );
     const amountMatchesRate =
       input.payment.paymentType === "anticipo"
         ? amountMatchesAdvanceRate(input.payment.amount, rate.amount)
-        : amountMatchesFullRate(input.payment.amount, rate.amount);
+        : amountMatchesRemainingBalance(
+            input.payment.amount,
+            rate.amount,
+            validatedAdvanceAmount
+          );
     if (!amountMatchesRate) {
       throw new PaymentNotMutableError(
         input.payment.paymentType === "anticipo"
           ? "An advance must equal 50% of the configured session rate"
-          : "A full payment must equal the configured session rate"
+          : "The remaining payment must equal the outstanding balance"
+      );
+    }
+    const existingPaymentOfSameType = await transaction.payment.findFirst({
+      where: {
+        appointmentId: input.payment.appointmentId,
+        paymentType: input.payment.paymentType,
+        status: { in: ["pendiente_validacion", "validado"] }
+      },
+      select: { id: true }
+    });
+    if (existingPaymentOfSameType) {
+      throw new PaymentValidationConflictError(
+        "The appointment already has a payment of this type"
       );
     }
     const payment = await transaction.payment.create({
@@ -186,27 +227,43 @@ export const confirmPaymentWithAudit = async (input: {
           "A session rate must be configured before confirming a full payment"
         );
       }
-      if (
-        !amountMatchesFullRate(Number(payment.amount.toString()), rate.amount)
-      ) {
-        throw new PaymentNotMutableError(
-          "A full payment must equal the configured session rate"
-        );
-      }
-      const validatedFullPayment = await transaction.payment.findFirst({
+      const validatedAdvances = await transaction.payment.aggregate({
         where: {
           appointmentId: payment.appointmentId,
-          paymentType: "completo",
-          status: "validado",
-          id: { not: payment.id }
+          paymentType: "anticipo",
+          status: "validado"
         },
-        select: { id: true }
+        _sum: { amount: true }
       });
-      if (validatedFullPayment) {
-        throw new PaymentValidationConflictError(
-          "The appointment already has a validated full payment"
+      const validatedAdvanceAmount = Number(
+        validatedAdvances._sum.amount?.toString() ?? "0"
+      );
+      if (
+        !amountMatchesRemainingBalance(
+          Number(payment.amount.toString()),
+          rate.amount,
+          validatedAdvanceAmount
+        )
+      ) {
+        throw new PaymentNotMutableError(
+          "The remaining payment must equal the outstanding balance"
         );
       }
+    }
+
+    const validatedPaymentOfSameType = await transaction.payment.findFirst({
+      where: {
+        appointmentId: payment.appointmentId,
+        paymentType: payment.paymentType,
+        status: "validado",
+        id: { not: payment.id }
+      },
+      select: { id: true }
+    });
+    if (validatedPaymentOfSameType) {
+      throw new PaymentValidationConflictError(
+        "The appointment already has a validated payment of this type"
+      );
     }
 
     const confirmed = await transaction.payment.update({
@@ -220,6 +277,17 @@ export const confirmPaymentWithAudit = async (input: {
       entityId: confirmed.id
     });
     return confirmed;
+  }).catch((error: unknown) => {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new PaymentValidationConflictError(
+        "The appointment already has a validated payment of this type"
+      );
+    }
+
+    throw error;
   });
 };
 

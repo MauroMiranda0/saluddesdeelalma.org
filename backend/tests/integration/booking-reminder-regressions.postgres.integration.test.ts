@@ -212,12 +212,11 @@ test(
         "confirmacion:paciente",
         "confirmacion:grupo_psicologas",
         "recordatorio_24h:paciente",
-        "recordatorio_24h:grupo_psicologas",
-        "pago_pendiente:paciente"
+        "recordatorio_24h:grupo_psicologas"
       ].every((key) => byKey[key] !== undefined),
       true
     );
-    assert.equal(rows.length, 5);
+    assert.equal(rows.length, 4);
     assert.equal(
       byKey["recordatorio_24h:paciente"].scheduledAt.getTime(),
       previousDayReminderAt(scheduledAt).getTime()
@@ -274,7 +273,7 @@ test(
     const byKey = Object.fromEntries(
       rows.map((row) => [`${row.reminderType}:${row.recipient}`, row])
     );
-    assert.equal(rows.length, 5);
+    assert.equal(rows.length, 4);
     assert.equal(byKey["confirmacion:paciente"].status, "enviado");
     assert.equal(
       byKey["confirmacion:paciente"].providerMessageId,
@@ -291,7 +290,7 @@ test(
       byKey["recordatorio_24h:grupo_psicologas"].status,
       "pendiente"
     );
-    assert.equal(byKey["pago_pendiente:paciente"].status, "pendiente");
+    assert.equal(byKey["pago_pendiente:paciente"], undefined);
   }
 );
 
@@ -494,7 +493,7 @@ test(
     const rows = await prisma.appointmentReminder.findMany({
       where: { appointmentId: appointment.id }
     });
-    assert.equal(rows.length, 2);
+    assert.equal(rows.length, 1);
     const expected = previousDayReminderAt(to).getTime();
     for (const row of rows) {
       assert.equal(row.scheduledAt.getTime(), expected);
