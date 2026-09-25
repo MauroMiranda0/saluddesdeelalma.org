@@ -104,7 +104,7 @@ export const eventsForWindow = (
       endsAt: appointment.endsAt,
       title: appointment.patientName,
       subtitle: appointment.therapistName ?? undefined,
-      meta: appointment.modality === "online" ? "📹" : "📍",
+      meta: appointment.modality === "online" ? "💻" : "🛋️",
       appointment
     }))
   );

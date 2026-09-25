@@ -193,12 +193,12 @@ export default function AdminAgendaPage() {
         </button>
       </div>
 
-      <div className="panel-card flex flex-wrap items-center justify-between gap-3 px-3 py-2">
-        <div className="flex items-center gap-1">
+      <div className="panel-card flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-white px-4 py-3 md:px-5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="rounded-md border border-[--border] px-2 py-1 text-sm text-[--muted] hover:bg-[#f0e9dc]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#7e5d41]/25 text-lg text-[#7e5d41] transition hover:bg-[#cfc7ab]/55"
             aria-label="Anterior"
           >
             ‹
@@ -206,32 +206,32 @@ export default function AdminAgendaPage() {
           <button
             type="button"
             onClick={() => setVisibleDate(new Date())}
-            className="rounded-md border border-[--border] bg-white px-2.5 py-1 text-sm text-[--muted] hover:bg-[#f0e9dc]"
+            className="rounded-full bg-[#e8c59a] px-4 py-2 text-sm font-semibold text-[#7e5d41] transition hover:bg-[#cfc7ab]"
           >
             Hoy
           </button>
           <button
             type="button"
             onClick={() => navigate(1)}
-            className="rounded-md border border-[--border] px-2 py-1 text-sm text-[--muted] hover:bg-[#f0e9dc]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#7e5d41]/25 text-lg text-[#7e5d41] transition hover:bg-[#cfc7ab]/55"
             aria-label="Siguiente"
           >
             ›
           </button>
-          <span className="ml-2 min-w-28 text-sm font-semibold text-[--foreground]">
+          <span className="ml-2 min-w-28 text-sm font-semibold text-[#7e5d41]">
             {formatMonthLabel(visibleDate)}
           </span>
         </div>
-        <div className="flex rounded-lg bg-[#f0e9dc] p-1">
+        <div className="flex rounded-full bg-[#cfc7ab]/55 p-1">
           {(["dia", "semana", "mes"] as AgendaView[]).map((option) => (
             <button
               key={option}
               type="button"
               onClick={() => setView(option)}
-              className={`rounded px-3 py-1 text-sm font-medium ${
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 view === option
-                  ? "bg-[#fffdfa] text-forest shadow-sm"
-                  : "text-[--muted] hover:text-forest"
+                  ? "bg-white text-[#7e5d41] shadow-[0_3px_8px_rgba(52,41,31,0.08)]"
+                  : "text-[#66594d] hover:text-[#7e5d41]"
               }`}
             >
               {option === "dia"

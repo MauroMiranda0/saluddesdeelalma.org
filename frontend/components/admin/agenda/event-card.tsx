@@ -31,25 +31,34 @@ export const EventCard = ({
   const isCancellable = status === "programada" || status === "confirmada";
   const isConfirmable = status === "programada";
   const isCompletable = status === "programada" || status === "confirmada";
+  const modality =
+    event.appointment.modality === "online"
+      ? { icon: "💻", label: "En línea", className: "bg-[#e8c59a]/70" }
+      : { icon: "🛋️", label: "Presencial", className: "bg-[#cfc7ab]/70" };
 
   const hasActions =
     isCancellable && (onCancel || onReschedule || onConfirm || onComplete);
   const details = (
     <>
-      <div className="flex items-center gap-1">
-        <span className="truncate text-xs font-semibold">
-          {event.meta ? `${event.meta} ` : ""}
-          {event.title}
+      <div className="flex items-center gap-2">
+        <span
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${modality.className}`}
+          title={modality.label}
+        >
+          {modality.icon}
         </span>
+        <span className="truncate text-xs font-semibold">{event.title}</span>
       </div>
       {variant !== "month" && (
-        <span className="truncate text-[11px] opacity-80">
-          {event.appointment
-            ? `${event.appointment.patientPhone ?? ""}${
-                event.subtitle ? ` · ${event.subtitle}` : ""
-              }`
-            : event.subtitle}
-        </span>
+        <div className="mt-1 flex min-w-0 items-center gap-2">
+          <span className="shrink-0 rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-semibold">
+            {modality.label}
+          </span>
+          <span className="truncate text-[11px] opacity-80">
+            {event.appointment.patientPhone ?? ""}
+            {event.subtitle ? ` · ${event.subtitle}` : ""}
+          </span>
+        </div>
       )}
       {variant === "day" && event.appointment.isManualException && (
         <span className="mt-1 w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
@@ -61,7 +70,11 @@ export const EventCard = ({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-lg border border-white/80 px-2 py-1.5 shadow-sm transition-shadow hover:shadow-md"
+      className={`group relative overflow-hidden border border-white/70 shadow-[0_3px_10px_rgba(52,41,31,0.08)] transition duration-300 hover:-translate-y-px hover:shadow-[0_8px_16px_rgba(52,41,31,0.12)] ${
+        variant === "month"
+          ? "rounded-lg px-2 py-1.5"
+          : "rounded-xl px-3 py-2.5"
+      }`}
       style={styles.card}
       title={
         event.appointment?.cancelReason
@@ -76,14 +89,14 @@ export const EventCard = ({
           className="flex w-full flex-col text-left focus:outline-none focus:ring-2"
         >
           {details}
-          <span className="mt-0.5 pr-24 text-[11px] font-medium opacity-90">
+          <span className="mt-2 w-fit rounded-full bg-white/45 px-2 py-0.5 text-[11px] font-semibold opacity-90">
             {formatShort(event.startsAt)}
           </span>
         </button>
       ) : (
         <div className="flex flex-col">
           {details}
-          <span className="mt-0.5 pr-24 text-[11px] font-medium opacity-90">
+          <span className="mt-2 w-fit rounded-full bg-white/45 px-2 py-0.5 text-[11px] font-semibold opacity-90">
             {formatShort(event.startsAt)}
           </span>
         </div>
@@ -118,7 +131,7 @@ const ActionButton = ({
   <button
     type="button"
     onClick={onClick}
-    className="rounded px-1 text-[10px] font-semibold hover:bg-white/60 focus:opacity-100"
+    className="rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-semibold hover:bg-white/75 focus:opacity-100"
   >
     {label}
   </button>

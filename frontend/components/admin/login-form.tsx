@@ -52,14 +52,14 @@ export const LoginForm = () => {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-md rounded-2xl border border-[--border]/50 bg-white p-8 shadow-[var(--shadow)] md:p-12"
+      className="w-full max-w-md rounded-[20px] bg-white p-8 shadow-[0_12px_30px_rgba(52,41,31,0.1)] md:p-12"
     >
       <div className="mb-5 text-center">
-        <BrandLogo className="mx-auto mb-6 h-36 w-36 shadow-sm" priority />
-        <h1 className="font-serif text-3xl font-medium text-forest">
+        <BrandLogo className="mx-auto mb-6 h-24 w-24 shadow-sm" priority />
+        <h1 className="text-3xl font-semibold text-[#7e5d41]">
           Panel del consultorio
         </h1>
-        <p className="mt-1 text-sm text-[--muted]">Gestión Holística</p>
+        <p className="mt-2 text-sm text-[--muted]">Panel administrativo</p>
       </div>
 
       <label className="mb-1 block text-xs font-semibold text-[--foreground]">
@@ -106,7 +106,7 @@ export const LoginForm = () => {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-full bg-sepia py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#5e4027] disabled:opacity-60"
+        className="w-full rounded-full bg-[#868564] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#727152] disabled:opacity-60"
       >
         {submitting ? "Entrando…" : "Iniciar sesión"}
       </button>
