@@ -15,7 +15,8 @@ const services = [
   {
     icon: "👨‍👩‍👧",
     title: "Terapia Familiar",
-    description: "Sanen heridas, mejoren sus relaciones y crezcan como familia.",
+    description:
+      "Sanen heridas, mejoren sus relaciones y crezcan como familia.",
     duration: "90 minutos"
   }
 ];
@@ -33,16 +34,8 @@ const values = [
     "Confidencialidad absoluta en cada sesión."
   ],
   ["🌱", "Compromiso con la vida", "Cuidamos de ti y de lo que te importa."],
-  [
-    "✨",
-    "Fe que sostiene",
-    "Un enfoque que integra cuerpo, mente y espíritu."
-  ],
-  [
-    "🌍",
-    "Comunidad y compañerismo",
-    "No caminas solo; caminamos contigo."
-  ]
+  ["✨", "Fe que sostiene", "Un enfoque que integra cuerpo, mente y espíritu."],
+  ["🌍", "Comunidad y compañerismo", "No caminas solo; caminamos contigo."]
 ];
 
 const MEDITATION_IMAGE =
@@ -52,17 +45,17 @@ export const ConsultorioInfo = () => (
   <>
     <section
       id="nosotros"
-      className="relative bg-[#ece1d5] bg-cover bg-center px-5 py-16 md:px-16"
+      className="relative bg-[#cfc7ab]/55 bg-cover bg-center px-5 py-20 md:px-8"
       style={{
-        backgroundImage: `linear-gradient(90deg, rgb(255 248 243 / 96%), rgb(255 248 243 / 58%)), url(${MEDITATION_IMAGE})`
+        backgroundImage: `linear-gradient(90deg, rgb(243 231 219 / 96%), rgb(243 231 219 / 66%)), url(${MEDITATION_IMAGE})`
       }}
     >
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,.9fr)] lg:items-start">
-        <article className="panel-card p-8 md:p-10">
-          <p className="text-sm font-semibold tracking-[0.18em] text-sepia">
+      <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,.9fr)] lg:items-start">
+        <article className="rounded-[15px] bg-white p-8 shadow-[0_10px_30px_rgba(52,41,31,0.08)] md:p-10">
+          <p className="text-xs font-semibold tracking-[0.12em] text-sepia">
             SOBRE NOSOTROS
           </p>
-          <h2 className="landing-serif mt-3 text-4xl text-[#78583c]">
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#7e5d41] md:text-4xl">
             Más que terapia, un acompañamiento integral
           </h2>
           <div className="mt-6 space-y-5 text-[--muted] md:text-lg md:leading-8">
@@ -90,12 +83,12 @@ export const ConsultorioInfo = () => (
           {values.map(([icon, title, description]) => (
             <article
               key={title}
-              className="rounded-xl border border-white/80 bg-white/80 p-5 shadow-sm backdrop-blur-sm"
+              className="rounded-[15px] bg-white/90 p-5 shadow-[0_4px_16px_rgba(52,41,31,0.04)] backdrop-blur-sm"
             >
               <span className="text-2xl" aria-hidden="true">
                 {icon}
               </span>
-              <h3 className="mt-2 font-semibold text-forest">{title}</h3>
+              <h3 className="mt-2 font-semibold text-[#7e5d41]">{title}</h3>
               <p className="mt-1 text-sm leading-6 text-[--muted]">
                 {description}
               </p>
@@ -106,45 +99,50 @@ export const ConsultorioInfo = () => (
     </section>
     <section
       id="servicios"
-      className="scroll-mt-24 bg-[--background] px-5 py-20 md:px-16"
+      className="scroll-mt-24 bg-[#868564] px-5 py-20 text-white md:px-8"
     >
-      <div className="text-center">
-        <p className="text-2xl text-[#715735]">❦</p>
-        <h2 className="landing-serif mt-2 text-4xl text-[#78583c]">
+      <div className="mx-auto max-w-[1200px] text-center">
+        <p className="text-xs font-semibold tracking-[0.14em] text-[#f3e7db]">
+          | SERVICIOS
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
           Terapia para cada etapa de tu vida
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-[--muted]">
+        <p className="mx-auto mt-4 max-w-xl text-white/85">
           Sesiones diseñadas para acompañarte en lo individual, en pareja o en
           familia.
         </p>
       </div>
-      <div className="mx-auto mt-12 grid max-w-7xl gap-6 md:grid-cols-3">
+      <div className="mx-auto mt-12 grid max-w-[1200px] gap-6 md:grid-cols-3">
         {services.map(({ icon, title, description, duration }) => (
           <article
             key={title}
-            className="panel-card flex min-h-80 flex-col items-center p-8 text-center transition hover:-translate-y-1"
+            className="flex min-h-80 flex-col rounded-[15px] bg-white p-7 text-left text-[--foreground] shadow-[0_10px_30px_rgba(52,41,31,0.12)] transition duration-300 hover:-translate-y-1"
           >
-            <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fef2e5] text-3xl text-[#715735]">
+            <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#7e5d41] text-2xl text-white">
               {icon}
             </span>
-            <h3 className="text-lg font-semibold text-[--foreground]">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#868564]">
+              En linea o presencial
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-[#7e5d41]">
               {title}
             </h3>
             <p className="mt-4 leading-7 text-[--muted]">{description}</p>
-            <dl className="mt-auto w-full space-y-2 border-t border-[--border]/60 pt-5 text-left text-sm text-[--muted]">
+            <dl className="-mx-7 -mb-7 mt-auto space-y-2 rounded-b-[15px] bg-[#cfc7ab]/45 p-7 text-sm text-[--muted]">
               <div className="flex justify-between gap-3">
-                <dt className="font-semibold text-forest">Duración</dt>
+                <dt className="font-semibold text-[#7e5d41]">Duración</dt>
                 <dd>{duration}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="font-semibold text-forest">Modalidad</dt>
+                <dt className="font-semibold text-[#7e5d41]">Modalidad</dt>
                 <dd>En línea o presencial</dd>
               </div>
             </dl>
           </article>
         ))}
       </div>
-      <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-7 text-[--muted]">
+      <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-7 text-white/85">
         ¿No sabes cuál elegir? Escríbenos por WhatsApp y con gusto te
         orientamos.
       </p>
