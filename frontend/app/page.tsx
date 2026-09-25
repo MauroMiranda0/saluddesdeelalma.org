@@ -1,6 +1,7 @@
 import { AdminAccessLink } from "../components/landing/admin-access-link";
 import { ConsultorioInfo } from "../components/landing/consultorio-info";
 import { Hero } from "../components/landing/hero";
+import { TestimonialsCarousel } from "../components/landing/testimonials-carousel";
 import { WhatsAppCta } from "../components/landing/whatsapp-cta";
 import { BrandLogo } from "../components/ui/brand-logo";
 
@@ -46,7 +47,7 @@ const bookingSteps = [
   ]
 ];
 
-const testimonials = [
+const testimonials: [string, string][] = [
   [
     "Alicia",
     "La terapia me ha ayudado a conocer a la persona que en realidad soy, con fortalezas y debilidades. Me ha ayudado a ser feliz, empática, a valorarme, cuidarme y quererme."
@@ -194,9 +195,13 @@ export default function HomePage() {
 
       <section
         id="proceso"
-        className="scroll-mt-20 bg-[#f3e7db] px-5 py-20 md:px-8"
+        className="relative isolate scroll-mt-20 overflow-hidden bg-[#f3e7db] px-5 py-20 md:px-8"
       >
-        <div className="mx-auto max-w-[1200px]">
+        <div
+          className="absolute -left-24 bottom-0 -z-10 h-64 w-64 rounded-full bg-[#e8c59a]/45 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[minmax(0,.65fr)_minmax(0,1.35fr)] lg:items-center">
           <div className="max-w-xl">
             <p className="text-xs font-semibold tracking-[0.12em] text-[#7e5d41]">
               | PROCESO DE AGENDAMIENTO
@@ -209,19 +214,19 @@ export default function HomePage() {
               sin presiones.
             </p>
           </div>
-          <ol className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <ol className="grid gap-4 sm:grid-cols-2">
             {bookingSteps.map(([number, title, text]) => (
               <li
                 key={number}
-                className="rounded-[15px] bg-white p-6 shadow-[0_4px_16px_rgba(52,41,31,0.04)]"
+                className="relative overflow-hidden rounded-[20px] border border-[#7e5d41]/20 bg-[#f3e7db]/90 p-6"
               >
-                <span className="text-sm font-semibold tracking-[0.12em] text-[#868564]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#868564] text-sm font-semibold tracking-[0.08em] text-white shadow-sm">
                   {number}
                 </span>
                 <h3 className="mt-4 text-base font-semibold text-[#7e5d41]">
                   {title}
                 </h3>
-                <p className="mt-3 text-sm leading-6 text-[--muted]">{text}</p>
+                <p className="mt-3 text-sm leading-6 text-[#34291f]">{text}</p>
               </li>
             ))}
           </ol>
@@ -230,32 +235,22 @@ export default function HomePage() {
 
       <section
         id="testimonios"
-        className="scroll-mt-20 bg-[#cfc7ab]/40 px-5 py-20 md:px-8"
+        className="scroll-mt-20 bg-[#f3e7db] px-5 py-20 md:px-8"
       >
         <div className="mx-auto max-w-[1200px]">
-          <div className="mx-auto max-w-2xl text-center">
+          <div className="max-w-2xl">
             <p className="text-xs font-semibold tracking-[0.12em] text-[#7e5d41]">
               | TESTIMONIOS
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#7e5d41] md:text-4xl">
               Historias de quienes decidieron dar el primer paso
             </h2>
+            <p className="mt-4 leading-7 text-[#66594d]">
+              Experiencias reales de personas que encontraron un espacio para
+              escucharse y avanzar a su propio ritmo.
+            </p>
           </div>
-          <div className="mt-12 columns-1 gap-6 md:columns-2 lg:columns-3">
-            {testimonials.map(([name, quote]) => (
-              <figure
-                key={name}
-                className="mb-6 break-inside-avoid rounded-[15px] bg-white p-7 shadow-[0_4px_16px_rgba(52,41,31,0.04)]"
-              >
-                <blockquote className="text-sm leading-7 text-[--muted]">
-                  &ldquo;{quote}&rdquo;
-                </blockquote>
-                <figcaption className="mt-5 text-sm font-semibold text-[#868564]">
-                  {name}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+          <TestimonialsCarousel testimonials={testimonials} />
         </div>
       </section>
 
