@@ -102,14 +102,14 @@ export default function HomePage() {
       <header className="fixed inset-x-0 top-0 z-30 bg-[#f3e7db]/90 shadow-[0_1px_8px_rgba(52,41,31,0.04)] backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-4 px-5 md:px-8">
           <a href="#inicio" className="flex items-center gap-2.5 no-underline">
-            <BrandLogo className="h-9 w-9 shadow-sm" priority />
-            <span className="text-base font-semibold italic text-[#7e5d41]">
+            <BrandLogo className="h-[70px] w-[70px] shadow-sm" priority />
+            <span className="hidden text-xl font-semibold italic text-[#7e5d41] sm:block">
               Salud desde el Alma
             </span>
           </a>
           <nav
             aria-label="Navegación principal"
-            className="hidden items-center gap-8 text-sm text-[#66594d] md:flex"
+            className="hidden items-center gap-9 text-base font-medium text-[#66594d] md:flex"
           >
             <a className="transition hover:text-[#7e5d41]" href="#nosotros">
               Nosotros
@@ -371,21 +371,21 @@ export default function HomePage() {
           <div className="grid gap-10 md:grid-cols-3">
             <div>
               <div className="flex items-center gap-3">
-                <BrandLogo className="h-11 w-11 shadow-sm" />
-                <p className="text-lg font-semibold italic text-[#7e5d41]">
+                <BrandLogo className="h-[85px] w-[85px] shadow-sm" />
+                <p className="text-2xl font-semibold italic text-[#7e5d41]">
                   Salud desde el Alma
                 </p>
               </div>
-              <p className="mt-4 max-w-sm text-sm leading-6 text-[--muted]">
+              <p className="mt-4 max-w-sm text-base leading-7 text-[--muted]">
                 Psicología integral para cuerpo, mente y espíritu. Tu bienestar,
                 nuestro propósito.
               </p>
             </div>
             <div>
-              <p className="font-semibold text-[#7e5d41]">Navegación</p>
+              <p className="text-lg font-semibold text-[#7e5d41]">Navegación</p>
               <nav
                 aria-label="Enlaces del pie de página"
-                className="mt-4 grid gap-2 text-sm text-[--muted]"
+                className="mt-5 grid gap-3 text-base text-[--muted]"
               >
                 <a className="transition hover:text-[#7e5d41]" href="#nosotros">
                   Sobre nosotros
@@ -408,15 +408,17 @@ export default function HomePage() {
               </nav>
             </div>
             <div>
-              <p className="font-semibold text-[#7e5d41]">Acompañamiento</p>
-              <p className="mt-4 text-sm leading-6 text-[--muted]">
+              <p className="text-lg font-semibold text-[#7e5d41]">
+                Acompañamiento
+              </p>
+              <p className="mt-5 text-base leading-7 text-[--muted]">
                 En caso de una crisis o urgencia emocional, busca atención
                 inmediata en los servicios de emergencia de tu localidad.
               </p>
               <AdminAccessLink />
             </div>
           </div>
-          <div className="mt-12 flex flex-col gap-2 border-t border-[#7e5d41]/20 pt-6 text-xs text-[--muted] sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-12 flex flex-col gap-2 border-t border-[#7e5d41]/20 pt-6 text-sm text-[--muted] sm:flex-row sm:items-center sm:justify-between">
             <p>© 2026 Salud desde el Alma. Todos los derechos reservados.</p>
             <p className="font-semibold uppercase tracking-[0.08em]">
               Atención ética y confidencial
