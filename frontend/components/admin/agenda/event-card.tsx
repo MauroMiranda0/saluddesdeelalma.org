@@ -35,6 +35,10 @@ export const EventCard = ({
     event.appointment.modality === "online"
       ? { icon: "💻", label: "En línea", className: "bg-[#e8c59a]/70" }
       : { icon: "🛋️", label: "Presencial", className: "bg-[#cfc7ab]/70" };
+  const reminder = event.appointment.reminders?.find(
+    (item) =>
+      item.reminderType === "recordatorio_24h" && item.recipient === "paciente"
+  );
 
   const hasActions =
     isCancellable && (onCancel || onReschedule || onConfirm || onComplete);
@@ -63,6 +67,12 @@ export const EventCard = ({
       {variant === "day" && event.appointment.isManualException && (
         <span className="mt-1 w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
           Excepción manual
+        </span>
+      )}
+      {variant !== "month" && reminder && (
+        <span className="mt-1 w-fit rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-semibold">
+          Recordatorio: {reminderStatusLabel(reminder.status)} ·{" "}
+          {reminder.attemptsCount}/3
         </span>
       )}
     </>
@@ -144,3 +154,14 @@ const formatShort = (iso: string) => {
 
   return `${hour}:${minute}`;
 };
+
+const reminderStatusLabel = (
+  status: "pendiente" | "procesando" | "enviado" | "fallido" | "omitido"
+) =>
+  ({
+    pendiente: "pendiente",
+    procesando: "en envío",
+    enviado: "enviado",
+    fallido: "fallido",
+    omitido: "omitido"
+  })[status];

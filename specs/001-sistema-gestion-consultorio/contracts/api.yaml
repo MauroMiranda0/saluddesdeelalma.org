@@ -247,6 +247,7 @@ components:
           createdVia,
           paymentStatus,
           payments,
+          reminders,
           patientId,
           patientName,
           patientPhone,
@@ -307,6 +308,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Payment"
+        reminders:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppointmentReminder"
         patientId:
           type: string
           format: uuid
@@ -327,6 +332,52 @@ components:
           nullable: true
         therapistIsActive:
           type: boolean
+    AppointmentReminder:
+      type: object
+      required:
+        [
+          id,
+          reminderType,
+          recipient,
+          scheduledAt,
+          status,
+          attemptsCount,
+          lastError,
+          sentAt
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reminderType:
+          type: string
+          enum:
+            [
+              confirmacion,
+              recordatorio_24h,
+              cancelacion,
+              pago_pendiente,
+              pago_pendiente_post_cita
+            ]
+        recipient:
+          type: string
+          enum: [paciente, grupo_psicologas]
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pendiente, procesando, enviado, fallido, omitido]
+        attemptsCount:
+          type: integer
+          minimum: 0
+        lastError:
+          type: string
+          nullable: true
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
     Payment:
       type: object
       required:
@@ -905,6 +956,38 @@ paths:
                     $ref: "#/components/schemas/Appointment"
         "409":
           description: El intervalo solicitado se traslapa con una cita activa de la psicóloga asignada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/appointments/{appointmentId}/reminders:
+    get:
+      tags: [Appointments]
+      summary: Lista el estado de entrega de los recordatorios de una cita
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: appointmentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Recordatorios de la cita ordenados por fecha de programacion
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reminders]
+                properties:
+                  reminders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AppointmentReminder"
+        "400":
+          description: El identificador de la cita no es valido
           content:
             application/json:
               schema:

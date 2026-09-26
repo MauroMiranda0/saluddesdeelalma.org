@@ -365,6 +365,18 @@ type AppointmentWithRelations = {
       createdAt: Date;
     }
   >;
+  reminders?: Array<{
+    reminderType:
+      | "confirmacion"
+      | "recordatorio_24h"
+      | "cancelacion"
+      | "pago_pendiente"
+      | "pago_pendiente_post_cita";
+    recipient: "paciente" | "grupo_psicologas";
+    status: "pendiente" | "procesando" | "enviado" | "fallido" | "omitido";
+    attemptsCount: number;
+    sentAt: Date | null;
+  }>;
 };
 
 export const appointmentCalendarDto = (
@@ -386,6 +398,10 @@ export const appointmentCalendarDto = (
   createdVia: appointment.createdVia,
   paymentStatus: paymentStatusOf(appointment.payments ?? []),
   payments: (appointment.payments ?? []).map(paymentDto),
+  reminders: (appointment.reminders ?? []).map((reminder) => ({
+    ...reminder,
+    sentAt: reminder.sentAt?.toISOString() ?? null
+  })),
   patientId: appointment.patient.id,
   patientName: appointment.patient.fullName,
   patientPhone: appointment.patient.whatsappPhone,
@@ -755,12 +771,29 @@ export const confirmAppointmentWithAudit = async (input: {
   return confirmedWithReminders.appointment;
 };
 
-export const cancelAppointmentWithAudit = async (input: {
-  appointmentId: string;
-  reason: string;
-  audit: AuditCreateInput;
-}) => {
-  const current = await findAppointmentForAdmin(input.appointmentId);
+type CancellationDependencies = {
+  findAppointment: typeof findAppointmentForAdmin;
+  transaction: (
+    callback: (
+      transaction: Prisma.TransactionClient
+    ) => Promise<AppointmentWithRelations>
+  ) => Promise<AppointmentWithRelations>;
+};
+
+const defaultCancellationDependencies: CancellationDependencies = {
+  findAppointment: findAppointmentForAdmin,
+  transaction: (callback) => prisma.$transaction(callback)
+};
+
+export const cancelAppointmentWithAudit = async (
+  input: {
+    appointmentId: string;
+    reason: string;
+    audit: AuditCreateInput;
+  },
+  dependencies: CancellationDependencies = defaultCancellationDependencies
+) => {
+  const current = await dependencies.findAppointment(input.appointmentId);
 
   if (!current) {
     throw new AppointmentNotFoundError("Appointment does not exist");
@@ -778,7 +811,7 @@ export const cancelAppointmentWithAudit = async (input: {
     cancelledAt
   );
 
-  const appointment = await prisma.$transaction(async (transaction) => {
+  return dependencies.transaction(async (transaction) => {
     const cancelled = await transaction.appointment.update({
       where: { id: current.id },
       data: {
@@ -812,6 +845,4 @@ export const cancelAppointmentWithAudit = async (input: {
     });
     return cancelled;
   });
-
-  return appointment;
 };

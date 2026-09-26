@@ -3,8 +3,8 @@
 > **Proyecto:** Salud desde el Alma
 > **Eslogan:** "Tu bienestar, nuestro propósito"
 > **Servicio:** Psicología integral (Cuerpo, Mente, Espíritu)
-> **Versión:** 1.5
-> **Fecha:** 15 de septiembre de 2026
+> **Versión:** 1.6
+> **Fecha:** 25 de septiembre de 2026
 > **Estado:** Guía constitutiva para el ciclo de vida del proyecto
 
 Este documento es la referencia de mayor jerarquía para el desarrollo, diseño, implementación y mantenimiento del asistente digital del consultorio de psicología **Salud desde el Alma**. Todo trabajo técnico o de diseño debe alinearse con lo aquí establecido.
@@ -57,25 +57,25 @@ Construir un **asistente digital integral** que centralice la gestión operativa
 
 ### 2.2 Paleta de colores (extraída del logo)
 
-La paleta se extrae de `logo.jpg`, con verdes y sepias como colores predominantes, evocando serenidad, calma, fe y propósito. Paleta oficial del proyecto:
+La paleta se extrae de `logo.jpg`, con verdes y sepias como colores predominantes, evocando serenidad, calma, fe y propósito. La actualización visual aprobada el 25/09/2026 adopta los tokens de `DESIGN.md` como paleta oficial del proyecto:
 
-| Color          | Hex       | Significado                                              |
-| -------------- | --------- | -------------------------------------------------------- |
-| Verde armonía  | `#6B8F71` | Verde suave, evoca naturaleza y serenidad.               |
-| Verde profundo | `#3C5A44` | Verde bosque, transmite confianza y estabilidad.         |
-| Sepia cálido   | `#A67C52` | Marrón dorado, aporta calidez y cercanía.                |
-| Beige arena    | `#D9CBB3` | Neutro claro, suaviza y equilibra la composición.        |
-| Dorado tenue   | `#C2A878` | Reflejo luminoso, asociado a espiritualidad y propósito. |
+| Color                 | Hex       | Significado                                              |
+| --------------------- | --------- | -------------------------------------------------------- |
+| Crema                 | `#F3E7DB` | Fondo principal y contexto cálido de lectura.            |
+| Salvia claro          | `#CFC7AB` | Superficies de apoyo, etiquetas y separadores tonales.   |
+| Verde oliva           | `#868564` | Estados activos, iconos y elementos de apoyo.            |
+| Melocotón             | `#E8C59A` | Acento suave para resaltes y llamados secundarios.       |
+| Marrón café / tierra  | `#7E5D41` | Titulares y acciones con texto blanco de contraste AA.   |
 
 **Uso recomendado:**
 
 | Color          | Uso                                             |
 | -------------- | ----------------------------------------------- |
-| Verde armonía  | Fondos y áreas amplias para transmitir calma.   |
-| Verde profundo | Títulos o elementos clave para dar solidez.     |
-| Sepia cálido   | Detalles decorativos o marcos, aporta cercanía. |
-| Beige arena    | Espacios de descanso visual, balance neutro.    |
-| Dorado tenue   | Acentos en íconos o símbolos espirituales.      |
+| Crema                 | Fondo principal y áreas amplias.                 |
+| Salvia claro          | Superficies de apoyo y separadores tonales.      |
+| Verde oliva           | Estados activos e iconos, no texto blanco pequeño. |
+| Melocotón             | Acentos suaves y llamados secundarios.           |
+| Marrón café / tierra  | Títulos y acciones de alto contraste.            |
 
 ### 2.3 Directrices de diseño
 
@@ -576,7 +576,7 @@ Los siguientes elementos **se dejan deliberadamente para fases posteriores**:
 - Cualquier enmienda (cambio de stack, paleta, alcance, fechas o conducta del chatbot) debe **reflejarse aquí** y registrarse en el historial de versiones antes de implementarse.
 - Los PRs y entregables por fase deben verificar el cumplimiento de los criterios de aceptación definidos en §6.4.
 
-**Versión:** 1.4 | **Ratificación:** 28/08/2026 | **Última enmienda:** 15/09/2026 — Pagos pendientes de validación, notificación individual a Jocelyn al recibir comprobante por WhatsApp y acciones manuales de registrar pago, enviar recordatorio y confirmar pago desde el panel. | **Próxima revisión:** al cierre de cada fase.
+**Versión:** 1.6 | **Ratificación:** 28/08/2026 | **Última enmienda:** 25/09/2026 — Se formaliza la paleta de `DESIGN.md` como fuente visual aprobada y se exigen pares de texto y fondo con contraste WCAG AA. | **Próxima revisión:** al cierre de cada fase.
 
 ---
 

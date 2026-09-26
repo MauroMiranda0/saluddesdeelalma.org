@@ -105,3 +105,124 @@ test("a failed WhatsApp response retries its outbox without reprocessing the inb
   assert.equal(sends, 2);
   assert.equal(savedMessages, 1);
 });
+
+test("a delivered outbox message marks its linked reminder as sent", async () => {
+  const markedSent: Array<{ reminderId: string; providerMessageId: string }> =
+    [];
+  const markedFailed: Array<{ reminderId: string; reason: string }> = [];
+
+  await processIncomingWhatsAppInbox({
+    claimIncoming: async () => [] as never,
+    claimOutgoing: async () =>
+      [
+        {
+          id: "outgoing-1",
+          processingToken: "outgoing-token",
+          attemptsCount: 0,
+          whatsappPhone: "5215550000000",
+          contentText: "Su cita fue cancelada.",
+          conversationId: "conversation-1",
+          intent: "cancel",
+          reminderId: "reminder-1",
+          status: "pendiente"
+        }
+      ] as never,
+    markOutgoingSent: async () => ({ count: 1 }) as never,
+    markOutgoingFailed: async () => ({ count: 1 }) as never,
+    markReminderSent: async (input) => {
+      markedSent.push(input);
+      return { count: 1 } as never;
+    },
+    markReminderFailed: async (input) => {
+      markedFailed.push(input);
+      return { count: 1 } as never;
+    },
+    saveOutboundMessage: async () => ({}) as never,
+    gateway: { sendText: async () => ({ messageId: "wamid.cancelled-1" }) }
+  });
+
+  assert.deepEqual(markedSent, [
+    { reminderId: "reminder-1", providerMessageId: "wamid.cancelled-1" }
+  ]);
+  assert.deepEqual(markedFailed, []);
+});
+
+test("a failed outbox delivery reports the failure on its linked reminder", async () => {
+  const markedSent: string[] = [];
+  const markedFailed: Array<{ reminderId: string; reason: string }> = [];
+
+  await processIncomingWhatsAppInbox({
+    claimIncoming: async () => [] as never,
+    claimOutgoing: async () =>
+      [
+        {
+          id: "outgoing-1",
+          processingToken: "outgoing-token",
+          attemptsCount: 0,
+          whatsappPhone: "5215550000000",
+          contentText: "Su cita fue confirmada.",
+          conversationId: "conversation-1",
+          intent: "book",
+          reminderId: "reminder-1",
+          status: "pendiente"
+        }
+      ] as never,
+    markOutgoingSent: async () => ({ count: 1 }) as never,
+    markOutgoingFailed: async () => ({ count: 1 }) as never,
+    markReminderSent: async (input) => {
+      markedSent.push(input.reminderId);
+      return { count: 1 } as never;
+    },
+    markReminderFailed: async (input) => {
+      markedFailed.push(input);
+      return { count: 1 } as never;
+    },
+    saveOutboundMessage: async () => ({}) as never,
+    gateway: {
+      sendText: async () => {
+        throw new Error("Meta timeout");
+      }
+    }
+  });
+
+  assert.deepEqual(markedSent, []);
+  assert.deepEqual(markedFailed, [
+    { reminderId: "reminder-1", reason: "Meta timeout" }
+  ]);
+});
+
+test("an outbox message without a linked reminder leaves reminder state untouched", async () => {
+  let reminderCalls = 0;
+
+  await processIncomingWhatsAppInbox({
+    claimIncoming: async () => [] as never,
+    claimOutgoing: async () =>
+      [
+        {
+          id: "outgoing-1",
+          processingToken: "outgoing-token",
+          attemptsCount: 0,
+          whatsappPhone: "5215550000000",
+          contentText: "Jocelyn, recibió un comprobante de pago.",
+          conversationId: null,
+          intent: null,
+          reminderId: null,
+          status: "pendiente"
+        }
+      ] as never,
+    markOutgoingSent: async () => ({ count: 1 }) as never,
+    markOutgoingFailed: async () => ({ count: 1 }) as never,
+    markReminderSent: async () => {
+      reminderCalls += 1;
+      return { count: 1 } as never;
+    },
+    markReminderFailed: async () => {
+      reminderCalls += 1;
+      return { count: 1 } as never;
+    },
+    saveOutboundMessage: async () => ({}) as never,
+    gateway: { sendText: async () => ({ messageId: "wamid.admin-1" }) }
+  });
+
+  assert.equal(reminderCalls, 0);
+});

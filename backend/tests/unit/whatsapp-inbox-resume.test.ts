@@ -193,3 +193,79 @@ test("a durable replay of a payment proof re-materializes the admin notice witho
   );
   assert.match(outboundMessages[0], /comprobante de pago/i);
 });
+
+test("the WhatsApp cancellation confirmation consumes the scheduled cancellation reminder", async () => {
+  const queuedMessages: Array<{ text: string; reminderId?: string }> = [];
+  const markedSent: string[] = [];
+
+  const conversation = {
+    id: "conversation-cancel",
+    currentIntent: "cancel",
+    patientId: "patient-1",
+    whatsappPhone: "5215550000000",
+    lastMessageAt: new Date("2026-12-07T12:00:00.000Z")
+  };
+
+  const cancelledAppointment = {
+    id: "appointment-1",
+    patient: {
+      id: "patient-1",
+      fullName: "Ana Pérez",
+      whatsappPhone: "5215550000000"
+    },
+    therapist: { fullName: "Jocelyn Gutiérrez" },
+    scheduledAt: new Date("2026-12-09T23:00:00.000Z"),
+    status: "cancelada"
+  };
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.cancel-1",
+      from: "5215550000000",
+      text: "Quiero cancelar mi cita; soy Ana Pérez, nacimiento 1990-01-15",
+      receivedAt: new Date("2026-12-07T12:00:00.000Z")
+    },
+    {
+      gateway: { sendText: async () => ({ messageId: "wamid.unused" }) },
+      queueOutboundMessage: async (message) => {
+        queuedMessages.push({
+          text: message.text,
+          reminderId: message.reminderId
+        });
+      }
+    },
+    {
+      updateConversation: async () => ({}) as never,
+      audit: async () => {},
+      saveOutboundMessage: async () => ({}) as never,
+      saveIncomingMessage: async () => conversation as never,
+      findConversationByIncomingMessage: async () => conversation as never,
+      findVerifiedCancellableAppointment: async () =>
+        ({
+          status: "cancellable",
+          patient: { id: "patient-1" },
+          appointment: { id: "appointment-1" }
+        }) as never,
+      cancelAppointmentWithAudit: async () => cancelledAppointment as never,
+      findCancellationNoticeReminder: async () =>
+        ({ id: "reminder-cancel-1" }) as never,
+      markQueuedReminderSent: async (input) => {
+        markedSent.push(input.reminderId);
+        return { count: 1 } as never;
+      }
+    }
+  );
+
+  assert.equal(queuedMessages.length, 1);
+  assert.equal(
+    queuedMessages[0].reminderId,
+    "reminder-cancel-1",
+    "the inline confirmation fulfills the cancelacion reminder row"
+  );
+  assert.match(queuedMessages[0].text, /cancel/i);
+  assert.deepEqual(
+    markedSent,
+    [],
+    "the outbox worker, not the chatbot, reports the delivery"
+  );
+});

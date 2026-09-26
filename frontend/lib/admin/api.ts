@@ -48,6 +48,7 @@ export type AdminAppointmentEvent = {
   createdVia: "whatsapp" | "panel" | "system";
   paymentStatus: "pendiente" | "anticipo" | "completado";
   payments: AdminPayment[];
+  reminders: AppointmentReminder[];
   patientId: string;
   patientName: string;
   patientPhone: string;
@@ -55,6 +56,19 @@ export type AdminAppointmentEvent = {
   therapistId: string;
   therapistName: string | null;
   therapistIsActive: boolean;
+};
+
+export type AppointmentReminder = {
+  reminderType:
+    | "confirmacion"
+    | "recordatorio_24h"
+    | "cancelacion"
+    | "pago_pendiente"
+    | "pago_pendiente_post_cita";
+  recipient: "paciente" | "grupo_psicologas";
+  status: "pendiente" | "procesando" | "enviado" | "fallido" | "omitido";
+  attemptsCount: number;
+  sentAt: string | null;
 };
 
 export type AdminPayment = {

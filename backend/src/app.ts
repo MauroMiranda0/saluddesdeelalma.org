@@ -11,6 +11,7 @@ import { chatbotRoutes } from "./modules/chatbot/chatbot.routes";
 import { directoryRoutes } from "./modules/directory/directory.routes";
 import { healthRoutes } from "./modules/health/health.routes";
 import { paymentRoutes } from "./modules/payments/payments.routes";
+import { reminderRoutes } from "./modules/reminders/reminders.routes";
 import { therapistAdminRoutes } from "./modules/therapists/therapists.routes";
 
 export const createApp = () => {
@@ -40,6 +41,7 @@ export const createApp = () => {
   app.use(`${env.API_PREFIX}/admin`, therapistAdminRoutes);
   app.use(`${env.API_PREFIX}`, adminAppointmentRoutes);
   app.use(`${env.API_PREFIX}`, paymentRoutes);
+  app.use(`${env.API_PREFIX}`, reminderRoutes);
   app.use(`${env.API_PREFIX}`, directoryRoutes);
 
   app.use(notFoundHandler);

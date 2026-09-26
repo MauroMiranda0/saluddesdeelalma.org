@@ -146,6 +146,7 @@ Solo `admin` crea, activa, asigna o reasigna estos perfiles. Reasignar un pacien
 - Al marcar una cita como `completada`, el sistema crea `pago_pendiente_post_cita` solo para el paciente si no existe pago completo validado.
 - El dispatcher solo puede reclamar, enviar o reintentar recordatorios del día previo entre 18:00:00 inclusive y 19:00:00 exclusiva en `America/Mexico_City`. Fuera de la ventana no envía mensajes.
 - Si la cita se crea después de la ventana del día previo, los dos `recordatorio_24h` se crean como `omitido` con motivo auditable; la confirmación inmediata permanece obligatoria.
+- Una confirmación inmediata o un aviso de cancelación enviados por el canal de WhatsApp se encolan en `outgoing_whatsapp_events` con `reminder_id` apuntando al registro que esa entrega cumple. El worker del outbox marca ese registro como `enviado` (con `provider_message_id` y `sent_at`) o como `fallido`, y el dispatcher nunca vuelve a enviar un recordatorio que ya tiene una salida aceptada por el proveedor. Así el paciente recibe un solo aviso por confirmación o cancelación.
 
 ### chat_conversations
 
@@ -207,6 +208,7 @@ Solo `admin` crea, activa, asigna o reasigna estos perfiles. Reasignar un pacien
 - `chat_conversations 1-N chat_messages`
 - `appointments 1-N payments`
 - `appointments 1-N appointment_reminders`
+- `appointment_reminders 1-N outgoing_whatsapp_events` (opcional: la entrega durable que cumple el recordatorio)
 
 ## State Transitions
 

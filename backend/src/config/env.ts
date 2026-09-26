@@ -64,6 +64,11 @@ export const assertProductionEnvironment = (environment: Environment) => {
       "ENABLE_WHATSAPP_INBOX_WORKER must be enabled in production so accepted WhatsApp inbox events are not left unprocessed"
     );
   }
+  if (environment.ENABLE_REMINDER_WORKER !== "true") {
+    throw new Error(
+      "ENABLE_REMINDER_WORKER must be enabled in production so due reminders are not left unprocessed"
+    );
+  }
   if (
     environment.AI_PROVIDER_API_KEY &&
     isPlaceholder(environment.AI_PROVIDER_API_KEY)

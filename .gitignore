@@ -3,6 +3,8 @@ dist/
 build/
 .next/
 coverage/
+frontend/test-results/
+frontend/playwright-report/
 *.tsbuildinfo
 *.log
 .env*

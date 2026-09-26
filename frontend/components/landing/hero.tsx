@@ -28,7 +28,7 @@ export const Hero = () => (
         </p>
         <h1 className="mt-2 text-4xl font-bold leading-tight tracking-tight text-[#7e5d41] sm:text-5xl md:text-[2.8rem]">
           Encuentra tu camino a traves del{" "}
-          <span className="italic text-[#868564]">autoconocimiento.</span>
+          <span className="italic text-[#7e5d41]">autoconocimiento.</span>
         </h1>
         <p className="mt-6 max-w-md text-base leading-7 text-[--muted] md:text-[1.05rem]">
           Psicología integral para cuerpo, mente y espíritu. Te acompañamos en
@@ -39,13 +39,13 @@ export const Hero = () => (
         </div>
         <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 border-t border-[#7e5d41]/15 pt-6 text-sm text-[--muted]">
           <p className="flex items-center gap-2">
-            <span className="font-bold text-[#868564]" aria-hidden="true">
+            <span className="font-bold text-[#7e5d41]" aria-hidden="true">
               +
             </span>
             Atención cálida y sin prisas
           </p>
           <p className="flex items-center gap-2">
-            <span className="font-bold text-[#868564]" aria-hidden="true">
+            <span className="font-bold text-[#7e5d41]" aria-hidden="true">
               +
             </span>
             Confidencialidad garantizada

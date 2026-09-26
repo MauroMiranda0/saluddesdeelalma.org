@@ -162,24 +162,24 @@ enum AuditResult {
 }
 
 model User {
-  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username          String?        @unique @db.VarChar(50)
-  email             String         @unique @db.VarChar(255)
-  passwordHash      String?        @map("password_hash") @db.VarChar(255)
-  fullName          String         @map("full_name") @db.VarChar(120)
-  role              UserRole       @default(admin)
-  panelLoginEnabled Boolean        @default(false) @map("panel_login_enabled")
-  isActive          Boolean        @default(true) @map("is_active")
-  lastLoginAt       DateTime?      @map("last_login_at") @db.Timestamptz(6)
-  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
-  sessions          AdminSession[]
-  patientProfile    Patient?
-  therapistProfile  TherapistProfile?
-  appointmentsCreated Appointment[] @relation("AppointmentCreator")
-  payments          Payment[]
-  associatedPaymentProofs PaymentProof[] @relation("PaymentProofAssociator")
-  auditLogs         AuditLog[]
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username                String?           @unique @db.VarChar(50)
+  email                   String            @unique @db.VarChar(255)
+  passwordHash            String?           @map("password_hash") @db.VarChar(255)
+  fullName                String            @map("full_name") @db.VarChar(120)
+  role                    UserRole          @default(admin)
+  panelLoginEnabled       Boolean           @default(false) @map("panel_login_enabled")
+  isActive                Boolean           @default(true) @map("is_active")
+  lastLoginAt             DateTime?         @map("last_login_at") @db.Timestamptz(6)
+  createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions                AdminSession[]
+  patientProfile          Patient?
+  therapistProfile        TherapistProfile?
+  appointmentsCreated     Appointment[]     @relation("AppointmentCreator")
+  payments                Payment[]
+  associatedPaymentProofs PaymentProof[]    @relation("PaymentProofAssociator")
+  auditLogs               AuditLog[]
 
   @@map("users")
 }
@@ -209,7 +209,7 @@ model AdminSession {
   ipAddress      String?   @map("ip_address") @db.Inet
   userAgent      String?   @map("user_agent")
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  user           User @relation(fields: [userId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([expiresAt])
@@ -217,53 +217,53 @@ model AdminSession {
 }
 
 model Patient {
-  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String             @unique @map("user_id") @db.Uuid
-  fullName          String             @map("full_name") @db.VarChar(150)
-  whatsappPhone     String             @unique @map("whatsapp_phone") @db.VarChar(30)
-  birthdate         DateTime           @db.Date
-  preferredModality Modality?          @map("preferred_modality")
-  email             String?            @db.VarChar(255)
-  status            PatientStatus      @default(activo)
-  assignedTherapistId String?           @map("assigned_therapist_id") @db.Uuid
-  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user              User               @relation(fields: [userId], references: [id])
-  assignedTherapist TherapistProfile?  @relation(fields: [assignedTherapistId], references: [id])
-  appointments      Appointment[]
-  payments          Payment[]
-  conversations     ChatConversation[]
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String             @unique @map("user_id") @db.Uuid
+  fullName            String             @map("full_name") @db.VarChar(150)
+  whatsappPhone       String             @unique @map("whatsapp_phone") @db.VarChar(30)
+  birthdate           DateTime           @db.Date
+  preferredModality   Modality?          @map("preferred_modality")
+  email               String?            @db.VarChar(255)
+  status              PatientStatus      @default(activo)
+  assignedTherapistId String?            @map("assigned_therapist_id") @db.Uuid
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                User               @relation(fields: [userId], references: [id])
+  assignedTherapist   TherapistProfile?  @relation(fields: [assignedTherapistId], references: [id])
+  appointments        Appointment[]
+  payments            Payment[]
+  conversations       ChatConversation[]
 
   @@map("patients")
 }
 
 model Appointment {
-  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  patientId         String                @map("patient_id") @db.Uuid
-  scheduledAt       DateTime              @map("scheduled_at") @db.Timestamptz(6)
-  modality          Modality
-  status            AppointmentStatus     @default(programada)
-  isManualException Boolean               @default(false) @map("is_manual_exception")
-  locationLabel     String?               @map("location_label") @db.VarChar(255)
-  meetingLink       String?               @map("meeting_link")
-  cancelReason      String?               @map("cancel_reason")
-  cancelledAt       DateTime?              @map("cancelled_at") @db.Timestamptz(6)
+  id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId          String                @map("patient_id") @db.Uuid
+  scheduledAt        DateTime              @map("scheduled_at") @db.Timestamptz(6)
+  modality           Modality
+  status             AppointmentStatus     @default(programada)
+  isManualException  Boolean               @default(false) @map("is_manual_exception")
+  locationLabel      String?               @map("location_label") @db.VarChar(255)
+  meetingLink        String?               @map("meeting_link")
+  cancelReason       String?               @map("cancel_reason")
+  cancelledAt        DateTime?             @map("cancelled_at") @db.Timestamptz(6)
   cancellationNotice CancellationNotice?   @map("cancellation_notice")
-  createdByUserId   String?               @map("created_by_user_id") @db.Uuid
-  createdVia        AppointmentCreatedVia @map("created_via")
-  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
-  therapistId       String                @map("therapist_id") @db.Uuid
-  therapyType       TherapyType           @map("therapy_type")
-  durationMinutes   Int                   @map("duration_minutes")
-  endsAt            DateTime              @map("ends_at") @db.Timestamptz(6)
-  completedAt       DateTime?             @map("completed_at") @db.Timestamptz(6)
-  patient           Patient               @relation(fields: [patientId], references: [id])
-  therapist         TherapistProfile      @relation(fields: [therapistId], references: [id])
-  createdBy         User?                 @relation("AppointmentCreator", fields: [createdByUserId], references: [id])
-  payments          Payment[]
-  reminders         AppointmentReminder[]
-  paymentProofs     PaymentProof[]
+  createdByUserId    String?               @map("created_by_user_id") @db.Uuid
+  createdVia         AppointmentCreatedVia @map("created_via")
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  therapistId        String                @map("therapist_id") @db.Uuid
+  therapyType        TherapyType           @map("therapy_type")
+  durationMinutes    Int                   @map("duration_minutes")
+  endsAt             DateTime              @map("ends_at") @db.Timestamptz(6)
+  completedAt        DateTime?             @map("completed_at") @db.Timestamptz(6)
+  patient            Patient               @relation(fields: [patientId], references: [id])
+  therapist          TherapistProfile      @relation(fields: [therapistId], references: [id])
+  createdBy          User?                 @relation("AppointmentCreator", fields: [createdByUserId], references: [id])
+  payments           Payment[]
+  reminders          AppointmentReminder[]
+  paymentProofs      PaymentProof[]
 
   @@index([patientId])
   @@index([scheduledAt])
@@ -322,7 +322,7 @@ model PaymentProof {
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   appointment        Appointment?       @relation(fields: [appointmentId], references: [id])
   payment            Payment?           @relation(fields: [paymentId], references: [id])
-  associatedBy       User?               @relation("PaymentProofAssociator", fields: [associatedByUserId], references: [id])
+  associatedBy       User?              @relation("PaymentProofAssociator", fields: [associatedByUserId], references: [id])
 
   @@index([status, receivedAt])
   @@index([appointmentId])
@@ -331,19 +331,20 @@ model PaymentProof {
 }
 
 model AppointmentReminder {
-  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  appointmentId     String            @map("appointment_id") @db.Uuid
-  reminderType      ReminderType      @map("reminder_type")
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId     String                  @map("appointment_id") @db.Uuid
+  reminderType      ReminderType            @map("reminder_type")
   recipient         ReminderRecipient
-  scheduledAt       DateTime          @map("scheduled_at") @db.Timestamptz(6)
-  status            ReminderStatus    @default(pendiente)
-  attemptsCount     Int               @default(0) @map("attempts_count")
-  lastError         String?           @map("last_error")
-  sentAt            DateTime?         @map("sent_at") @db.Timestamptz(6)
-  providerMessageId String?           @map("provider_message_id") @db.VarChar(120)
-  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
-  appointment       Appointment       @relation(fields: [appointmentId], references: [id])
+  scheduledAt       DateTime                @map("scheduled_at") @db.Timestamptz(6)
+  status            ReminderStatus          @default(pendiente)
+  attemptsCount     Int                     @default(0) @map("attempts_count")
+  lastError         String?                 @map("last_error")
+  sentAt            DateTime?               @map("sent_at") @db.Timestamptz(6)
+  providerMessageId String?                 @map("provider_message_id") @db.VarChar(120)
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointment       Appointment             @relation(fields: [appointmentId], references: [id])
+  outgoingEvents    OutgoingWhatsAppEvent[]
 
   @@unique([appointmentId, reminderType, recipient])
   @@index([scheduledAt, status])
@@ -351,17 +352,17 @@ model AppointmentReminder {
 }
 
 model ChatConversation {
-  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  patientId          String?            @map("patient_id") @db.Uuid
-  whatsappPhone      String             @map("whatsapp_phone") @db.VarChar(30)
-  currentIntent      ConversationIntent @default(unknown) @map("current_intent")
-  verificationStatus VerificationStatus @default(not_needed) @map("verification_status")
-  lastVerifiedAt     DateTime?          @map("last_verified_at") @db.Timestamptz(6)
-  state              ConversationState  @default(abierta)
-  lastMessageAt      DateTime           @map("last_message_at") @db.Timestamptz(6)
-  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-  patient            Patient?           @relation(fields: [patientId], references: [id])
+  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId          String?                 @map("patient_id") @db.Uuid
+  whatsappPhone      String                  @map("whatsapp_phone") @db.VarChar(30)
+  currentIntent      ConversationIntent      @default(unknown) @map("current_intent")
+  verificationStatus VerificationStatus      @default(not_needed) @map("verification_status")
+  lastVerifiedAt     DateTime?               @map("last_verified_at") @db.Timestamptz(6)
+  state              ConversationState       @default(abierta)
+  lastMessageAt      DateTime                @map("last_message_at") @db.Timestamptz(6)
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  patient            Patient?                @relation(fields: [patientId], references: [id])
   messages           ChatMessage[]
   outgoingEvents     OutgoingWhatsAppEvent[]
 
@@ -389,22 +390,22 @@ model ChatMessage {
 }
 
 model IncomingWhatsAppEvent {
-  id                String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  waMessageId       String                       @unique @map("wa_message_id") @db.VarChar(120)
-  kind              IncomingWhatsAppEventKind
-  whatsappPhone     String                       @map("whatsapp_phone") @db.VarChar(30)
-  payload           Json
-  receivedAt        DateTime                     @map("received_at") @db.Timestamptz(6)
-  status            IncomingWhatsAppEventStatus @default(pendiente)
-  attemptsCount     Int                          @default(0) @map("attempts_count")
-  lastError         String?                      @map("last_error")
-  availableAt       DateTime                     @default(now()) @map("available_at") @db.Timestamptz(6)
-  processingStartedAt DateTime?                  @map("processing_started_at") @db.Timestamptz(6)
-  processingToken   String?                      @map("processing_token") @db.Uuid
-  processedAt       DateTime?                    @map("processed_at") @db.Timestamptz(6)
-  createdAt         DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  outgoingEvents    OutgoingWhatsAppEvent[]
+  id                  String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  waMessageId         String                      @unique @map("wa_message_id") @db.VarChar(120)
+  kind                IncomingWhatsAppEventKind
+  whatsappPhone       String                      @map("whatsapp_phone") @db.VarChar(30)
+  payload             Json
+  receivedAt          DateTime                    @map("received_at") @db.Timestamptz(6)
+  status              IncomingWhatsAppEventStatus @default(pendiente)
+  attemptsCount       Int                         @default(0) @map("attempts_count")
+  lastError           String?                     @map("last_error")
+  availableAt         DateTime                    @default(now()) @map("available_at") @db.Timestamptz(6)
+  processingStartedAt DateTime?                   @map("processing_started_at") @db.Timestamptz(6)
+  processingToken     String?                     @map("processing_token") @db.Uuid
+  processedAt         DateTime?                   @map("processed_at") @db.Timestamptz(6)
+  createdAt           DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  outgoingEvents      OutgoingWhatsAppEvent[]
 
   @@index([status, availableAt])
   @@index([status, processingStartedAt])
@@ -412,29 +413,32 @@ model IncomingWhatsAppEvent {
 }
 
 model OutgoingWhatsAppEvent {
-  id                  String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  incomingEventId     String                       @map("incoming_event_id") @db.Uuid
+  id                  String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incomingEventId     String                      @map("incoming_event_id") @db.Uuid
   sequence            Int
-  conversationId      String?                      @map("conversation_id") @db.Uuid
-  whatsappPhone       String                       @map("whatsapp_phone") @db.VarChar(30)
-  contentText         String                       @map("content_text")
-  intent              String?                      @db.VarChar(60)
+  conversationId      String?                     @map("conversation_id") @db.Uuid
+  whatsappPhone       String                      @map("whatsapp_phone") @db.VarChar(30)
+  contentText         String                      @map("content_text")
+  intent              String?                     @db.VarChar(60)
   status              OutgoingWhatsAppEventStatus @default(pendiente)
-  attemptsCount       Int                          @default(0) @map("attempts_count")
-  lastError           String?                      @map("last_error")
-  availableAt         DateTime                     @default(now()) @map("available_at") @db.Timestamptz(6)
-  processingStartedAt DateTime?                    @map("processing_started_at") @db.Timestamptz(6)
-  processingToken     String?                      @map("processing_token") @db.Uuid
-  providerMessageId   String?                      @map("provider_message_id") @db.VarChar(120)
-  sentAt              DateTime?                    @map("sent_at") @db.Timestamptz(6)
-  createdAt           DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  attemptsCount       Int                         @default(0) @map("attempts_count")
+  lastError           String?                     @map("last_error")
+  availableAt         DateTime                    @default(now()) @map("available_at") @db.Timestamptz(6)
+  processingStartedAt DateTime?                   @map("processing_started_at") @db.Timestamptz(6)
+  processingToken     String?                     @map("processing_token") @db.Uuid
+  providerMessageId   String?                     @map("provider_message_id") @db.VarChar(120)
+  sentAt              DateTime?                   @map("sent_at") @db.Timestamptz(6)
+  reminderId          String?                     @map("reminder_id") @db.Uuid
+  createdAt           DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
   incomingEvent       IncomingWhatsAppEvent       @relation(fields: [incomingEventId], references: [id])
   conversation        ChatConversation?           @relation(fields: [conversationId], references: [id])
+  reminder            AppointmentReminder?        @relation(fields: [reminderId], references: [id])
 
   @@unique([incomingEventId, sequence])
   @@index([status, availableAt])
   @@index([status, processingStartedAt])
+  @@index([reminderId])
   @@map("outgoing_whatsapp_events")
 }
 

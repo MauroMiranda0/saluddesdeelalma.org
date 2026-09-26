@@ -151,19 +151,19 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 4
 
-- [ ] T045 [P] [US4] Crear prueba de integraciÃ³n de programaciÃ³n, reintento y envÃ­o idempotente de recordatorios para paciente y grupo interno en `backend/tests/integration/reminders.integration.test.ts`
-- [ ] T046 [P] [US4] Crear prueba de contrato del endpoint de recordatorios en `backend/tests/contract/reminders.contract.test.ts`
-- [ ] T084 [P] [US4] Crear pruebas unitarias de zona horaria y bordes 18:00 inclusivo / 19:00 exclusivo del dÃ­a previo en `backend/tests/unit/reminder-window.test.ts`
-- [ ] T085 [P] [US4] Crear pruebas de clasificaciÃ³n de cancelaciÃ³n a tiempo y tardÃ­a, incluido el lÃ­mite exacto de 24 horas y ausencia de cobro automÃ¡tico, en `backend/tests/unit/cancellation-policy.test.ts`
+- [x] T045 [P] [US4] Crear prueba de integraciÃ³n de programaciÃ³n, reintento y envÃ­o idempotente de recordatorios para paciente y grupo interno en `backend/tests/integration/reminders.integration.test.ts` per US4/AC1-AC4, FR-030, FR-031, SC-007
+- [x] T046 [P] [US4] Crear prueba de contrato del endpoint de recordatorios en `backend/tests/contract/reminders.contract.test.ts` per US4/AC5, FR-032
+- [x] T084 [P] [US4] Crear pruebas unitarias de zona horaria y bordes 18:00 inclusivo / 19:00 exclusivo del dÃ­a previo en `backend/tests/unit/reminder-window.test.ts` per US4/AC1, FR-030
+- [x] T085 [P] [US4] Crear pruebas de clasificaciÃ³n de cancelaciÃ³n a tiempo y tardÃ­a, incluido el lÃ­mite exacto de 24 horas y ausencia de cobro automÃ¡tico, en `backend/tests/unit/cancellation-policy.test.ts` per US4/AC3, FR-033
 
 ### Implementacion para Historia de Usuario 4
 
-- [ ] T047 [P] [US4] Implementar repositorio y reglas de dominio que creen dos recordatorios del dÃ­a previo, uno por destinatario, y omitan los creados despuÃ©s de su ventana en `backend/src/modules/reminders/reminders.repository.ts` y `backend/src/modules/reminders/reminders.service.ts`
-- [ ] T048 [P] [US4] Implementar job recurrente e idempotente cada cinco minutos con guardia `18:00 <= America/Mexico_City < 19:00`, reclamaciÃ³n atÃ³mica y mÃ¡ximo tres intentos dentro de la ventana; configurar `REMINDER_TIMEZONE` en `backend/src/jobs/process-reminders.job.ts`, `backend/src/modules/reminders/reminder-dispatcher.ts`, `backend/src/config/env.ts` y `backend/.env.example`
-- [ ] T049 [US4] Implementar endpoint administrativo de consulta de recordatorios en `backend/src/modules/reminders/reminders.controller.ts` y `backend/src/modules/reminders/reminders.routes.ts`
-- [ ] T050 [US4] Mostrar estados de recordatorio en agenda y pagos en `frontend/components/agenda/reminder-status-badge.tsx` y `frontend/components/pagos/payment-status-card.tsx`
-- [ ] T051 [US4] Auditar envÃ­os, fallos, reintentos y omisiones de recordatorios por destinatario, incluida la supresiÃ³n fuera de ventana, en `backend/src/modules/reminders/reminder-dispatcher.ts` y `backend/src/modules/audit/audit.service.ts`
-- [ ] T086 [US4] Implementar cÃ¡lculo y persistencia de `cancelled_at` y `cancellation_notice` sin crear pagos automÃ¡ticos en `backend/src/modules/appointments/appointments.service.ts`, `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/lib/validators/appointment.ts`
+- [x] T047 [P] [US4] Implementar repositorio y reglas de dominio que creen dos recordatorios del dÃ­a previo, uno por destinatario, y omitan los creados despuÃ©s de su ventana en `backend/src/modules/reminders/reminders.repository.ts` y `backend/src/modules/reminders/reminders.service.ts` per US4/AC1, FR-030 (partial)
+- [x] T048 [P] [US4] Implementar job recurrente e idempotente cada cinco minutos con guardia `18:00 <= America/Mexico_City < 19:00`, reclamaciÃ³n atÃ³mica y mÃ¡ximo tres intentos dentro de la ventana; configurar `REMINDER_TIMEZONE` en `backend/src/jobs/process-reminders.job.ts`, `backend/src/modules/reminders/reminder-dispatcher.ts`, `backend/src/config/env.ts` y `backend/.env.example` per US4/AC1, AC2, FR-030, Constitution I
+- [x] T049 [US4] Implementar endpoint administrativo de consulta de recordatorios en `backend/src/modules/reminders/reminders.controller.ts` y `backend/src/modules/reminders/reminders.routes.ts` per US4/AC5, FR-032
+- [x] T050 [US4] Mostrar estados de recordatorio en agenda y pagos en `frontend/components/agenda/reminder-status-badge.tsx` y `frontend/components/pagos/payment-status-card.tsx` per US4/AC5, FR-032 (partial)
+- [x] T051 [US4] Auditar envÃ­os, fallos, reintentos y omisiones de recordatorios por destinatario, incluida la supresiÃ³n fuera de ventana, en `backend/src/modules/reminders/reminder-dispatcher.ts` y `backend/src/modules/audit/audit.service.ts` per US4/AC2, AC4, FR-031, SC-007
+- [x] T086 [US4] Implementar cÃ¡lculo y persistencia de `cancelled_at` y `cancellation_notice` sin crear pagos automÃ¡ticos en `backend/src/modules/appointments/appointments.service.ts`, `backend/src/modules/appointments/appointments.repository.ts` y `backend/src/lib/validators/appointment.ts` per US4/AC3, AC4, FR-033, SC-011
 
 **Punto de control**: La Historia de Usuario 4 debe quedar funcional por si sola
 
@@ -576,3 +576,33 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 - [x] T169 [P] Aplicar paleta oficial, tipografia y tokens de diseno de un solo sistema de diseno reutilizado en landing y panel en `frontend/app/globals.css`. per Constitution 2.2-2.3.
 - [x] T170 [M] Crear prueba E2E movil de la landing publica y prueba de componentes de la landing en `frontend/tests/e2e/public-landing.spec.ts` y `frontend/tests/components/landing-page.test.tsx`. per US6 (T059, T060).
 - [x] T171 [M] Revisar en movil el panel completo y registrar comparativa antes/despues frente al mockup en `docs/pruebas-panel.md` y `docs/avance-dia-17.md`. per Constitution 2.3, plan Fase 6.
+
+---
+
+## Phase 33: Convergence
+
+- [x] T172 [H] Alinear el sistema de diseno de landing y panel con la paleta oficial de la Constitucion (`#6B8F71`, `#3C5A44`, `#A67C52`, `#D9CBB3`, `#C2A878`) y combinaciones de texto WCAG AA, eliminando los valores contradictorios en `frontend/app/globals.css` y componentes frontend. per T169, Constitution 2.2-2.3 (contradicts).
+- [x] T173 [H] Actualizar las pruebas de componentes y E2E movil de la landing para que verifiquen el contenido vigente, servicios, modalidades, direccion, horario, contactos, CTA de WhatsApp, acceso discreto al panel y ausencia de desbordamiento horizontal, en `frontend/tests/components/landing-page.test.tsx` y `frontend/tests/e2e/public-landing.spec.ts`. per T170, US6/AC1-AC3 (contradicts).
+- [x] T174 [M] Identificar a la psicologa en la landing publica y cubrir su presencia en las pruebas de landing, en `frontend/components/landing/consultorio-info.tsx`, `frontend/tests/components/landing-page.test.tsx` y `frontend/tests/e2e/public-landing.spec.ts`. per US6, FR-017 (missing).
+- [x] T175 [M] Registrar la decision de la cliente sobre las diferencias entre el mockup aprobado y la reinterpretacion actual del login, dashboard, agenda, directorio, pagos, pacientes y terapeutas; despues, alinear las pantallas o documentar la aprobacion por pantalla, junto con una revision movil trazable y avance reconciliado, en `docs/pruebas-panel.md` y `docs/avance-dia-17.md`. per T165-T171, plan Fase UI, Constitution 2.3 (partial).
+
+---
+
+## Phase 34: Convergence
+
+**Proposito**: Cerrar US4 contrastando el codigo con `spec.md` y el modelo de datos.
+
+- [x] T176 [H] Vincular cada entrega del outbox de WhatsApp con el recordatorio que cumple, con columna `reminder_id`, migracion y reporte de exito o fallo del worker sobre el estado y la auditoria del recordatorio, en `backend/prisma/`, `backend/src/modules/chatbot/whatsapp-inbox.repository.ts` y `backend/src/jobs/process-whatsapp-inbox.job.ts`. per FR-031, US4/AC4, T051 (missing).
+- [x] T177 [H] Evitar el doble aviso de cancelacion cuando la cita se cancela por WhatsApp, consumiendo el recordatorio `cancelacion` desde la confirmacion en linea y saltando en el dispatcher los recordatorios con entrega ya aceptada, en `backend/src/modules/chatbot/chatbot.service.ts` y `backend/src/modules/reminders/reminders.service.ts`. per FR-033, US4/AC4, SC-011, T086 (missing).
+- [x] T178 [M] Documentar en `contracts/api.yaml` el endpoint administrativo de recordatorios y el esquema `AppointmentReminder` con su exposicion en la cita, y registrar en `data-model.md` la relacion entre recordatorios y outbox. per US4/AC5, FR-032, T046, T049, T155 (missing).
+- [x] T179 [M] Reconciliar la version de la Constitucion: la cabecera declaraba 1.5 mientras la enmienda ratificada del 25/09/2026 fijaba 1.6, en `CONSTITUTION.md`. per Constitution governance (contradicts).
+- [x] T180 [M] Cerrar T045-T051 y T084-T086 verificando cada tarea contra el codigo y annotando las rutas literales que no existen por decision de arquitectura, en `specs/001-sistema-gestion-consultorio/tasks.md`. per US4 checkpoint (partial).
+
+## Phase 35: Convergence
+
+**Proposito**: Cerrar la brecha de evidencia visual de US4, dejando la linea de estado del recordatorio del dia previo verificada de forma automatica y sin depender de una base sembrada.
+
+- [x] T181 [H] Evitar que un payload de cita sin el campo `reminders` tumbe la agenda o la lista de pagos, con guarda opcional en `frontend/components/admin/agenda/event-card.tsx` y `frontend/app/admin/payments/page.tsx`. per US4/AC5 (missing).
+- [x] T182 [H] Reparar la E2E movil de agenda, cuyo mock de cita omitia `reminders` y provoco un `TypeError` en render desde el rediseno del 25/09/2026, y anadir dos pruebas hermeticas que mockean sesion, directorio y citas para verificar la linea del recordatorio en dia y semana, su ausencia en mes y la tolerancia al payload incompleto, en `frontend/tests/e2e/admin-agenda.spec.ts`. per US4/AC5 (missing).
+- [x] T183 [M] Fijar por prueba de componente la traduccion de los cinco estados del recordatorio, el contador de intentos, la supresion en la vista de mes, la supresion del aviso dirigido a `grupo_psicologas` y la de otros tipos de recordatorio, en `frontend/tests/components/event-card-reminder.test.tsx`. per US4/AC5 (missing).
+- [x] T184 [M] Registrar la evidencia nueva y los limites que siguen exigiendo revision humana, y corregir la linea de `docs/avance-dia-17.md` que declaraba pendiente el envio programado de recordatorios, en `docs/pruebas-panel.md` y `docs/avance-dia-17.md`. per Constitution governance (contradicts).

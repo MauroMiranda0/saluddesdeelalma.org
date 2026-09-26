@@ -17,6 +17,10 @@ import {
   markOutgoingWhatsAppEventFailed,
   markOutgoingWhatsAppEventSent
 } from "../modules/chatbot/whatsapp-inbox.repository";
+import {
+  failReminder,
+  markQueuedReminderSent
+} from "../modules/reminders/reminders.service";
 
 const INTERVAL_MS = 30_000;
 
@@ -85,6 +89,8 @@ type InboxWorkerDependencies = {
   claimOutgoing: typeof claimDueOutgoingWhatsAppEvents;
   markOutgoingSent: typeof markOutgoingWhatsAppEventSent;
   markOutgoingFailed: typeof markOutgoingWhatsAppEventFailed;
+  markReminderSent: typeof markQueuedReminderSent;
+  markReminderFailed: typeof failReminder;
   saveOutboundMessage: typeof saveOutboundMessage;
 };
 
@@ -99,6 +105,8 @@ const defaultDependencies: InboxWorkerDependencies = {
   claimOutgoing: claimDueOutgoingWhatsAppEvents,
   markOutgoingSent: markOutgoingWhatsAppEventSent,
   markOutgoingFailed: markOutgoingWhatsAppEventFailed,
+  markReminderSent: markQueuedReminderSent,
+  markReminderFailed: failReminder,
   saveOutboundMessage
 };
 
@@ -192,11 +200,16 @@ export const processIncomingWhatsAppInbox = async (
         processingToken: event.processingToken,
         providerMessageId: sent.messageId
       });
-      if (
-        marked.count === 1 &&
-        event.conversationId &&
-        isOutboundIntent(event.intent)
-      ) {
+      if (marked.count !== 1) {
+        continue;
+      }
+      if (event.reminderId) {
+        await dependencies.markReminderSent({
+          reminderId: event.reminderId,
+          providerMessageId: sent.messageId
+        });
+      }
+      if (event.conversationId && isOutboundIntent(event.intent)) {
         await dependencies.saveOutboundMessage({
           conversationId: event.conversationId,
           waMessageId: sent.messageId,
@@ -206,6 +219,13 @@ export const processIncomingWhatsAppInbox = async (
       }
     } catch (error) {
       await dependencies.markOutgoingFailed({ ...event, error });
+      if (event.reminderId) {
+        await dependencies.markReminderFailed({
+          reminderId: event.reminderId,
+          reason:
+            error instanceof Error ? error.message : "Unknown delivery error"
+        });
+      }
       logger.error(
         { error, outgoingEventId: event.id },
         "WhatsApp outgoing inbox event delivery failed"

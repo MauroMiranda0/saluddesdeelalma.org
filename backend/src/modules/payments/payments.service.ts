@@ -205,90 +205,94 @@ export const confirmPaymentWithAudit = async (input: {
   paymentId: string;
   audit: AuditCreateInput;
 }) => {
-  return prisma.$transaction(async (transaction) => {
-    const payment = await transaction.payment.findUnique({
-      where: { id: input.paymentId },
-      include: { appointment: { select: { status: true, therapyType: true } } }
-    });
-    if (!payment) {
-      throw new PaymentNotFoundError("Payment does not exist");
-    }
-    assertPaymentCanBeConfirmed({
-      paymentStatus: payment.status,
-      appointmentStatus: payment.appointment.status
-    });
-
-    if (payment.paymentType === "completo") {
-      const rate = await transaction.sessionRate.findUnique({
-        where: { therapyType: payment.appointment.therapyType }
+  return prisma
+    .$transaction(async (transaction) => {
+      const payment = await transaction.payment.findUnique({
+        where: { id: input.paymentId },
+        include: {
+          appointment: { select: { status: true, therapyType: true } }
+        }
       });
-      if (!rate) {
-        throw new SessionRateNotConfiguredError(
-          "A session rate must be configured before confirming a full payment"
-        );
+      if (!payment) {
+        throw new PaymentNotFoundError("Payment does not exist");
       }
-      const validatedAdvances = await transaction.payment.aggregate({
+      assertPaymentCanBeConfirmed({
+        paymentStatus: payment.status,
+        appointmentStatus: payment.appointment.status
+      });
+
+      if (payment.paymentType === "completo") {
+        const rate = await transaction.sessionRate.findUnique({
+          where: { therapyType: payment.appointment.therapyType }
+        });
+        if (!rate) {
+          throw new SessionRateNotConfiguredError(
+            "A session rate must be configured before confirming a full payment"
+          );
+        }
+        const validatedAdvances = await transaction.payment.aggregate({
+          where: {
+            appointmentId: payment.appointmentId,
+            paymentType: "anticipo",
+            status: "validado"
+          },
+          _sum: { amount: true }
+        });
+        const validatedAdvanceAmount = Number(
+          validatedAdvances._sum.amount?.toString() ?? "0"
+        );
+        if (
+          !amountMatchesRemainingBalance(
+            Number(payment.amount.toString()),
+            rate.amount,
+            validatedAdvanceAmount
+          )
+        ) {
+          throw new PaymentNotMutableError(
+            "The remaining payment must equal the outstanding balance"
+          );
+        }
+      }
+
+      const validatedPaymentOfSameType = await transaction.payment.findFirst({
         where: {
           appointmentId: payment.appointmentId,
-          paymentType: "anticipo",
-          status: "validado"
+          paymentType: payment.paymentType,
+          status: "validado",
+          id: { not: payment.id }
         },
-        _sum: { amount: true }
+        select: { id: true }
       });
-      const validatedAdvanceAmount = Number(
-        validatedAdvances._sum.amount?.toString() ?? "0"
-      );
-      if (
-        !amountMatchesRemainingBalance(
-          Number(payment.amount.toString()),
-          rate.amount,
-          validatedAdvanceAmount
-        )
-      ) {
-        throw new PaymentNotMutableError(
-          "The remaining payment must equal the outstanding balance"
+      if (validatedPaymentOfSameType) {
+        throw new PaymentValidationConflictError(
+          "The appointment already has a validated payment of this type"
         );
       }
-    }
 
-    const validatedPaymentOfSameType = await transaction.payment.findFirst({
-      where: {
-        appointmentId: payment.appointmentId,
-        paymentType: payment.paymentType,
-        status: "validado",
-        id: { not: payment.id }
-      },
-      select: { id: true }
-    });
-    if (validatedPaymentOfSameType) {
-      throw new PaymentValidationConflictError(
-        "The appointment already has a validated payment of this type"
-      );
-    }
+      const confirmed = await transaction.payment.update({
+        where: { id: payment.id },
+        data: { status: "validado", paidAt: payment.paidAt ?? new Date() }
+      });
+      await createAuditLogInTransaction(transaction, {
+        ...input.audit,
+        action: "payment_confirmed",
+        entityType: "payment",
+        entityId: confirmed.id
+      });
+      return confirmed;
+    })
+    .catch((error: unknown) => {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new PaymentValidationConflictError(
+          "The appointment already has a validated payment of this type"
+        );
+      }
 
-    const confirmed = await transaction.payment.update({
-      where: { id: payment.id },
-      data: { status: "validado", paidAt: payment.paidAt ?? new Date() }
+      throw error;
     });
-    await createAuditLogInTransaction(transaction, {
-      ...input.audit,
-      action: "payment_confirmed",
-      entityType: "payment",
-      entityId: confirmed.id
-    });
-    return confirmed;
-  }).catch((error: unknown) => {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      throw new PaymentValidationConflictError(
-        "The appointment already has a validated payment of this type"
-      );
-    }
-
-    throw error;
-  });
 };
 
 export const sendPaymentReminderWithAudit = async (input: {

@@ -245,7 +245,9 @@ test(
       });
       assert.equal(duplicateAdvance.status, 409);
       assert.equal(
-        await prisma.payment.count({ where: { appointmentId: appointment.id } }),
+        await prisma.payment.count({
+          where: { appointmentId: appointment.id }
+        }),
         1
       );
 

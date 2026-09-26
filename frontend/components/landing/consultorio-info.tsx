@@ -191,6 +191,9 @@ export const ConsultorioInfo = () => (
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#7e5d41] md:text-4xl">
             Más que terapia, un acompañamiento integral
           </h2>
+          <p className="mt-4 text-sm font-semibold text-[#7e5d41]">
+            Atención profesional con la Psic. Jocelyn Gutiérrez
+          </p>
           <div className="mt-6 space-y-5 text-[--muted] md:text-lg md:leading-8">
             <p>
               En <strong>Salud desde el Alma</strong> creemos que cada persona
@@ -226,7 +229,7 @@ export const ConsultorioInfo = () => (
     </section>
     <section
       id="servicios"
-      className="scroll-mt-24 bg-[#868564] px-5 py-20 text-white md:px-8"
+      className="scroll-mt-24 bg-[#7e5d41] px-5 py-20 text-white md:px-8"
     >
       <div className="mx-auto max-w-[1200px] text-center">
         <p className="text-xs font-semibold tracking-[0.14em] text-[#f3e7db]">

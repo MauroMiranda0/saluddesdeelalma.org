@@ -106,7 +106,7 @@ export const LoginForm = () => {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-full bg-[#868564] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#727152] disabled:opacity-60"
+        className="w-full rounded-full bg-[#7e5d41] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#65482f] disabled:opacity-60"
       >
         {submitting ? "Entrando…" : "Iniciar sesión"}
       </button>

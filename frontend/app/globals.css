@@ -116,14 +116,14 @@ textarea:focus {
 
 .primary-action {
   border-radius: 9999px;
-  background: var(--olive);
+  background: var(--accent);
   color: white;
   font-weight: 700;
   box-shadow: 0 4px 10px rgb(61 72 38 / 20%);
 }
 
 .primary-action:hover {
-  background: #727152;
+  background: var(--accent-hover);
 }
 
 .admin-eyebrow {

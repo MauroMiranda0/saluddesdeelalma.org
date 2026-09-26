@@ -12,6 +12,21 @@ const run = async () => {
 };
 
 export const startReminderWorker = () => {
-  void run();
-  setInterval(() => void run(), INTERVAL_MS);
+  let running = false;
+
+  const runWithoutOverlap = async () => {
+    if (running) {
+      return;
+    }
+
+    running = true;
+    try {
+      await run();
+    } finally {
+      running = false;
+    }
+  };
+
+  void runWithoutOverlap();
+  return setInterval(() => void runWithoutOverlap(), INTERVAL_MS);
 };

@@ -358,6 +358,7 @@ test("WhatsApp cancellation flow verifies identity and confirms the cancelled ap
   let outboundText = "";
   let cancelReason = "";
   let cancelAuditAction = "";
+  let markedReminderId = "";
 
   await processIncomingWhatsAppMessage(
     {
@@ -390,6 +391,12 @@ test("WhatsApp cancellation flow verifies identity and confirms the cancelled ap
             scheduledAt: new Date("2026-09-14T23:00:00.000Z")
           }
         }) as never,
+      findCancellationNoticeReminder: async () =>
+        ({ id: "reminder-cancel-1" }) as never,
+      markQueuedReminderSent: async (input) => {
+        markedReminderId = input.reminderId;
+        return { count: 1 } as never;
+      },
       cancelAppointmentWithAudit: async (input) => {
         cancelReason = input.reason;
         cancelAuditAction = input.audit.action;
@@ -412,6 +419,11 @@ test("WhatsApp cancellation flow verifies identity and confirms the cancelled ap
   assert.match(cancelReason, /verificación/i);
   assert.match(outboundText, /quedó cancelada/i);
   assert.match(outboundText, /reagendar/i);
+  assert.equal(
+    markedReminderId,
+    "reminder-cancel-1",
+    "the inline confirmation settles the cancelacion reminder"
+  );
 });
 
 test("WhatsApp cancellation is denied without matching identity and the attempt is audited", async () => {

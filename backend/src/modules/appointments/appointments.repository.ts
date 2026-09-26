@@ -105,6 +105,16 @@ export const listAppointmentsInRange = (from: Date, to: Date) => {
           paidAt: true,
           createdAt: true
         }
+      },
+      reminders: {
+        orderBy: [{ scheduledAt: "asc" }, { id: "asc" }],
+        select: {
+          reminderType: true,
+          recipient: true,
+          status: true,
+          attemptsCount: true,
+          sentAt: true
+        }
       }
     }
   });

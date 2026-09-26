@@ -16,7 +16,11 @@ import {
   findRecentCancellationForPatient
 } from "../appointments/appointments.repository";
 import { findPatientWithAssignedTherapist } from "../patients/patients.service";
-import { sendAppointmentConfirmation } from "../reminders/reminders.service";
+import {
+  findCancellationNoticeReminder,
+  markQueuedReminderSent,
+  sendAppointmentConfirmation
+} from "../reminders/reminders.service";
 import {
   findPaymentProofByWhatsappMessageId,
   recordIncomingPaymentProof
@@ -83,6 +87,8 @@ type ProcessingDependencies = {
   saveOutboundMessage: typeof saveOutboundMessage;
   audit: typeof audit;
   sendAppointmentConfirmation: typeof sendAppointmentConfirmation;
+  findCancellationNoticeReminder: typeof findCancellationNoticeReminder;
+  markQueuedReminderSent: typeof markQueuedReminderSent;
 };
 
 export const findVerifiedCancellableAppointment = async (input: {
@@ -118,7 +124,9 @@ const defaultProcessingDependencies: ProcessingDependencies = {
   cancelAppointmentWithAudit,
   saveOutboundMessage,
   audit,
-  sendAppointmentConfirmation
+  sendAppointmentConfirmation,
+  findCancellationNoticeReminder,
+  markQueuedReminderSent
 };
 
 const clinicalSummary =
@@ -235,13 +243,16 @@ const sendResponse = async (input: {
   gateway: WhatsAppGateway;
   saveOutboundMessage: typeof saveOutboundMessage;
   queueOutboundMessage?: ProcessingContext["queueOutboundMessage"];
+  reminderId?: string;
+  markReminderSent?: typeof markQueuedReminderSent;
 }) => {
   if (input.queueOutboundMessage) {
     await input.queueOutboundMessage({
       to: input.to,
       text: input.text,
       conversationId: input.conversationId,
-      intent: input.intent
+      intent: input.intent,
+      reminderId: input.reminderId
     });
     return;
   }
@@ -253,6 +264,12 @@ const sendResponse = async (input: {
     contentText: input.text,
     intent: input.intent
   });
+  if (input.reminderId && input.markReminderSent) {
+    await input.markReminderSent({
+      reminderId: input.reminderId,
+      providerMessageId: sent.messageId
+    });
+  }
 };
 
 const sendAvailability = async (input: {
@@ -439,6 +456,10 @@ export const processIncomingWhatsAppMessage = async (
             patientId: cancelled.patient.id,
             lastMessageAt: message.receivedAt
           });
+          const noticeReminder =
+            await processingDependencies.findCancellationNoticeReminder(
+              cancelled.id
+            );
           await sendResponse({
             conversationId: conversation.id,
             to: message.from,
@@ -446,7 +467,9 @@ export const processIncomingWhatsAppMessage = async (
             intent,
             gateway: context.gateway,
             saveOutboundMessage: processingDependencies.saveOutboundMessage,
-            queueOutboundMessage: context.queueOutboundMessage
+            queueOutboundMessage: context.queueOutboundMessage,
+            reminderId: noticeReminder?.id,
+            markReminderSent: processingDependencies.markQueuedReminderSent
           });
           return;
         }
@@ -485,6 +508,12 @@ export const processIncomingWhatsAppMessage = async (
         patientId: cancelled.patient.id,
         lastMessageAt: message.receivedAt
       });
+      // This confirmation is the cancellation notice, so it consumes the
+      // scheduled cancelacion reminder instead of duplicating it later.
+      const noticeReminder =
+        await processingDependencies.findCancellationNoticeReminder(
+          cancelled.id
+        );
       await sendResponse({
         conversationId: conversation.id,
         to: message.from,
@@ -492,7 +521,9 @@ export const processIncomingWhatsAppMessage = async (
         intent,
         gateway: context.gateway,
         saveOutboundMessage: processingDependencies.saveOutboundMessage,
-        queueOutboundMessage: context.queueOutboundMessage
+        queueOutboundMessage: context.queueOutboundMessage,
+        reminderId: noticeReminder?.id,
+        markReminderSent: processingDependencies.markQueuedReminderSent
       });
     } catch (error) {
       if (

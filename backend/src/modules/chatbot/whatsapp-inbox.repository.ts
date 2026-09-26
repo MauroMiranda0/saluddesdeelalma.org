@@ -160,6 +160,7 @@ export type PendingWhatsAppOutboundMessage = {
   text: string;
   conversationId?: string;
   intent?: "availability" | "book" | "cancel" | "handoff" | "unknown";
+  reminderId?: string;
 };
 
 export const enqueueOutgoingWhatsAppEvent = (input: {
@@ -181,7 +182,8 @@ export const enqueueOutgoingWhatsAppEvent = (input: {
       whatsappPhone: input.message.to,
       contentText: input.message.text,
       conversationId: input.message.conversationId,
-      intent: input.message.intent
+      intent: input.message.intent,
+      reminderId: input.message.reminderId
     }
   });
 

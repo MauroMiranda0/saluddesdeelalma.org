@@ -129,7 +129,7 @@ export default function HomePage() {
       <Hero />
 
       <section
-        className="overflow-hidden bg-[#868564] py-4 text-white"
+        className="overflow-hidden bg-[#7e5d41] py-4 text-white"
         aria-label="Valores de atención"
       >
         <div className="mx-auto flex max-w-[1200px] items-center justify-center gap-5 px-5 text-center text-xs font-semibold uppercase tracking-[0.14em] sm:gap-8 md:px-8">
@@ -220,7 +220,7 @@ export default function HomePage() {
                 key={number}
                 className="relative overflow-hidden rounded-[20px] border border-[#7e5d41]/20 bg-[#f3e7db]/90 p-6"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#868564] text-sm font-semibold tracking-[0.08em] text-white shadow-sm">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7e5d41] text-sm font-semibold tracking-[0.08em] text-white shadow-sm">
                   {number}
                 </span>
                 <h3 className="mt-4 text-base font-semibold text-[#7e5d41]">

@@ -1,12 +1,12 @@
 # Informe de Avance — Salud desde el Alma
 
-**Fecha:** miércoles 16 de septiembre de 2026 | **Día de desarrollo:** 17 de 29
+**Fecha:** viernes 25 de septiembre de 2026 | **Día de desarrollo:** 25 de 32
 
 ---
 
 ## Resumen
 
-Vamos **83.5% del plan** (137 de 164 actividades terminadas). El sistema ya permite lo más importante: que tus pacientes pidan citas por WhatsApp y que tú administres tu agenda y cobros desde el celular.
+La ejecución avanza con las fases de interfaz y landing cerradas; el seguimiento detallado de tareas se mantiene en `specs/001-sistema-gestion-consultorio/tasks.md`. El sistema ya permite lo más importante: que tus pacientes pidan citas por WhatsApp y que tú administres tu agenda y cobros desde el celular.
 
 ---
 
@@ -59,15 +59,15 @@ Vamos **83.5% del plan** (137 de 164 actividades terminadas). El sistema ya perm
 | `mockup.png` | diseño inicial del proyecto                                 |
 | `paleta.png` | colores oficiales (verdes y sepia) que ya usa la plataforma |
 
-El sitio ya sigue tu identidad visual (verde armonía, verde profundo, sepia y dorado tenue).
+El sitio usa la paleta aprobada de crema, salvia claro, verde oliva, melocotón y marrón café, definida en `DESIGN.md` y formalizada en la Constitución.
 
 ---
 
 ## Qué falta para terminar
 
-1. **Recordatorios automáticos (10 actividades):** el aviso del día previo entre 6 y 7 de la tarde, el aviso de pago pendiente y las notificaciones de cancelación. La confirmación ya llega al agendar; falta el envío programado.
+1. **Recordatorios automáticos (10 actividades):** completadas en US4. El aviso del día previo se programa a las 18:00 `America/Mexico_City` del día calendario anterior, el aviso de pago pendiente se crea al registrar y al completar una cita, y la cancelación notifica al paciente sin doble envío porque el aviso en línea consume el mismo recordatorio. Cada entrega del outbox queda vinculada al recordatorio que cumple y el worker refleja `enviado` o `fallido` sobre su estado. Pendiente solo la UAT visual de los estados en el panel.
 2. **Consultas de pacientes por WhatsApp (7 actividades):** que el paciente pregunte "¿cuál es el estado de mi cita o mi pago?" y reciba respuesta verificando su identidad.
-3. **Alineación de la interfaz y landing pública:** completadas. El panel replica la composición del mockup con barra lateral, tarjetas y jerarquía serena, mientras que la página pública ya ofrece información, contacto, WhatsApp y acceso discreto al panel.
+3. **Alineación de la interfaz y landing pública:** completadas. El panel conserva variaciones de composición aprobadas respecto al mockup, con barra lateral, tarjetas y jerarquía serena; la página pública ofrece información, contacto, WhatsApp y acceso discreto al panel.
 4. **Pulido y seguridad (5 actividades):** refuerzos técnicos de seguridad y revisión final.
 5. **Conexión del WhatsApp real:** hoy se simula el envío porque aún no tenemos las claves oficiales de WhatsApp Business; al conectarlas, los mensajes saldrán de verdad.
 6. **Prueba contigo (UAT):** una sesión guiada desde tu celular para confirmar que todo funciona en tu día a día.
@@ -92,4 +92,4 @@ El plan pasó de 29 a **32 días** (el proyecto llevaba 29 al iniciar; la entreg
 
 ## Próximo paso sugerido
 
-Terminar los **recordatorios automáticos**, porque completan el ciclo: el paciente agenda, recibe confirmación, recuerda su cita el día anterior y recibe el aviso si tiene saldo pendiente. Justo después se hará el rediseño visual para dejarlo idéntico al diseño que ya conoces.
+Terminar los **recordatorios automáticos**, porque completan el ciclo: el paciente agenda, recibe confirmación, recuerda su cita el día anterior y recibe el aviso si tiene saldo pendiente.

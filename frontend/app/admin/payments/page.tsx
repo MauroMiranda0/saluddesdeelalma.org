@@ -391,11 +391,31 @@ export default function AdminPaymentsPage() {
                       : "bg-emerald-100 text-emerald-800"
                   }`}
                 >
-                    {appointment.paymentStatus === "anticipo"
-                      ? "Anticipo recibido: saldo pendiente"
-                      : "Pendiente de pago"}
+                  {appointment.paymentStatus === "anticipo"
+                    ? "Anticipo recibido: saldo pendiente"
+                    : "Pendiente de pago"}
                 </span>
               </div>
+
+              {(() => {
+                const reminderType =
+                  appointment.status === "completada"
+                    ? "pago_pendiente_post_cita"
+                    : "pago_pendiente";
+                const reminder = appointment.reminders?.find(
+                  (item) =>
+                    item.reminderType === reminderType &&
+                    item.recipient === "paciente"
+                );
+
+                return reminder ? (
+                  <p className="mt-2 text-xs text-[--muted]">
+                    Aviso automático de saldo:{" "}
+                    {reminderStatusLabel(reminder.status)} ·{" "}
+                    {reminder.attemptsCount}/3
+                  </p>
+                ) : null;
+              })()}
 
               {appointment.payments.length > 0 ? (
                 <div className="mt-3 space-y-2 border-t pt-2 text-sm">
@@ -594,3 +614,14 @@ export default function AdminPaymentsPage() {
     </main>
   );
 }
+
+const reminderStatusLabel = (
+  status: "pendiente" | "procesando" | "enviado" | "fallido" | "omitido"
+) =>
+  ({
+    pendiente: "pendiente",
+    procesando: "en envío",
+    enviado: "enviado",
+    fallido: "fallido",
+    omitido: "omitido"
+  })[status];
