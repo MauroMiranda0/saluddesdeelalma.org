@@ -1,5 +1,6 @@
 import type {
   Appointment,
+  AppointmentStatus,
   Modality,
   Patient,
   TherapyType
@@ -95,3 +96,67 @@ export const cancellationConfirmedText = (
   )} programada para ${dateFormatter.format(
     appointment.scheduledAt
   )} quedó cancelada. Si desea reagendar o agendar una nueva sesión, escríbanos por este medio y con gusto la apoyamos.`;
+
+export const faqResponse = (answer: string) => answer;
+
+export const faqUnmatchedResponse =
+  "Con gusto. Puedo orientarle sobre el horario de atención, la ubicación del consultorio, las modalidades de sesión y las formas de pago. También puedo revisar disponibilidad y agendarle una sesión. ¿Sobre cuál de esos temas le gustaría información?";
+
+export const statusVerificationPrompt =
+  "Con gusto le informo el estado de su cita o de su saldo. Para proteger su información, por favor confirme su identidad con: Nombre: ...; nacimiento: AAAA-MM-DD.";
+
+/**
+ * Deliberately identical for an unregistered number and for a mismatched name or
+ * birthdate: a distinct answer would let an unauthenticated caller learn whether
+ * a number belongs to a patient.
+ */
+export const statusVerificationFailedResponse =
+  "No pudimos confirmar sus datos, así que no podemos compartir información de citas o pagos por este medio. Para proteger su información, la consulta se atiende desde el número registrado y con nombre y fecha de nacimiento coincidentes; la psicóloga le confirma directamente por este mismo WhatsApp.";
+
+export const noAppointmentOnRecordResponse =
+  "No tenemos registrada una cita próxima para su número. Si desea agendar o si cree que existe un error, la psicóloga le confirma directamente por este medio.";
+
+export const appointmentStatusText = (
+  appointment: Pick<
+    Appointment,
+    "scheduledAt" | "modality" | "therapyType" | "status" | "durationMinutes"
+  >
+) =>
+  `Su próxima cita ${therapyTypeLabel(appointment.therapyType)} de ${
+    appointment.durationMinutes
+  } minutos está ${appointmentStatusLabel(
+    appointment.status
+  )} para ${dateFormatter.format(appointment.scheduledAt)}, modalidad ${modalityLabel(
+    appointment.modality
+  )}.`;
+
+export const paymentStatusText = (paymentStatus: PaymentStatusLabel) =>
+  paymentStatus === "completado"
+    ? "No tiene saldo pendiente por esa cita: el pago está liquidado."
+    : paymentStatus === "anticipo"
+      ? "Tiene un anticipo registrado por esa cita y el saldo restante queda pendiente de liquidar el día de la sesión."
+      : "No tenemos un pago registrado por esa cita, por lo que queda pendiente un anticipo del 50% del valor de la sesión.";
+
+export const statusSummaryText = (
+  appointment: Pick<
+    Appointment,
+    "scheduledAt" | "modality" | "therapyType" | "status" | "durationMinutes"
+  >,
+  paymentStatus: PaymentStatusLabel
+) =>
+  `${appointmentStatusText(appointment)} ${paymentStatusText(paymentStatus)}`;
+
+const appointmentStatusLabel = (status: AppointmentStatus) => {
+  switch (status) {
+    case "programada":
+      return "programada";
+    case "confirmada":
+      return "confirmada";
+    case "completada":
+      return "completada";
+    case "cancelada":
+      return "cancelada";
+  }
+};
+
+export type PaymentStatusLabel = "anticipo" | "pendiente" | "completado";

@@ -204,6 +204,9 @@ export const findNextActiveAppointmentForPatient = (
       scheduledAt: { gte: from },
       status: { in: ["programada", "confirmada"] }
     },
-    orderBy: { scheduledAt: "asc" }
+    orderBy: { scheduledAt: "asc" },
+    // US5/AC3 reports the same payment state the panel shows, so the status
+    // query needs the appointment payments.
+    include: { payments: true }
   });
 };

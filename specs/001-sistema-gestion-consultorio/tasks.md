@@ -177,16 +177,18 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 5
 
-- [ ] T052 [P] [US5] Crear prueba de integracion de FAQ y consulta verificada de estado en `backend/tests/integration/whatsapp-faq-status.integration.test.ts`
-- [ ] T053 [P] [US5] Crear prueba de integracion de verificacion fallida en `backend/tests/integration/whatsapp-verification-failure.integration.test.ts`
+- [x] T052 [P] [US5] Crear prueba de integracion de FAQ y consulta verificada de estado en `backend/tests/integration/whatsapp-faq-status.integration.test.ts`
+- [x] T053 [P] [US5] Crear prueba de integracion de verificacion fallida en `backend/tests/integration/whatsapp-verification-failure.integration.test.ts`
 
 ### Implementacion para Historia de Usuario 5
 
-- [ ] T054 [P] [US5] Implementar catalogo de FAQ y plantillas de respuesta en `backend/src/modules/chatbot/faq.catalog.ts` y `backend/src/modules/chatbot/response-templates.ts`
-- [ ] T055 [P] [US5] Implementar flujo de verificacion de identidad en `backend/src/modules/chatbot/identity-verification.service.ts` y `backend/src/modules/chatbot/chatbot.intents.ts`
-- [ ] T056 [US5] Implementar handlers de estado de cita y pago en `backend/src/modules/chatbot/chatbot.status.handler.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
-- [ ] T057 [US5] Aplicar minimizacion de mensajes sensibles en `backend/src/modules/chatbot/message-sanitizer.ts` y `backend/src/modules/chatbot/chat-messages.repository.ts`
-- [ ] T058 [US5] Auditar verificacion exitosa, verificacion fallida y consultas sensibles denegadas en `backend/src/modules/chatbot/identity-verification.service.ts` y `backend/src/modules/audit/audit.service.ts`
+- [x] T054 [P] [US5] Implementar catalogo de FAQ y plantillas de respuesta en `backend/src/modules/chatbot/faq.catalog.ts` y `backend/src/modules/chatbot/response-templates.ts`
+- [x] T055 [P] [US5] Implementar flujo de verificacion de identidad en `backend/src/modules/chatbot/identity-verification.service.ts` y `backend/src/modules/chatbot/chatbot.intents.ts`
+- [x] T056 [US5] Implementar handlers de estado de cita y pago en `backend/src/modules/chatbot/chatbot.status.handler.ts` y `backend/src/modules/chatbot/chatbot.service.ts`
+- [x] T057 [US5] Aplicar minimizacion de mensajes sensibles en `backend/src/modules/chatbot/message-sanitizer.ts` y `backend/src/modules/chatbot/chat-messages.repository.ts`
+- [x] T058 [US5] Auditar verificacion exitosa, verificacion fallida y consultas sensibles denegadas en `backend/src/modules/chatbot/identity-verification.service.ts` y `backend/src/modules/audit/audit.service.ts`
+
+**Notas de cierre US5**: el modelo de datos ya reservaba `ConversationIntent.faq`, `payment_status` e `identity_check`, y `ChatConversation.verification_status` / `last_verified_at`, por lo que la historia no requirio migracion. `classifyIntent` se reordeno a clinico > cancel > `payment_status` > `faq` > book > availability; el patron de consulta de estado es restrictivo a frases de consulta sobre el propio registro para no capturar "quiero agendar mi cita". El saldo se reporta por cita reutilizando `paymentStatusOf`, sin importes, por lo que WhatsApp nunca contradice `/admin/payments` ni genera cargos (FR-029). Las denegaciones por numero no registrado y por datos no coincidentes devuelven texto identico para impedir enumeracion de pacientes. La metadata de auditoria registra solo banderas de presencia, nunca el nombre ni la fecha de nacimiento.
 
 **Punto de control**: La Historia de Usuario 5 debe quedar funcional por si sola
 
@@ -200,14 +202,16 @@ description: "Lista de tareas para implementar la funcionalidad"
 
 ### Pruebas para Historia de Usuario 6
 
-- [ ] T059 [P] [US6] Crear prueba de componentes de la landing en `frontend/tests/components/landing-page.test.tsx`
-- [ ] T060 [P] [US6] Crear prueba E2E movil de la landing publica en `frontend/tests/e2e/public-landing.spec.ts`
+- [x] T059 [P] [US6] Crear prueba de componentes de la landing en `frontend/tests/components/landing-page.test.tsx` (cerrada por T170 y T173)
+- [x] T060 [P] [US6] Crear prueba E2E movil de la landing publica en `frontend/tests/e2e/public-landing.spec.ts` (cerrada por T170 y T173)
 
 ### Implementacion para Historia de Usuario 6
 
-- [ ] T061 [P] [US6] Implementar pagina publica principal en `frontend/app/page.tsx` y `frontend/components/landing/hero.tsx`
-- [ ] T062 [P] [US6] Implementar secciones informativas y CTA de WhatsApp en `frontend/components/landing/consultorio-info.tsx` y `frontend/components/landing/whatsapp-cta.tsx`
-- [ ] T063 [US6] Agregar acceso discreto al panel y estilos responsive en `frontend/components/landing/admin-access-link.tsx` y `frontend/app/globals.css`
+- [x] T061 [P] [US6] Implementar pagina publica principal en `frontend/app/page.tsx` y `frontend/components/landing/hero.tsx` (cerrada por T168)
+- [x] T062 [P] [US6] Implementar secciones informativas y CTA de WhatsApp en `frontend/components/landing/consultorio-info.tsx` y `frontend/components/landing/whatsapp-cta.tsx` (cerrada por T168)
+- [x] T063 [US6] Agregar acceso discreto al panel y estilos responsive en `frontend/components/landing/admin-access-link.tsx` y `frontend/app/globals.css` (cerrada por T168 y T169)
+
+**Nota de reconciliacion**: T059-T063 quedaron sin marcar pese a que la landing y sus pruebas existen y fueron cerradas explicitamente por T168 (implementacion), T169 (sistema de diseno) y T170/T173 (pruebas). Se marcan aqui para que el conteo de avance sea real. La reconciliacion definitiva de estas casillas sigue abierta y puede modificarse en el cierre de la entrega, cuando se valide con la revision movil y la UAT.
 
 **Punto de control**: La Historia de Usuario 6 debe quedar funcional por si sola
 
@@ -329,7 +333,7 @@ Tarea: "Implementar secciones informativas y CTA de WhatsApp en frontend/compone
 
 ## Notas
 
-- Total de tareas base: `86` (T001–T086). Con las fases de convergencia y la alineación de interfaz, el total del documento asciende a `171` tareas (T001–T171). El conteo de avance real se verifica con líneas `[x]`/`[ ]`, no con este encabezado histórico.
+- Total de tareas base: `86` (T001–T086). Con las fases de convergencia y la alineación de interfaz, el total del documento asciende a `184` tareas (T001–T184). El conteo de avance real se verifica con líneas `[x]`/`[ ]`, no con este encabezado histórico.
 - Tareas por historia:
   - `US1`: 10
   - `US2`: 14

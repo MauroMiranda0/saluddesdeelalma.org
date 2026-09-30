@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 import { prisma } from "../../lib/prisma";
+import type { StoredIntent } from "./chat-messages.repository";
 
 export type IncomingWhatsAppInboxEvent =
   | {
@@ -159,7 +160,7 @@ export type PendingWhatsAppOutboundMessage = {
   to: string;
   text: string;
   conversationId?: string;
-  intent?: "availability" | "book" | "cancel" | "handoff" | "unknown";
+  intent?: StoredIntent;
   reminderId?: string;
 };
 

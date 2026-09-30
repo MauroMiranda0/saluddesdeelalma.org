@@ -1,13 +1,24 @@
-import { Prisma, type ConversationIntent } from "@prisma/client";
+import {
+  Prisma,
+  type ConversationIntent,
+  type VerificationStatus
+} from "@prisma/client";
 
 import { prisma } from "../../lib/prisma";
+
+/**
+ * `identity_check` is reserved in the Prisma enum but never persisted as a
+ * conversation intent: the verification answer is resumed as the pending
+ * `payment_status` request instead.
+ */
+export type StoredIntent = Exclude<ConversationIntent, "identity_check">;
 
 type IncomingMessage = {
   whatsappPhone: string;
   waMessageId: string;
   contentText: string;
   receivedAt: Date;
-  intent: "availability" | "book" | "cancel" | "handoff" | "unknown";
+  intent: StoredIntent;
   containsSensitiveClinicalContent: boolean;
   metadata?: Prisma.InputJsonValue;
 };
@@ -85,6 +96,8 @@ export const updateConversation = (
     patientId?: string;
     state?: "abierta" | "derivada";
     lastMessageAt: Date;
+    verificationStatus?: VerificationStatus;
+    lastVerifiedAt?: Date | null;
   }
 ) =>
   prisma.chatConversation.update({
@@ -93,7 +106,9 @@ export const updateConversation = (
       currentIntent: input.intent,
       patientId: input.patientId,
       state: input.state,
-      lastMessageAt: input.lastMessageAt
+      lastMessageAt: input.lastMessageAt,
+      verificationStatus: input.verificationStatus,
+      lastVerifiedAt: input.lastVerifiedAt
     }
   });
 
@@ -101,7 +116,7 @@ export const saveOutboundMessage = (input: {
   conversationId: string;
   waMessageId: string;
   contentText: string;
-  intent: "availability" | "book" | "cancel" | "handoff" | "unknown";
+  intent: StoredIntent;
 }) =>
   prisma.chatMessage.create({
     data: {

@@ -1,3 +1,5 @@
+import { matchesFaqCategory } from "./faq.catalog";
+
 export type BookingDetails = {
   fullName?: string;
   birthdate?: string;
@@ -7,14 +9,27 @@ export type BookingDetails = {
 };
 
 export type SupportedIntent =
-  "availability" | "book" | "cancel" | "handoff" | "unknown";
+  | "faq"
+  | "availability"
+  | "book"
+  | "cancel"
+  | "payment_status"
+  | "handoff"
+  | "unknown";
 
 const clinicalPattern =
   /\b(ansiedad|depresi[oó]n|suicid|autolesi|trauma|ataque de p[aá]nico|medicamento|diagn[oó]stic|terapia|trastorno|crisis|violencia|abuso|duelo|me siento|me siento mal|no puedo m[aá]s|me quiero hacer da[nñ]o|quiero morir|s[ií]ntoma)/i;
-const bookingPattern = /\b(agend|reserv|cita|ses[ií]on|consult)/i;
+const bookingPattern = /\b(agend|reserv|cita|sesi[oó]n|consult)/i;
 const cancellationPattern =
   /\b(cancel\w*|anular|anulaci[oó]n|ya no podr[ée] (asistir|ir)|no podr[ée] (asistir|ir a la cita))\b/i;
 const availabilityPattern = /\b(disponib|horario|espacio|fecha)/i;
+// A status request is consultation-shaped. It is deliberately restricted to
+// phrases the patient uses to ask about their own record so that imperative
+// booking requests such as "quiero agendar mi cita" are not captured here.
+// The trailing guard is a negative lookahead rather than \b because \b does not
+// exist after accented letters: "ya pagué" would otherwise never match.
+const statusQueryPattern =
+  /\b(estado de mi|c[oó]mo (va|est[aá]) mi|qu[eé] pasa con mi|saldo|pendiente de (pagar|liquidar)|mi (pago|saldo)|qu[eé] me falta pag|debo|pagu[eé]|ya pagu[eé]|fecha de mi cita|pr[oó]xima cita)(?![a-zA-Z\u00C0-\u024F])/i;
 const automationQuestionPattern =
   /\b(eres|es usted|hablo|estoy hablando|hablar)\b.*\b(bot|sistema|automatizad[oa]|asistente digital|inteligencia artificial|persona)\b|\b(bot|sistema automatizado|asistente digital|inteligencia artificial)\b/i;
 
@@ -30,6 +45,12 @@ export const classifyIntent = (text: string): SupportedIntent => {
   }
   if (cancellationPattern.test(text)) {
     return "cancel";
+  }
+  if (statusQueryPattern.test(text)) {
+    return "payment_status";
+  }
+  if (matchesFaqCategory(text)) {
+    return "faq";
   }
   if (bookingPattern.test(text)) {
     return "book";

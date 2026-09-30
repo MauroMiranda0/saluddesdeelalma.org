@@ -40,7 +40,11 @@ import {
   parseCancellationDetails,
   type SupportedIntent
 } from "./chatbot.intents";
+import { matchesFaqCategory } from "./faq.catalog";
+import { verifyPatientIdentity } from "./identity-verification.service";
+import { sanitizeIncomingWhatsAppContent } from "./message-sanitizer";
 import { getCompleteBookingDetails } from "./chatbot.booking.handler";
+import { buildStatusAnswer } from "./chatbot.status.handler";
 import {
   bookingConflictResponse,
   bookingDetailsPrompt,
@@ -49,8 +53,12 @@ import {
   cancellationVerificationFailedResponse,
   cancellationVerificationPrompt,
   clinicalHandoffResponse,
+  faqResponse,
+  faqUnmatchedResponse,
   genericGreetingResponse,
-  automationDisclosureResponse
+  automationDisclosureResponse,
+  statusVerificationFailedResponse,
+  statusVerificationPrompt
 } from "./response-templates";
 
 export type IncomingWhatsAppMessage = {
@@ -89,6 +97,8 @@ type ProcessingDependencies = {
   sendAppointmentConfirmation: typeof sendAppointmentConfirmation;
   findCancellationNoticeReminder: typeof findCancellationNoticeReminder;
   markQueuedReminderSent: typeof markQueuedReminderSent;
+  verifyPatientIdentity: typeof verifyPatientIdentity;
+  findNextActiveAppointmentForPatient: typeof findNextActiveAppointmentForPatient;
 };
 
 export const findVerifiedCancellableAppointment = async (input: {
@@ -126,14 +136,12 @@ const defaultProcessingDependencies: ProcessingDependencies = {
   audit,
   sendAppointmentConfirmation,
   findCancellationNoticeReminder,
-  markQueuedReminderSent
+  markQueuedReminderSent,
+  verifyPatientIdentity,
+  findNextActiveAppointmentForPatient
 };
 
-const clinicalSummary =
-  "El paciente solicitó apoyo clínico; se derivó a la psicóloga.";
-
-export const sanitizeIncomingWhatsAppContent = (text: string) =>
-  containsSensitiveClinicalContent(text) ? clinicalSummary : text;
+export { sanitizeIncomingWhatsAppContent };
 
 type PaymentProofProcessingDependencies = {
   recordIncomingPaymentProof: typeof recordIncomingPaymentProof;
@@ -314,7 +322,10 @@ export const processIncomingWhatsAppMessage = async (
   let conversation = await processingDependencies.saveIncomingMessage({
     whatsappPhone: message.from,
     waMessageId: message.id,
-    contentText: sanitizeIncomingWhatsAppContent(message.text),
+    contentText: sanitizeIncomingWhatsAppContent(
+      message.text,
+      classifiedIntent
+    ),
     receivedAt: message.receivedAt,
     intent: classifiedIntent,
     containsSensitiveClinicalContent: hasSensitiveClinicalContent
@@ -335,10 +346,14 @@ export const processIncomingWhatsAppMessage = async (
     return;
   }
 
+  // An identity answer such as "Nombre: ...; nacimiento: AAAA-MM-DD" classifies
+  // as unknown on its own, so the pending status request is resumed from the
+  // conversation exactly like the booking and cancellation flows do.
   const intent =
     classifiedIntent === "unknown" &&
     (conversation.currentIntent === "book" ||
-      conversation.currentIntent === "cancel")
+      conversation.currentIntent === "cancel" ||
+      conversation.currentIntent === "payment_status")
       ? conversation.currentIntent
       : classifiedIntent;
 
@@ -544,6 +559,112 @@ export const processIncomingWhatsAppMessage = async (
 
       throw error;
     }
+    return;
+  }
+
+  if (intent === "faq") {
+    // US5/AC1: the catalog is static official information, so an FAQ answer
+    // never requires identity verification.
+    await processingDependencies.updateConversation(conversation.id, {
+      intent,
+      lastMessageAt: message.receivedAt
+    });
+    const entry = matchesFaqCategory(message.text);
+    await sendResponse({
+      conversationId: conversation.id,
+      to: message.from,
+      text: entry ? faqResponse(entry.answer) : faqUnmatchedResponse,
+      intent,
+      gateway: context.gateway,
+      saveOutboundMessage: processingDependencies.saveOutboundMessage,
+      queueOutboundMessage: context.queueOutboundMessage
+    });
+    return;
+  }
+
+  if (intent === "payment_status") {
+    const verificationDetails = parseCancellationDetails(message.text);
+
+    if (!verificationDetails.fullName || !verificationDetails.birthdate) {
+      await processingDependencies.updateConversation(conversation.id, {
+        intent,
+        lastMessageAt: message.receivedAt,
+        verificationStatus: "pending"
+      });
+      await sendResponse({
+        conversationId: conversation.id,
+        to: message.from,
+        text: statusVerificationPrompt,
+        intent,
+        gateway: context.gateway,
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
+      });
+      return;
+    }
+
+    const verification = await processingDependencies.verifyPatientIdentity({
+      whatsappPhone: message.from,
+      fullName: verificationDetails.fullName,
+      birthdate: verificationDetails.birthdate,
+      audit: processingDependencies.audit,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent
+    });
+
+    if (verification.status === "denied") {
+      await processingDependencies.updateConversation(conversation.id, {
+        intent,
+        lastMessageAt: message.receivedAt,
+        verificationStatus: "failed"
+      });
+      // FR-024: a denied query is audited and derived to the psychologist. The
+      // audit records the reason code, never the supplied identity details.
+      if (!replayed) {
+        await processingDependencies.audit({
+          actorChannel: "whatsapp",
+          action: "sensitive_status_query_denied",
+          entityType: "chat_conversation",
+          entityId: conversation.id,
+          result: "failure",
+          metadata: { reason: verification.reason, intent },
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent
+        });
+      }
+      await sendResponse({
+        conversationId: conversation.id,
+        to: message.from,
+        text: statusVerificationFailedResponse,
+        intent,
+        gateway: context.gateway,
+        saveOutboundMessage: processingDependencies.saveOutboundMessage,
+        queueOutboundMessage: context.queueOutboundMessage
+      });
+      return;
+    }
+
+    const appointment =
+      await processingDependencies.findNextActiveAppointmentForPatient(
+        verification.patient.id,
+        message.receivedAt
+      );
+    await processingDependencies.updateConversation(conversation.id, {
+      intent,
+      patientId: verification.patient.id,
+      lastMessageAt: message.receivedAt,
+      verificationStatus: "verified",
+      lastVerifiedAt: message.receivedAt
+    });
+    await sendResponse({
+      conversationId: conversation.id,
+      to: message.from,
+      text: buildStatusAnswer(appointment),
+      intent,
+      gateway: context.gateway,
+      saveOutboundMessage: processingDependencies.saveOutboundMessage,
+      queueOutboundMessage: context.queueOutboundMessage
+    });
     return;
   }
 
