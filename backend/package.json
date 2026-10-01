@@ -10,6 +10,7 @@
     "prisma:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "prisma:validate": "dotenv -e .env.example -- prisma validate --schema prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo": "dotenv -e .env -- tsx prisma/seed-demo.ts",
     "test": "dotenv -e .env.example -- tsx --test tests/contract/*.test.ts tests/integration/*.test.ts tests/unit/*.test.ts && node --test tests/integration/users-access-constraints.integration.test.mjs",
     "test:integration": "npm run test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
