@@ -18,6 +18,12 @@ export const createApp = () => {
   const app = express();
 
   app.disable("x-powered-by");
+  // FR-026: the audit trail records the caller's IP, so behind Hostinger or
+  // Cloudflare `request.ip` is the proxy unless the hop is declared here.
+  // Unset preserves the previous behaviour of trusting no proxy.
+  if (env.TRUST_PROXY !== undefined) {
+    app.set("trust proxy", env.TRUST_PROXY);
+  }
   app.use(
     cors({
       origin: env.FRONTEND_ORIGIN,

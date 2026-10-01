@@ -24,7 +24,8 @@ const envSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
   ENABLE_REMINDER_WORKER: z.enum(["true", "false"]).default("false"),
-  ENABLE_WHATSAPP_INBOX_WORKER: z.enum(["true", "false"]).default("false")
+  ENABLE_WHATSAPP_INBOX_WORKER: z.enum(["true", "false"]).default("false"),
+  TRUST_PROXY: z.union([z.boolean(), z.literal("1"), z.number(), z.string()]).optional()
 });
 
 type Environment = z.infer<typeof envSchema>;

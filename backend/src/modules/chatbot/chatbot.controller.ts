@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import type { RequestHandler } from "express";
 
 import { env } from "../../config/env";
@@ -156,6 +158,19 @@ export const extractIncomingPaymentProofs = (
   });
 };
 
+// The verify token is a shared secret, so comparing it with `!==` leaks its
+// length and prefix through response timing. Compare in constant time instead,
+// as `password.service.ts` already does for credential checks.
+const matchesVerifyToken = (candidate: unknown) => {
+  if (typeof candidate !== "string") {
+    return false;
+  }
+  const expected = Buffer.from(env.WHATSAPP_VERIFY_TOKEN);
+  const provided = Buffer.from(candidate);
+
+  return expected.length === provided.length && timingSafeEqual(expected, provided);
+};
+
 export const verifyWhatsAppWebhook: RequestHandler = (
   request,
   response,
@@ -167,7 +182,7 @@ export const verifyWhatsAppWebhook: RequestHandler = (
 
   if (
     mode !== "subscribe" ||
-    token !== env.WHATSAPP_VERIFY_TOKEN ||
+    !matchesVerifyToken(token) ||
     typeof challenge !== "string"
   ) {
     next(

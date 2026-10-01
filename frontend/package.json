@@ -7,6 +7,7 @@
     "build": "next build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "next start",
+    "test": "npm run test:components",
     "test:e2e": "playwright test",
     "test:components": "tsx --test tests/components/*.test.tsx"
   },
