@@ -168,7 +168,9 @@ const matchesVerifyToken = (candidate: unknown) => {
   const expected = Buffer.from(env.WHATSAPP_VERIFY_TOKEN);
   const provided = Buffer.from(candidate);
 
-  return expected.length === provided.length && timingSafeEqual(expected, provided);
+  return (
+    expected.length === provided.length && timingSafeEqual(expected, provided)
+  );
 };
 
 export const verifyWhatsAppWebhook: RequestHandler = (
