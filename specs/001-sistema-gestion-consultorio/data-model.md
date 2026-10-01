@@ -155,10 +155,10 @@ Solo `admin` crea, activa, asigna o reasigna estos perfiles. Reasignar un pacien
 | id                  | UUID                                                                                                            | Yes      | PK                                             |
 | patient_id          | UUID                                                                                                            | No       | FK -> patients.id; null si aun no identificado |
 | whatsapp_phone      | varchar(30)                                                                                                     | Yes      |                                                |
-| current_intent      | enum(`faq`,`availability`,`book`,`cancel`,`payment_info`,`payment_status`,`identity_check`,`handoff`,`unknown`) | Yes      |                                                |
+| current_intent      | enum(`faq`,`availability`,`book`,`cancel`,`payment_info`,`payment_status`,`identity_check`,`handoff`,`unknown`) | Yes      | `payment_info` e `identity_check` reservados, sin productor |
 | verification_status | enum(`not_needed`,`pending`,`verified`,`failed`)                                                                | Yes      |                                                |
-| last_verified_at    | timestamptz                                                                                                     | No       |                                                |
-| state               | enum(`abierta`,`cerrada`,`derivada`)                                                                            | Yes      |                                                |
+| last_verified_at    | timestamptz                                                                                                     | No       | Se escribe junto con `patient_id`                    |
+| state               | enum(`abierta`,`cerrada`,`derivada`)                                                                            | Yes      | `cerrada` esta reservado y ningun productor lo emite |
 | last_message_at     | timestamptz                                                                                                     | Yes      |                                                |
 | created_at          | timestamptz                                                                                                     | Yes      | Default now                                    |
 | updated_at          | timestamptz                                                                                                     | Yes      | Default now                                    |
@@ -172,10 +172,10 @@ Solo `admin` crea, activa, asigna o reasigna estos perfiles. Reasignar un pacien
 | wa_message_id                       | varchar(120)                                 | Yes      | Unique                                                 |
 | direction                           | enum(`inbound`,`outbound`)                   | Yes      |                                                        |
 | sender_kind                         | enum(`patient`,`assistant`,`admin`,`system`) | Yes      |                                                        |
-| content_mode                        | enum(`full_text`,`admin_summary`)            | Yes      | `admin_summary` cuando haya contenido clinico sensible |
+| content_mode                        | enum(`full_text`,`admin_summary`)            | Yes      | Derivado por el repositorio desde `contentWasMinimized` |
 | content_text                        | text                                         | Yes      | Texto normal o resumen administrativo                  |
 | contains_sensitive_clinical_content | boolean                                      | Yes      | Default `false`                                        |
-| intent                              | varchar(60)                                  | No       | Intent clasificado                                     |
+| intent                              | varchar(60)                                  | No       | Intent clasificado; excluye `identity_check`           |
 | metadata                            | jsonb                                        | Yes      | Minimo necesario para operacion y auditoria            |
 | created_at                          | timestamptz                                  | Yes      | Default now                                            |
 
@@ -186,14 +186,76 @@ Solo `admin` crea, activa, asigna o reasigna estos perfiles. Reasignar un pacien
 | id            | UUID                                    | Yes      | PK                                         |
 | actor_user_id | UUID                                    | No       | FK -> users.id                             |
 | actor_channel | enum(`admin_panel`,`whatsapp`,`system`) | Yes      |                                            |
-| action        | varchar(80)                             | Yes      | Ej. `login_success`, `appointment_created` |
+| action        | varchar(80)                             | Yes      | Ej. `auth_login`, `appointment_created`            |
 | entity_type   | varchar(80)                             | Yes      |                                            |
 | entity_id     | UUID                                    | No       |                                            |
 | result        | enum(`success`,`failure`)               | Yes      |                                            |
 | metadata      | jsonb                                   | Yes      | Sin datos clinicos innecesarios            |
 | ip_address    | inet                                    | No       |                                            |
 | user_agent    | text                                    | No       |                                            |
-| occurred_at   | timestamptz                             | Yes      | Default now                                |
+| occurred_at   | timestamptz                             | Yes      | Default now                                        |
+
+### Derivacion de `chat_messages.content_mode`
+
+`content_mode` no lo elige el llamador: lo deriva el repositorio a partir de dos
+banderas, de modo que ningun camino de escritura pueda saltarse la regla.
+
+```text
+contentWasMinimized = containsSensitiveClinicalContent OR identityAnswerPresent
+content_mode        = contentWasMinimized ? admin_summary : full_text
+content_text        = contentWasMinimized ? resumen_administrativo : text
+```
+
+La politica vive en una unica funcion, `sanitizeIncomingWhatsAppContent`, que
+devuelve el texto ya reducido y por comparacion del resultado el servicio sabe si
+minimizo (`sanitizedText !== message.text`). El repositorio recibe la bandera ya
+resuelta, de modo que el criterio de minimizacion y el de persistencia no puedan
+divergir.
+
+- `containsSensitiveClinicalContent` se evalua al clasificar el mensaje: FR-025
+  sustituye el texto por un resumen administrativo, nunca por una transcripcion.
+- `identityAnswerPresent` cubre la confirmacion de identidad que el paciente
+  envia en texto plano ("nombre: ... / nacimiento: ..."): no es clinico, pero
+  duplicaria nombre y fecha de nacimiento dentro del historial de conversacion.
+- Excepcion deliberada: las intenciones `book` y `cancel` se guardan como
+  `full_text` aunque incluyan nombre y fecha. FR-022 pide que el motivo de la
+  reserva y de la cancelacion quede trazable, y la minimizacion destruiria ese
+  rastro. La excepcion se aplica solo al patron de identidad: un sintoma clinico
+  dentro de `book` o `cancel` si se minimiza.
+
+### Superficie de auditoria de US5
+
+FR-023 exige que la verificacion de identidad sea auditable sin que la auditoria
+se convierta en una segunda copia del expediente. El canal de WhatsApp registra
+estas acciones:
+
+| Action                              | entity_type         | result    | Cuando                                             |
+| ----------------------------------- | ------------------- | --------- | -------------------------------------------------- |
+| `identity_verification_succeeded`   | `chat_conversation` | `success` | Telefono + nombre + fecha coinciden                 |
+| `identity_verification_failed`      | `chat_conversation` | `failure` | Faltan datos o no coinciden                         |
+| `sensitive_status_query_denied`     | `chat_conversation` | `failure` | Piden cita o saldo sin verificacion vigente        |
+| `appointment_cancellation_denied`   | `appointment`       | `failure` | Intentan cancelar sin verificacion vigente          |
+
+- Las dos denegaciones se auditan solo en la primera recepcion: una reejecucion
+  durable del mismo `waMessageId` no repite la entrada de auditoria.
+- `identity_verification_succeeded` usa `entityId = patient.id` sobre un
+  `entity_type` de `chat_conversation`, para que la accion apunte al paciente
+  verificado conservando el contexto de conversacion.
+
+Las demas acciones del canal (`clinical_handoff`, `appointment_created`,
+`appointment_cancelled`, `appointment_conflict`,
+`appointment_schedule_rejected`, `payment_proof_received` y
+`payment_proof_review_requested`) no forman parte de la verificacion de identidad
+y no cambian con US5.
+
+- La metadata de `identity_verification_failed` solo lleva banderas de presencia
+  (`hasFullName`, `hasBirthdate`) mas un `reason` (`details_missing`,
+  `phone_not_registered` o `identity_mismatch`); nunca el nombre, la fecha de
+  nacimiento ni el texto del mensaje que disparo el intento. La accion
+  `identity_verification_succeeded` si registra `patientId`, que es un
+  identificador interno y no un dato clinico.
+- `verification_status = failed` por si solo no distingue "intento denegado" de
+  "faltaron datos", por eso la denegacion necesita su propia accion.
 
 ## Relationships
 
@@ -265,6 +327,11 @@ Rules:
 
 - La verificacion para ver cita o saldo exige coincidencia de telefono + nombre + fecha de nacimiento.
 - Si falla la verificacion, no se muestran datos sensibles y se deriva a la psicologa.
+- `last_verified_at` y `patient_id` se escriben en la misma actualizacion, al
+  pasar a `verified`. No existe un estado verificado sin paciente asociado: sin
+  `patient_id` no hay nada que la cita o el saldo puedan resolver. Por eso un
+  `verification_status` en `verified` con `last_verified_at` nulo es un estado
+  incoherente que ninguna ruta de escritura del canal produce.
 
 ## Derived Views Needed by UI
 

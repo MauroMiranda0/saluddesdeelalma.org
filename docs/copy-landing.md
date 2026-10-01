@@ -174,7 +174,7 @@ Elementos breves que transmiten seguridad:
 
 ### ¿Qué pasa si necesito cancelar?
 
-> Puedes cancelar o reagendar avisándonos con al menos **24 horas de anticipación**. Si cancelas con menos tiempo, se considera cancelación tardía y podría aplicar un costo adicional.
+> Puedes cancelar o reagendar avisándonos con al menos **24 horas de anticipación**. Puedes hacerlo escribiéndonos por WhatsApp al **56 6095 0665** o desde el panel. No hay cargos por cancelación.
 
 ### ¿Los recordatorios son automáticos?
 
@@ -187,6 +187,31 @@ Elementos breves que transmiten seguridad:
 ### ¿Atienden a personas que nunca han ido a terapia?
 
 > Por supuesto. Te recibimos con calidez y sin juicios, en el punto en el que estés.
+
+### Cobertura del asistente de WhatsApp (referencia interna)
+
+Estas respuestas son las que el asistente debe dar por WhatsApp. Si una pregunta
+publicada aquí no la contesta el catálogo, es un defecto del asistente, no del
+copy.
+
+| Pregunta                                        | Respuesta del asistente                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| ¿Cuánto dura una sesión?                        | Individual 60 minutos; pareja y familiar 90 minutos.                                                    |
+| ¿Puedo elegir modalidad?                        | Sí, en línea o presencial.                                                                              |
+| ¿Cómo puedo pagar?                              | Transferencia o efectivo el día de la sesión; se puede apartar la cita con un anticipo del 50%.        |
+| ¿Los recordatorios son automáticos?             | Sí, un recordatorio por WhatsApp el día previo, entre las 6:00 y 7:00 de la tarde.                      |
+| ¿Mis datos están seguros?                       | Confidencialidad absoluta conforme a la normativa mexicana de datos de salud.                          |
+| ¿Qué pasa si necesito cancelar?                 | Avisar con 24 horas de anticipación; se puede cancelar por WhatsApp o desde el panel, sin cargos.       |
+| ¿Cómo va mi cita? / ¿Cuánto debo?               | Exige número registrado, nombre y fecha de nacimiento coincidentes antes de responder.                   |
+| Consultas clínicas (síntomas, medicación)       | El asistente deriva a la/psicóloga y no responde clinicamente.                                          |
+
+- La verificación de identidad solo se pide para el estado de una cita o de un
+  saldo, y la denegación usa el mismo texto que un número no registrado, para no
+  revelar que la cita existe.
+- El catálogo de FAQ es la única fuente que declara duraciones. El prompt de
+  reserva no las anuncia: remite a la confirmación de la psicóloga al agendar, de
+  modo que la duración nunca queda contradictoria entre la landing y el flujo de
+  agenda.
 
 ## 8. Sección de Contacto
 

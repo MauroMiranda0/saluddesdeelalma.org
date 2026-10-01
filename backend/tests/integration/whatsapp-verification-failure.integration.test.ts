@@ -1,10 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
-
-import { PGlite } from "@electric-sql/pglite";
 
 import { processIncomingWhatsAppMessage } from "../../src/modules/chatbot/chatbot.service.js";
 import { verifyPatientIdentity } from "../../src/modules/chatbot/identity-verification.service.js";
@@ -15,15 +10,7 @@ import {
 } from "../../src/modules/chatbot/message-sanitizer.js";
 import { statusVerificationFailedResponse } from "../../src/modules/chatbot/response-templates.js";
 
-const testsDirectory = dirname(fileURLToPath(import.meta.url));
-const backendDirectory = join(testsDirectory, "..", "..");
-const initialMigration = join(
-  backendDirectory,
-  "prisma",
-  "migrations",
-  "20260904000000_initial",
-  "migration.sql"
-);
+const gateway = { sendText: async () => ({ messageId: "wamid.outbound" }) };
 
 type AuditInput = {
   actorChannel: string;
@@ -209,72 +196,43 @@ test("a booking or cancellation payload is not mistaken for an identity answer",
   );
 });
 
-test("the identity answer is not stored verbatim in the conversation history", async (t) => {
-  const database = new PGlite();
-  t.after(() => database.close());
+// FR-026: the denial audit that accompanies a rejected status query must itself
+// be leak-free, and must carry the same presence flags as the verification rows.
+test("the denied status query audit carries no patient data", async () => {
+  const audits: AuditInput[] = [];
 
-  const migration = await readFile(initialMigration, "utf8");
-  await database.exec(`
-    CREATE FUNCTION gen_random_uuid() RETURNS uuid LANGUAGE SQL AS $$
-      SELECT '00000000-0000-0000-0000-000000000009'::uuid;
-    $$;
-  `);
-  await database.exec(
-    migration.replace(
-      /CREATE EXTENSION IF NOT EXISTS "pgcrypto";\r?\n\r?\n/,
-      ""
-    )
-  );
-  await database.exec(`
-    INSERT INTO "chat_conversations" (
-      "id", "whatsapp_phone", "verification_status", "last_message_at"
-    ) VALUES (
-      '00000000-0000-0000-0000-000000000007',
-      '5215550000000',
-      'failed',
-      '2026-09-10T12:00:00.000Z'
-    );
-    INSERT INTO "chat_messages" (
-      "id", "conversation_id", "wa_message_id", "direction", "sender_kind",
-      "content_mode", "content_text"
-    ) VALUES (
-      '00000000-0000-0000-0000-000000000008',
-      '00000000-0000-0000-0000-000000000007',
-      'wamid.denied-identity_mismatch',
-      'inbound',
-      'patient',
-      'admin_summary',
-      '${identityVerificationSummary}'
-    );
-    INSERT INTO "audit_logs" (
-      "id", "actor_channel", "action", "entity_type", "result", "metadata"
-    ) VALUES (
-      '00000000-0000-0000-0000-000000000009',
-      'whatsapp',
-      'sensitive_status_query_denied',
-      'chat_conversation',
-      'failure',
-      '{"reason":"identity_mismatch","intent":"payment_status"}'::jsonb
-    );
-  `);
-
-  const persisted = await database.query(`
-    SELECT
-      "chat_messages"."content_text" AS "content_text",
-      "chat_conversations"."verification_status" AS "verification_status",
-      "audit_logs"."action" AS "audit_action"
-    FROM "chat_messages"
-    JOIN "chat_conversations"
-      ON "chat_conversations"."id" = "chat_messages"."conversation_id"
-    JOIN "audit_logs" ON "audit_logs"."action" = 'sensitive_status_query_denied'
-    WHERE "chat_messages"."wa_message_id" = 'wamid.denied-identity_mismatch';
-  `);
-
-  assert.deepEqual(persisted.rows, [
+  await processIncomingWhatsAppMessage(
     {
-      content_text: identityVerificationSummary,
-      verification_status: "failed",
-      audit_action: "sensitive_status_query_denied"
+      id: "wamid.denied-audit-metadata",
+      from: "5215550000000",
+      text: "Nombre: Otra Persona; nacimiento: 1980-02-02",
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    { gateway, ipAddress: "203.0.113.10", userAgent: "WhatsApp/2.0" },
+    {
+      saveIncomingMessage: async () =>
+        ({
+          id: "conversation-1",
+          currentIntent: "payment_status"
+        }) as never,
+      updateConversation: async () => ({}) as never,
+      saveOutboundMessage: async () => ({}) as never,
+      verifyPatientIdentity: async () =>
+        ({ status: "denied", reason: "identity_mismatch" }) as never,
+      audit: async (recorded) => {
+        audits.push(recorded as AuditInput);
+      }
     }
-  ]);
+  );
+
+  const denial = audits.find(
+    (entry) => entry.action === "sensitive_status_query_denied"
+  );
+  assert.ok(denial, "the denial must be audited");
+  assert.equal(denial.result, "failure");
+  assert.equal(denial.metadata.reason, "identity_mismatch");
+  assert.doesNotMatch(
+    JSON.stringify(denial),
+    /Otra Persona|1980-02-02|1990-01-15/
+  );
 });

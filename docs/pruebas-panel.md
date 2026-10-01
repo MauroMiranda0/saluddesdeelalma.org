@@ -93,3 +93,29 @@ Las remediaciones T144-T164 estan cerradas en `tasks.md`.
 - El estado `fallido` real solo ocurre con credenciales de Meta que fallen y no hay reintento manual desde el panel.
 - `sentAt`, `lastError`, `scheduledAt` y `cancellationNotice` llegan en el contrato pero no se renderizan en ninguna pantalla.
 - La UAT funcional autenticada con Jocelyn sigue pendiente.
+
+## US5: FAQ, recordatorios y consultas de estado - 30/09/2026
+
+### Cobertura automatizada agregada
+
+- `backend/tests/integration/whatsapp-faq-status.integration.test.ts` (24 pruebas) fija el catalogo de FAQ contra `docs/copy-landing.md` y `frontend/app/page.tsx`, la ausencia de verificacion en las preguntas publicas, la verificacion previa del intent `payment_status`, la fecha, la zona `America/Mexico_City` y el formato de 12 horas de AC2, la paridad del saldo con el `paymentStatusOf` del panel, la minimizacion de FR-025 en la capa de persistencia, la idempotencia de la auditoria `sensitive_status_query_denied` ante un reintento durable y los estados de cita `programada`, `confirmada` y cancelada.
+- `backend/tests/integration/whatsapp-verification-failure.integration.test.ts` (6 pruebas) fija que la denegacion por datos faltantes, por numero no registrado y por identidad incorrecta devuelve el mismo texto y se audita con banderas de presencia.
+- `backend/tests/integration/whatsapp-us5-persistence.postgres.integration.test.ts` (3 pruebas) ejerce la persistencia real contra PostgreSQL: sustituye a las dos pruebas que insertaban y releian filas a mano con PGlite sin invocar `saveIncomingMessage`. Se salta salvo que se ejecute con `RUN_POSTGRES_INTEGRATION=true`.
+
+### Gates ejecutados
+
+- `npm run typecheck`, `npm run lint` y `npm run format:check`: correctos.
+- `npm run test --workspace backend`: 154 pruebas, 124 correctas, 0 fallidas, 30 omitidas (las 3 del gate PostgreSQL mas las preexistentes).
+- Las 3 pruebas de `backend/tests/integration/whatsapp-us5-persistence.postgres.integration.test.ts` pasan contra PostgreSQL 16 real con `RUN_POSTGRES_INTEGRATION=true`.
+- El gate completo sigue en rojo, ahora por defectos registrados como `T203` y `T204`, ambos ajenos a US5 y ambos revelados al destapar el que `T201` si cubria: `payments-flow.integration.test.ts:334` recibe 409 porque su propio fixture siembra un pago `completo` pendiente y el servicio rechaza un segundo pago del mismo tipo, y `auth-audit-rollback.postgres.integration.test.ts:16` choca con el `username: "admin"` que `backend/prisma/seed.ts` deja en la base de desarrollo.
+- Ademas el gate no es determinista: `npm run test --workspace backend` corre los archivos en paralelo contra una base compartida, y con concurrencia aparecen 5 fallos frente a los 2 reales, cambiando incluso el archivo que falla. Registrado como `T205`. Con `--test-concurrency=1` el resultado es estable: 154 pruebas, 152 correctas, 2 fallidas.
+
+### Nota de operacion del gate
+
+- El gate debe correrse con `npm run test --workspace backend`, que carga `.env.example`; invocar `npx dotenv -e .env` hace fallar pruebas que dependen de `WHATSAPP_ADMIN_PHONE`, porque `backend/.env` no define esa variable y `.env.example` si. La causa de esa falla fue mal atribuida a un defecto de aislamiento en `backend/tests/unit/whatsapp-inbox-resume.test.ts:157`, que nunca estuvo rota.
+- `.env.example` trae un `DATABASE_URL` de relleno, asi que el gate hay que lanzarlo con el `DATABASE_URL` real ya presente en el entorno: en PowerShell, `$env:DATABASE_URL="postgresql://<usuario>:<clave>@localhost:5432/<base>?schema=public"` antes de `npm run test --workspace backend`. Sin eso las pruebas del gate fallan por autenticacion y no por codigo.
+
+### Lo que sigue exigiendo revision humana
+
+- `SC-010` es un criterio de UAT: la verificacion de que el paciente real consigue su estado por WhatsApp sigue sin ejecutarse desde un telefono.
+- La conexion con el WhatsApp real sigue pendiente de credenciales de Meta, igual que para US4.

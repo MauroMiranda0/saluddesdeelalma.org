@@ -4,8 +4,6 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { PGlite } from "@electric-sql/pglite";
-
 import { paymentStatusOf } from "../../src/modules/appointments/appointments.service.js";
 import type { PaymentSignal } from "../../src/modules/appointments/appointments.service.js";
 import { classifyIntent } from "../../src/modules/chatbot/chatbot.intents.js";
@@ -19,13 +17,7 @@ import { verifyPatientIdentity } from "../../src/modules/chatbot/identity-verifi
 const testsDirectory = dirname(fileURLToPath(import.meta.url));
 const backendDirectory = join(testsDirectory, "..", "..");
 const landingCopy = join(backendDirectory, "..", "docs", "copy-landing.md");
-const initialMigration = join(
-  backendDirectory,
-  "prisma",
-  "migrations",
-  "20260904000000_initial",
-  "migration.sql"
-);
+const landingPage = join(backendDirectory, "..", "frontend", "app", "page.tsx");
 
 type AuditInput = {
   actorChannel: string;
@@ -59,6 +51,7 @@ const askStatus = async (input: {
   currentIntent?: string;
   verified?: boolean;
   payments?: typeof nextAppointment.payments | null;
+  replayed?: boolean;
 }) => {
   const audits: AuditInput[] = [];
   let outboundText = "";
@@ -77,11 +70,16 @@ const askStatus = async (input: {
       userAgent: "WhatsApp/2.0"
     },
     {
+      // A durable retry is signalled the same way the real repository does it:
+      // `saveIncomingMessage` returns null and the conversation is recovered
+      // through `findConversationByIncomingMessage`.
       saveIncomingMessage: async () =>
-        ({
-          id: "conversation-1",
-          currentIntent: input.currentIntent ?? "payment_status"
-        }) as never,
+        (input.replayed
+          ? null
+          : {
+              id: "conversation-1",
+              currentIntent: input.currentIntent ?? "payment_status"
+            }) as never,
       findConversationByIncomingMessage: async () =>
         ({
           id: "conversation-1",
@@ -153,13 +151,77 @@ const askFaq = async (text: string) => {
   return { outboundText, updatedIntent };
 };
 
+type PersistedIncoming = {
+  contentText: string;
+  intent: string;
+  containsSensitiveClinicalContent: boolean;
+  contentWasMinimized?: boolean;
+};
+
+/**
+ * FR-025 is only meaningful if the text that reaches the persistence layer is
+ * the minimised one. This helper captures the exact payload handed to
+ * `saveIncomingMessage`, because the repository derives `content_mode` from it.
+ */
+const captureIncoming = async (
+  text: string,
+  currentIntent = "unknown"
+): Promise<PersistedIncoming> => {
+  const persisted: PersistedIncoming[] = [];
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.capture",
+      from: "5215550000000",
+      text,
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    { gateway },
+    {
+      saveIncomingMessage: async (saved) => {
+        persisted.push(saved as unknown as PersistedIncoming);
+        return { id: "conversation-1", currentIntent } as never;
+      },
+      updateConversation: async () => ({}) as never,
+      saveOutboundMessage: async () => ({}) as never,
+      audit: async () => {}
+    }
+  );
+
+  assert.equal(persisted.length, 1);
+  return persisted[0];
+};
+
 test("the consultory facts match the public landing copy", async () => {
   const copy = await readFile(landingCopy, "utf8");
+  // The landing wraps the address across two JSX lines, which the browser
+  // renders as a single space, so both sources are compared with whitespace
+  // collapsed. Without this the guard could only ever see the first line.
+  const page = (await readFile(landingPage, "utf8")).replace(/\s+/g, " ");
 
+  // FR-022 and SC-010: the chatbot may only state official, current
+  // information, so the catalog and the two public sources must not drift.
   for (const fact of Object.values(CONSULTORIO_FACTS)) {
     assert.ok(
       copy.includes(fact),
       `"${fact}" must stay in sync with docs/copy-landing.md`
+    );
+    assert.ok(
+      page.includes(fact.replace(/\s+/g, " ")),
+      `"${fact}" must stay in sync with frontend/app/page.tsx`
+    );
+  }
+
+  // A bare `includes("50%")` would be satisfied by any percentage on the page,
+  // so the advance policy is asserted as the phrase both sources actually use.
+  for (const [name, source] of [
+    ["docs/copy-landing.md", copy],
+    ["frontend/app/page.tsx", page]
+  ] as const) {
+    assert.match(
+      source,
+      /anticipo del \*{0,2}50%/,
+      `the advance policy must be stated as "anticipo del 50%" in ${name}`
     );
   }
 });
@@ -213,15 +275,21 @@ test("a verified patient receives the next appointment and its payment state", a
     currentIntent: "payment_status"
   });
 
-  // US5/AC2: date, time, modality and status of the next appointment.
+  // US5/AC2: date, time, modality and status of the next appointment. The
+  // instant is 2026-09-14T23:00:00Z, which is 17:00 in `America/Mexico_City`, so
+  // the time, the weekday and the 12-hour format are asserted literally: a
+  // timezone or `hour12` regression has to fail here.
   assert.match(outboundText, /confirmada/);
   assert.match(outboundText, /presencial/);
-  assert.match(outboundText, /14 de septiembre/i);
+  assert.match(outboundText, /lunes, 14 de septiembre/i);
+  assert.match(outboundText, /5:00\s*p\.?m\.?/i);
   assert.match(outboundText, /individual/);
   // US5/AC3: the pending balance is reported without any amount.
   assert.match(outboundText, /anticipo registrado/i);
   assert.match(outboundText, /pendiente de liquidar/i);
   assert.doesNotMatch(outboundText, /\$\s*\d/);
+  // The UTC instant must never leak into a Mexican Spanish answer.
+  assert.doesNotMatch(outboundText, /11:00|23:00/);
 
   assert.equal(updatedConversations[0]?.verificationStatus, "verified");
   assert.equal(
@@ -353,70 +421,290 @@ test("an FAQ category is matched for every documented question", () => {
   assert.equal(matchesFaqCategory("quiero agendar una cita"), null);
 });
 
-test("the verified status query persists its audit trail in the database", async (t) => {
-  const database = new PGlite();
-  t.after(() => database.close());
+// FR-022 / SC-010: the public landing and `docs/copy-landing.md` both advertise
+// these questions, so the catalog must answer each of them instead of letting
+// them fall through to the booking prompt or to the generic greeting.
+test("every question published on the landing page is answered as an FAQ", () => {
+  const publicFaq = [
+    "¿Cómo agendo una cita?",
+    "¿Cuánto dura una sesión?",
+    "¿Puedo elegir entre sesión en línea o presencial?",
+    "¿Cómo puedo pagar?",
+    "¿Mis datos están seguros?"
+  ];
 
-  const migration = await readFile(initialMigration, "utf8");
-  await database.exec(`
-    CREATE FUNCTION gen_random_uuid() RETURNS uuid LANGUAGE SQL AS $$
-      SELECT '00000000-0000-0000-0000-00000000000b'::uuid;
-    $$;
-  `);
-  await database.exec(
-    migration.replace(
-      /CREATE EXTENSION IF NOT EXISTS "pgcrypto";\r?\n\r?\n/,
-      ""
-    )
+  for (const question of publicFaq) {
+    assert.equal(
+      classifyIntent(question),
+      question === "¿Cómo agendo una cita?" ? "book" : "faq",
+      `"${question}" must reach a handler that answers it`
+    );
+  }
+
+  assert.equal(
+    matchesFaqCategory("¿Cuánto dura una sesión?")?.category,
+    "duracion"
   );
-  await database.exec(`
-    INSERT INTO "patients" ("id", "full_name", "whatsapp_phone", "birthdate")
-    VALUES (
-      '00000000-0000-0000-0000-00000000000a',
-      'Ana Pérez',
-      '5215550000000',
-      '1990-01-15'
-    );
-    INSERT INTO "chat_conversations" (
-      "id", "patient_id", "whatsapp_phone", "current_intent",
-      "verification_status", "last_verified_at", "last_message_at"
-    ) VALUES (
-      '00000000-0000-0000-0000-00000000000b',
-      '00000000-0000-0000-0000-00000000000a',
-      '5215550000000',
-      'payment_status',
-      'verified',
-      '2026-09-10T12:00:00.000Z',
-      '2026-09-10T12:00:00.000Z'
-    );
-    INSERT INTO "audit_logs" (
-      "id", "actor_channel", "action", "entity_type", "entity_id", "result", "metadata"
-    ) VALUES (
-      '00000000-0000-0000-0000-00000000000c',
-      'whatsapp',
-      'identity_verification_succeeded',
-      'chat_conversation',
-      '00000000-0000-0000-0000-00000000000a',
-      'success',
-      '{"hasFullName":true,"hasBirthdate":true}'::jsonb
-    );
-  `);
+  assert.equal(
+    matchesFaqCategory("¿Los recordatorios son automáticos?")?.category,
+    "recordatorios"
+  );
+  assert.equal(
+    matchesFaqCategory("¿Mis datos están seguros?")?.category,
+    "privacidad"
+  );
+});
 
-  const persisted = await database.query(`
-    SELECT
-      "chat_conversations"."current_intent" AS "current_intent",
-      "chat_conversations"."verification_status" AS "verification_status",
-      "audit_logs"."action" AS "audit_action"
-    FROM "chat_conversations"
-    JOIN "audit_logs" ON "audit_logs"."entity_id" = "chat_conversations"."patient_id"
-    WHERE "chat_conversations"."whatsapp_phone" = '5215550000000';
-  `);
+test("the duration answer states both session lengths", async () => {
+  const { outboundText } = await askFaq("¿Cuánto dura una sesión?");
 
-  assert.deepEqual(persisted.rows, [
-    {
-      current_intent: "payment_status",
-      verification_status: "verified",
-      audit_action: "identity_verification_succeeded"
+  assert.match(outboundText, /60 minutos/);
+  assert.match(outboundText, /90 minutos/);
+});
+
+// T186: the landing publishes the cancellation policy, and that question used
+// to be routed to the `cancel` flow, which demands identity before it does
+// anything. FR-029 also forbids promising a late-cancellation charge, so the
+// answer has to say there is none.
+test("the cancellation policy is answered from the catalog and promises no charge", async () => {
+  assert.equal(classifyIntent("¿Qué pasa si necesito cancelar?"), "faq");
+
+  const { outboundText } = await askFaq("¿Qué pasa si necesito cancelar?");
+
+  assert.match(outboundText, /24 horas/i);
+  assert.match(outboundText, /No hay cargos/i);
+  assert.doesNotMatch(
+    outboundText,
+    /costo adicional|podr[ií]a aplicar un cargo|multa|penalizaci[oó]n/i
+  );
+  // A policy question must not ask for identity, unlike a real cancellation.
+  assert.doesNotMatch(outboundText, /Nombre:|nacimiento:/i);
+});
+
+test("an actual cancellation request still reaches the cancel intent", () => {
+  // The policy pattern must not swallow the imperative, or the patient could
+  // never cancel: T202 tracks the "ya no puedo ir" gap separately.
+  for (const request of [
+    "quiero cancelar mi cita",
+    "cancelar",
+    "necesito anular mi cita"
+  ]) {
+    assert.equal(
+      classifyIntent(request),
+      "cancel",
+      `"${request}" must reach the cancellation flow`
+    );
+  }
+});
+
+test("the schedule answer keeps the Monday to Friday restriction of FR-002", async () => {
+  const { outboundText } = await askFaq("¿A qué hora atienden?");
+
+  assert.match(outboundText, /lunes a viernes/);
+  assert.match(outboundText, new RegExp(CONSULTORIO_FACTS.hours));
+});
+
+// FR-025: the minimisation has to be observable in what the repository is asked
+// to store, not only inside the pure sanitizer function.
+test("clinical content reaches persistence as an administrative summary", async () => {
+  const persisted = await captureIncoming(
+    "He tenido ansiedad y no puedo más, quiero hacer daño"
+  );
+
+  assert.equal(
+    persisted.contentText,
+    "El paciente solicitó apoyo clínico; se derivó a la psicóloga."
+  );
+  assert.equal(persisted.containsSensitiveClinicalContent, true);
+  assert.equal(persisted.contentWasMinimized, true);
+  assert.doesNotMatch(persisted.contentText, /ansiedad|daño/i);
+});
+
+test("the identity confirmation is not stored verbatim", async () => {
+  const identityAnswer = "Nombre: Ana Pérez; nacimiento: 1990-01-15";
+  const persisted = await captureIncoming(identityAnswer);
+
+  assert.notEqual(persisted.contentText, identityAnswer);
+  assert.doesNotMatch(persisted.contentText, /Ana Pérez|1990-01-15/);
+  assert.match(persisted.contentText, /confirmó nombre y fecha de nacimiento/i);
+  // The identity answer carries no clinical content, so the repository must rely
+  // on `contentWasMinimized` to store it as a summary.
+  assert.equal(persisted.containsSensitiveClinicalContent, false);
+  assert.equal(persisted.contentWasMinimized, true);
+});
+
+test("an ordinary question is stored verbatim and not flagged as minimised", async () => {
+  const persisted = await captureIncoming("¿Cuál es el horario de atención?");
+
+  assert.equal(persisted.contentText, "¿Cuál es el horario de atención?");
+  assert.equal(persisted.containsSensitiveClinicalContent, false);
+  assert.equal(persisted.contentWasMinimized, false);
+});
+
+// T191: the exported verifier must never be able to deny silently.
+test("a verification attempt without both details is denied and audited", async () => {
+  const audits: AuditInput[] = [];
+
+  const result = await verifyPatientIdentity({
+    whatsappPhone: "5215550000000",
+    fullName: "Ana Pérez",
+    audit: async (recorded) => {
+      audits.push(recorded as AuditInput);
     }
-  ]);
+  });
+
+  assert.deepEqual(result, { status: "denied", reason: "details_missing" });
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0]?.action, "identity_verification_failed");
+  assert.equal(audits[0]?.result, "failure");
+  assert.equal(audits[0]?.metadata.reason, "details_missing");
+  assert.doesNotMatch(JSON.stringify(audits[0]), /Ana Pérez|1990-01-15/);
+});
+
+// T199: a partially supplied identity must be re-prompted, not treated as a
+// denial nor as a verified patient.
+test("a status answer missing the birthdate asks again instead of answering", async () => {
+  const { outboundText, updatedConversations } = await askStatus({
+    text: "Nombre: Ana Pérez",
+    currentIntent: "payment_status"
+  });
+
+  assert.match(outboundText, /Nombre:/);
+  assert.match(outboundText, /nacimiento:/);
+  assert.doesNotMatch(outboundText, /confirmada|presencial|septiembre/i);
+  assert.equal(updatedConversations[0]?.verificationStatus, "pending");
+});
+
+test("a status answer missing the name asks again", async () => {
+  const { outboundText, updatedConversations } = await askStatus({
+    text: "nacimiento: 1990-01-15",
+    currentIntent: "payment_status"
+  });
+
+  assert.match(outboundText, /Nombre:/);
+  assert.equal(updatedConversations[0]?.verificationStatus, "pending");
+});
+
+test("a denied status query is audited once across a durable retry", async () => {
+  const first = await askStatus({
+    text: "Nombre: Otra Persona; nacimiento: 1980-01-01",
+    currentIntent: "payment_status",
+    verified: false
+  });
+  const denials = first.audits.filter(
+    (recorded) => recorded.action === "sensitive_status_query_denied"
+  );
+
+  // FR-026: the denial is auditable, and the record must not be duplicated by a
+  // redelivery of the same `waMessageId`.
+  assert.equal(denials.length, 1);
+  assert.equal(denials[0]?.result, "failure");
+  // The reason is auditable, but the supplied name and birthdate are not.
+  assert.deepEqual(denials[0]?.metadata, {
+    reason: "identity_mismatch",
+    intent: "payment_status"
+  });
+
+  const retry = await askStatus({
+    text: "Nombre: Otra Persona; nacimiento: 1980-01-01",
+    currentIntent: "payment_status",
+    verified: false,
+    replayed: true
+  });
+  const retriedDenials = retry.audits.filter(
+    (recorded) => recorded.action === "sensitive_status_query_denied"
+  );
+
+  assert.equal(
+    retriedDenials.length,
+    0,
+    "a durable retry must not repeat the denial audit"
+  );
+  // The patient still has to receive the denial, even on the retry.
+  assert.match(retry.outboundText, /No pudimos confirmar sus datos/i);
+});
+
+test("a scheduled appointment is reported as scheduled, never as confirmed", async () => {
+  let outboundText = "";
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.status-programada",
+      from: "5215550000000",
+      text: "Nombre: Ana Pérez; nacimiento: 1990-01-15",
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    { gateway, ipAddress: "203.0.113.10", userAgent: "WhatsApp/2.0" },
+    {
+      saveIncomingMessage: async () =>
+        ({ id: "conversation-1", currentIntent: "payment_status" }) as never,
+      updateConversation: async () => ({}) as never,
+      saveOutboundMessage: async (saved) => {
+        outboundText = saved.contentText;
+        return {} as never;
+      },
+      // The same appointment as the AC2 test, but still `programada`. A status
+      // answer built from a hardcoded "confirmada" would lie about it.
+      findNextActiveAppointmentForPatient: async () =>
+        ({ ...nextAppointment, status: "programada" }) as never,
+      verifyPatientIdentity: async () =>
+        ({
+          status: "verified",
+          patient: {
+            id: "00000000-0000-0000-0000-000000000002",
+            fullName: "Ana Pérez",
+            whatsappPhone: "5215550000000",
+            assignedTherapistId: null
+          }
+        }) as never,
+      audit: async () => {}
+    }
+  );
+
+  assert.match(outboundText, /programada/i);
+  assert.doesNotMatch(outboundText, /confirmada/i);
+  // The date, time and modality are still reported.
+  assert.match(outboundText, /lunes, 14 de septiembre/i);
+  assert.match(outboundText, /5:00\s*p\.?m\.?/i);
+});
+
+test("a cancelled appointment is never reported as confirmed", async () => {
+  let outboundText = "";
+
+  await processIncomingWhatsAppMessage(
+    {
+      id: "wamid.status-cancelled",
+      from: "5215550000000",
+      text: "Nombre: Ana Pérez; nacimiento: 1990-01-15",
+      receivedAt: new Date("2026-09-10T12:00:00.000Z")
+    },
+    { gateway, ipAddress: "203.0.113.10", userAgent: "WhatsApp/2.0" },
+    {
+      saveIncomingMessage: async () =>
+        ({ id: "conversation-1", currentIntent: "payment_status" }) as never,
+      updateConversation: async () => ({}) as never,
+      saveOutboundMessage: async (saved) => {
+        outboundText = saved.contentText;
+        return {} as never;
+      },
+      // A `cancelada` appointment is not an active one, so the repository
+      // returns nothing and the patient must be told so instead of receiving a
+      // confirmed session.
+      findNextActiveAppointmentForPatient: async () => null,
+      verifyPatientIdentity: async () =>
+        ({
+          status: "verified",
+          patient: {
+            id: "00000000-0000-0000-0000-000000000002",
+            fullName: "Ana Pérez",
+            whatsappPhone: "5215550000000",
+            assignedTherapistId: null
+          }
+        }) as never,
+      audit: async () => {}
+    }
+  );
+
+  assert.match(outboundText, /No tenemos registrada una cita pr[oó]xima/i);
+  assert.doesNotMatch(outboundText, /confirmada|pendiente de liquidar/i);
 });

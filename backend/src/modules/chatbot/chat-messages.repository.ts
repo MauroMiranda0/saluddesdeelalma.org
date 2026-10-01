@@ -20,6 +20,12 @@ type IncomingMessage = {
   receivedAt: Date;
   intent: StoredIntent;
   containsSensitiveClinicalContent: boolean;
+  /**
+   * True when `contentText` is an administrative summary instead of the text the
+   * patient actually sent. Distinct from the clinical flag because FR-025 also
+   * minimises the identity confirmation, which carries no clinical content.
+   */
+  contentWasMinimized?: boolean;
   metadata?: Prisma.InputJsonValue;
 };
 
@@ -65,9 +71,10 @@ export const saveIncomingMessage = async (input: IncomingMessage) => {
         waMessageId: input.waMessageId,
         direction: "inbound",
         senderKind: "patient",
-        contentMode: input.containsSensitiveClinicalContent
-          ? "admin_summary"
-          : "full_text",
+        contentMode:
+          (input.contentWasMinimized ?? input.containsSensitiveClinicalContent)
+            ? "admin_summary"
+            : "full_text",
         contentText: input.contentText,
         containsSensitiveClinicalContent:
           input.containsSensitiveClinicalContent,

@@ -3,14 +3,12 @@ import {
   type SupportedIntent
 } from "./chatbot.intents";
 
-const clinicalSummary =
-  "El paciente solicitó apoyo clínico; se derivó a la psicóloga.";
-
 /**
  * FR-025 limits stored clinical conversations to a brief administrative summary
  * and basic metadata instead of turning the chat into a clinical record.
  */
-export const clinicalContentSummary = clinicalSummary;
+const clinicalSummary =
+  "El paciente solicitó apoyo clínico; se derivó a la psicóloga.";
 
 /**
  * The identity confirmation the patient sends to unlock a status query carries

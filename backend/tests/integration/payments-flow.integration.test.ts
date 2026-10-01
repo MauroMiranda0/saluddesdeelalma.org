@@ -86,7 +86,6 @@ test(
 
     const nonAdmin = await prisma.user.create({
       data: {
-        username: `psico-${randomUUID()}`,
         email: `psico-payments-${randomUUID()}@integration.local`,
         fullName: "Psicologa sin acceso",
         role: "psicologo",

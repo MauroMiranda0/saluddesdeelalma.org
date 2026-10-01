@@ -40,11 +40,12 @@ En este punto existe:
 - frontend del panel: layout con `AdminGuard` (protege rutas salvo `/admin/login`), sidebar en escritorio y navegación táctil inferior en móvil, login, agenda (vistas dia/semana/mes con `EVENT_COLOR_MAP` y leyenda de colores con contadores), directorio, dashboard, formulario de cita, dialogo de cancelacion y pagos
 - landing pública en `/`: hero, servicios, modalidades de atención, contacto, CTA de WhatsApp y acceso administrativo discreto; comparte tokens verde/sepia, superficies crema y jerarquía tipográfica con el panel
 - modulo de pagos administrativo en `POST /api/v1/payments`, `POST /api/v1/payments/:paymentId/confirm` y `POST /api/v1/appointments/:appointmentId/payment-reminder`, con vista `/admin/payments` para registrar, recordar y confirmar pagos manualmente
+- **FAQ y consultas de estado por WhatsApp (US5)**: catalogo de FAQ en `backend/src/modules/chatbot/faq.catalog.ts` que contesta duracion de sesion, modalidades de atencion, formas de pago, anticipo del 50%, privacidad y recordatorios; las preguntas publicadas en la landing se resuelven con el catalogo y no con el prompt de reserva
+- verificacion de identidad de lectura para el intent `payment_status` (estado de cita y saldo): exige numero registrado mas nombre y fecha de nacimiento coincidentes, igual que la cancelacion; sin verificar se deniega, se audita (`sensitive_status_query_denied`) y se deriva a la psicologa sin revelar si la cita existe
 - prueba E2E móvil de Playwright en `frontend/tests/e2e/admin-agenda.spec.ts` (login + agenda diaria + leyenda + logout) y suite de contrato/integración/unitarias de US2 en el backend
 
 En este punto todavia no existe:
 
-- FAQ y consultas de estado por WhatsApp (US5)
 - scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta bajo demanda)
 - ejecución de la suite E2E automatizada en CI; requiere navegadores Playwright instalados y base sembrada (ver sección de comandos)
 
@@ -225,7 +226,7 @@ npm run reminders:worker --workspace backend
 - La suite E2E de Playwright no corre en CI: exige navegadores instalados, base sembrada (`ADMIN_SEED_PASSWORD`) y sesión `admin` real.
 - La prueba E2E pública de la landing se ejecuta en Chromium con el viewport y táctil de iPhone 13. WebKit no es portable en este Windows por DLLs del sistema no incluidas por Playwright.
 - Las migraciones se aplicaron y verificaron contra un PostgreSQL 16 real mediante el gate `RUN_POSTGRES_INTEGRATION` (incluida `20261101000000_convergence_hardening`); la configuracion de destino y credenciales de produccion sigue pendiente.
-- La cancelación por WhatsApp exige un número registrado y nombre + fecha de nacimiento coincidentes; sin esos datos la petición se rechaza y audita sin exponer información.
+- La verificación de identidad por WhatsApp cubre las dos superficies que exponen datos de una cita: la cancelación y la consulta de estado (`payment_status`). Ambas exigen un número registrado y nombre + fecha de nacimiento coincidentes; sin esos datos la petición se rechaza y audita sin exponer información.
 - `ENABLE_REMINDER_WORKER` está deshabilitado por defecto; producción debe activarlo o ejecutar el worker de forma externa. El arranque en producción valida `SESSION_IDLE_TIMEOUT_MINUTES=30`.
 - `npm audit` no reporta vulnerabilidades conocidas en las dependencias instaladas.
 

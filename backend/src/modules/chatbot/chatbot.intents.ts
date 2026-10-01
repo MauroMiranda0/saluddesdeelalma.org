@@ -21,7 +21,7 @@ const clinicalPattern =
   /\b(ansiedad|depresi[oó]n|suicid|autolesi|trauma|ataque de p[aá]nico|medicamento|diagn[oó]stic|terapia|trastorno|crisis|violencia|abuso|duelo|me siento|me siento mal|no puedo m[aá]s|me quiero hacer da[nñ]o|quiero morir|s[ií]ntoma)/i;
 const bookingPattern = /\b(agend|reserv|cita|sesi[oó]n|consult)/i;
 const cancellationPattern =
-  /\b(cancel\w*|anular|anulaci[oó]n|ya no podr[ée] (asistir|ir)|no podr[ée] (asistir|ir a la cita))\b/i;
+  /\b(cancel\w*|anular|anulaci[oó]n|no (?:puedo|podr[ée]|quise|pudiera) (?:asistir|ir|llegar))\b/i;
 const availabilityPattern = /\b(disponib|horario|espacio|fecha)/i;
 // A status request is consultation-shaped. It is deliberately restricted to
 // phrases the patient uses to ask about their own record so that imperative
@@ -40,8 +40,18 @@ export const isAutomationQuestion = (text: string) =>
   automationQuestionPattern.test(text);
 
 export const classifyIntent = (text: string): SupportedIntent => {
+  const faqEntry = matchesFaqCategory(text);
   if (containsSensitiveClinicalContent(text)) {
     return "handoff";
+  }
+  // US5/T186: the cancellation policy is public information, so a question
+  // about it is answered from the catalog. It is checked before the cancel
+  // intent because that flow demands identity before doing anything, which
+  // would make "¿qué pasa si cancelo?" unanswerable without proving who the
+  // patient is. An actual cancellation request does not match the policy
+  // pattern and still reaches the `cancel` intent below.
+  if (faqEntry?.category === "cancelacion") {
+    return "faq";
   }
   if (cancellationPattern.test(text)) {
     return "cancel";
@@ -49,7 +59,7 @@ export const classifyIntent = (text: string): SupportedIntent => {
   if (statusQueryPattern.test(text)) {
     return "payment_status";
   }
-  if (matchesFaqCategory(text)) {
+  if (faqEntry) {
     return "faq";
   }
   if (bookingPattern.test(text)) {

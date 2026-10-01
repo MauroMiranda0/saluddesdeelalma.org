@@ -99,9 +99,6 @@ export const cancellationConfirmedText = (
 
 export const faqResponse = (answer: string) => answer;
 
-export const faqUnmatchedResponse =
-  "Con gusto. Puedo orientarle sobre el horario de atención, la ubicación del consultorio, las modalidades de sesión y las formas de pago. También puedo revisar disponibilidad y agendarle una sesión. ¿Sobre cuál de esos temas le gustaría información?";
-
 export const statusVerificationPrompt =
   "Con gusto le informo el estado de su cita o de su saldo. Para proteger su información, por favor confirme su identidad con: Nombre: ...; nacimiento: AAAA-MM-DD.";
 

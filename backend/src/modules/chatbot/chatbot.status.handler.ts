@@ -5,9 +5,7 @@ import {
   type PaymentSignal
 } from "../appointments/appointments.service";
 import {
-  appointmentStatusText,
   noAppointmentOnRecordResponse,
-  paymentStatusText,
   statusSummaryText,
   type PaymentStatusLabel
 } from "./response-templates";
@@ -27,12 +25,6 @@ type StatusAppointmentWithPayments = StatusAppointment & {
  * never report a different payment state than Jocelyn sees in `/admin/payments`,
  * and no amount is interpolated, keeping FR-029 intact.
  */
-export const buildAppointmentStatusText = (appointment: StatusAppointment) =>
-  appointmentStatusText(appointment);
-
-export const buildPaymentStatusText = (payments: PaymentSignal[]) =>
-  paymentStatusText(paymentStatusOf(payments) as PaymentStatusLabel);
-
 export const buildStatusAnswer = (
   appointment: StatusAppointmentWithPayments | null
 ) => {

@@ -60,6 +60,19 @@ export const verifyPatientIdentity = async (input: {
   };
 
   if (!input.fullName || !input.birthdate) {
+    // Audited even though the orchestrator prompts for the missing fields
+    // before calling, so that this exported function can never produce a
+    // silent denial: FR-024 requires the denial to be derivable to the
+    // psychologist and FR-026 requires it in the audit trail.
+    await input.audit({
+      actorChannel: "whatsapp",
+      action: "identity_verification_failed",
+      entityType: "chat_conversation",
+      result: "failure",
+      metadata: { ...suppliedDetails, reason: "details_missing" },
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent
+    });
     return { status: "denied", reason: "details_missing" };
   }
 

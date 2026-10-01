@@ -66,7 +66,7 @@ El sitio usa la paleta aprobada de crema, salvia claro, verde oliva, melocotón 
 ## Qué falta para terminar
 
 1. **Recordatorios automáticos (10 actividades):** completadas en US4. El aviso del día previo se programa a las 18:00 `America/Mexico_City` del día calendario anterior, el aviso de pago pendiente se crea al registrar y al completar una cita, y la cancelación notifica al paciente sin doble envío porque el aviso en línea consume el mismo recordatorio. Cada entrega del outbox queda vinculada al recordatorio que cumple y el worker refleja `enviado` o `fallido` sobre su estado. Pendiente solo la UAT visual de los estados en el panel.
-2. **Consultas de pacientes por WhatsApp (7 actividades):** que el paciente pregunte "¿cuál es el estado de mi cita o mi pago?" y reciba respuesta verificando su identidad.
+2. **Consultas de pacientes por WhatsApp (7 actividades):** completadas en US5. El catálogo de FAQ contesta duración de sesión, modalidades, formas de pago, anticipo, privacidad y recordatorios; la consulta de estado de cita y saldo (`payment_status`) exige número registrado más nombre y fecha de nacimiento coincidentes, responde con el mismo texto ante cualquier denegación para no permitir enumerar pacientes, y audita la denegación (`sensitive_status_query_denied`) antes de derivar a la psicóloga. Pendiente solo la UAT desde el celular real.
 3. **Alineación de la interfaz y landing pública:** completadas. El panel conserva variaciones de composición aprobadas respecto al mockup, con barra lateral, tarjetas y jerarquía serena; la página pública ofrece información, contacto, WhatsApp y acceso discreto al panel.
 4. **Pulido y seguridad (5 actividades):** refuerzos técnicos de seguridad y revisión final.
 5. **Conexión del WhatsApp real:** hoy se simula el envío porque aún no tenemos las claves oficiales de WhatsApp Business; al conectarlas, los mensajes saldrán de verdad.
@@ -92,4 +92,4 @@ El plan pasó de 29 a **32 días** (el proyecto llevaba 29 al iniciar; la entreg
 
 ## Próximo paso sugerido
 
-Terminar los **recordatorios automáticos**, porque completan el ciclo: el paciente agenda, recibe confirmación, recuerda su cita el día anterior y recibe el aviso si tiene saldo pendiente.
+Conectar el **WhatsApp real**: ya están las claves, el webhook y el asistente, así que el paso que falta es la prueba de extremo a extremo desde tu celular con las credenciales oficiales de WhatsApp Business, que es lo que convierte lo simulado en mensajes que salen de verdad.

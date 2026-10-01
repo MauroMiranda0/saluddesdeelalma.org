@@ -311,6 +311,33 @@ test("cancellation intent is classified before booking and clinical content stil
   );
 });
 
+test("cancellation is recognized in the past and present tense without an object", () => {
+  assert.equal(classifyIntent("ya no puedo ir a la cita"), "cancel");
+  assert.equal(classifyIntent("no puedo asistir"), "cancel");
+  assert.equal(classifyIntent("ya no podré ir a la cita"), "cancel");
+  assert.notEqual(
+    classifyIntent("no puedo pagar"),
+    "cancel",
+    "the pattern must require attending as its object, not any verb"
+  );
+});
+
+test("a cancellation stated as name and birthdate plus the reason resolves in one turn", () => {
+  const text = "nombre: Ana Pérez; nacimiento: 1990-01-15, ya no puedo asistir";
+
+  assert.equal(classifyIntent(text), "cancel");
+  assert.deepEqual(
+    parseCancellationDetails(text),
+    { fullName: "Ana Pérez", birthdate: "1990-01-15" },
+    "the same turn carries the identity, so no extra message is needed"
+  );
+  assert.equal(
+    classifyIntent("me siento muy mal y ya no puedo ir"),
+    "handoff",
+    "clinical content keeps priority over the cancellation"
+  );
+});
+
 test("cancellation details parse the patient name and birthdate and match identity", () => {
   const details = parseCancellationDetails(
     "Quiero cancelar. Nombre: Ana Pérez; nacimiento: 1990-01-15"

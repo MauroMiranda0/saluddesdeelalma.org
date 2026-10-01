@@ -54,7 +54,6 @@ import {
   cancellationVerificationPrompt,
   clinicalHandoffResponse,
   faqResponse,
-  faqUnmatchedResponse,
   genericGreetingResponse,
   automationDisclosureResponse,
   statusVerificationFailedResponse,
@@ -319,16 +318,25 @@ export const processIncomingWhatsAppMessage = async (
     message.text
   );
   const classifiedIntent = classifyIntent(message.text);
+  // Resolved once here so the FAQ branch below reuses the very entry that
+  // produced the intent instead of matching the catalog a second time.
+  const faqEntry = matchesFaqCategory(message.text);
+  const sanitizedText = sanitizeIncomingWhatsAppContent(
+    message.text,
+    classifiedIntent
+  );
   let conversation = await processingDependencies.saveIncomingMessage({
     whatsappPhone: message.from,
     waMessageId: message.id,
-    contentText: sanitizeIncomingWhatsAppContent(
-      message.text,
-      classifiedIntent
-    ),
+    contentText: sanitizedText,
     receivedAt: message.receivedAt,
     intent: classifiedIntent,
-    containsSensitiveClinicalContent: hasSensitiveClinicalContent
+    containsSensitiveClinicalContent: hasSensitiveClinicalContent,
+    // FR-025 minimisation is not only about clinical content: the identity
+    // confirmation is also replaced by an administrative summary. Deriving
+    // `content_mode` from the clinical flag alone would persist a summary
+    // labelled as `full_text`, which is what `data-model.md` forbids.
+    contentWasMinimized: sanitizedText !== message.text
   });
   // saveIncomingMessage returns null when a durable retry re-processes a
   // message that was already persisted. Resume from the existing conversation
@@ -562,18 +570,21 @@ export const processIncomingWhatsAppMessage = async (
     return;
   }
 
-  if (intent === "faq") {
+  if (intent === "faq" && faqEntry) {
     // US5/AC1: the catalog is static official information, so an FAQ answer
-    // never requires identity verification.
+    // never requires identity verification. `classifyIntent` only returns
+    // "faq" when the catalog matched, so a missing entry here cannot happen;
+    // the `faqEntry` guard keeps that invariant explicit and, should it ever
+    // break, lets the message fall through to the generic greeting below
+    // instead of answering a question the catalog does not cover.
     await processingDependencies.updateConversation(conversation.id, {
       intent,
       lastMessageAt: message.receivedAt
     });
-    const entry = matchesFaqCategory(message.text);
     await sendResponse({
       conversationId: conversation.id,
       to: message.from,
-      text: entry ? faqResponse(entry.answer) : faqUnmatchedResponse,
+      text: faqResponse(faqEntry.answer),
       intent,
       gateway: context.gateway,
       saveOutboundMessage: processingDependencies.saveOutboundMessage,

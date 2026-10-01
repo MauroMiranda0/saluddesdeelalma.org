@@ -566,3 +566,66 @@ tienen trazas durables, comprobantes se asocian manualmente, tarifas validan el
 anticipo, agenda exige excepciones explicitas y los contratos, plan y pruebas
 de pagos quedaron alineados. La UAT formal con Jocelyn sigue siendo un gate de
 entrega, no una afirmacion de esta auditoria tecnica.
+
+## 2026-09-30 - FAQ, recordatorios y consultas de estado por WhatsApp (US5)
+
+**Contexto**
+
+`FR-022` a `FR-026` describen el canal de WhatsApp: un catalogo de FAQ, el
+intento de consultar el estado de una cita o de un saldo, la verificacion de
+identidad previa y la minimizacion de lo que se guarda. `US4` ya habia dejado la
+cancelacion con verificacion completa de identidad, y `Phase 26` habia adelantado
+esa semantica solo para la mutacion. US5 debia extenderla a la lectura sin
+duplicar, en el panel, la logica de saldo.
+
+**Decision**
+
+1. **Texto identico de denegacion para impedir enumeracion.** Todos los motivos de
+   denegacion de identidad (`details_missing`, `phone_not_registered`,
+   `identity_mismatch`) responden con la misma constante
+   `statusVerificationFailedResponse`. El motivo real se conserva en la
+   auditoria, nunca en el texto saliente: si el numero no registrado recibiera un
+   texto distinto al de una identidad incorrecta, el canal confirmaria que el
+   telefono tiene una cita y permitiria enumerar pacientes.
+
+2. **Metadata de auditoria solo con banderas.** `identity_verification_failed`
+   registra `hasFullName` y `hasBirthdate` mas un `reason`, nunca el nombre, la
+   fecha de nacimiento ni el texto del mensaje. La auditoria debe permitir
+   reconstruir la denegacion sin convertirse en una segunda copia del
+   expediente. La accion de exito si registra `patientId`.
+
+3. **Reordenamiento de intents.** La revision clinica se evalua antes que
+   reserva y cancelacion, para que un sintoma nunca se traduzca en una cita
+   agendada. El patron de cancelacion se evalua antes que el de reserva, de modo
+   que "quiero cancelar" no se lea como una intencion de agendar.
+
+4. **Reutilizacion de `paymentStatusOf` para no contradecir `/admin/payments`.**
+   El saldo que el canal informa sale del mismo helper que usa el panel, en lugar
+   de recalcularlo. Si WhatsApp y el panel calcularan el saldo por separado,
+   ambos podrian mostrar saldos distintos para la misma cita.
+
+5. **Minimizacion derivada, no elegida.** `content_mode` lo deriva el
+   repositorio desde `contentWasMinimized`, que el servicio obtiene comparando el
+   texto ya saneado con el original. La excepcion son `book` y `cancel`, cuyos
+   textos se conservan para que la reserva y la cancelacion sean trazables.
+
+**Alternativas consideradas**
+
+- Mostrar "cita no encontrada" cuando el numero no esta registrado (descartada:
+  permitiria enumerar).
+- Guardar el texto de la confirmacion de identidad tal cual (descartada: duplica
+  nombre y fecha de nacimiento dentro del historial de conversacion).
+- Recalcular el saldo en el canal (descartada: contradiria al panel).
+- Pedir solo el numero de WhatsApp para consultar el estado (descartada: el
+  numero es de sobra publico y no identifica a la persona).
+
+**Consecuencias**
+
+- El canal y el panel no pueden discrepar sobre el saldo de una cita.
+- Una denegacion es indistinguible para quien pregunta, pero queda explicada en
+  la auditoria para la psicologa.
+- El historial de conversacion no es un expediente clinico: lo clinico se
+  reduce a un resumen administrativo.
+- La verificacion de identidad cubre ahora dos superficies, lectura y
+  cancelacion; cualquier futura superficie que exponga datos de una cita debe
+  reutilizar `verifyPatientIdentity` en lugar de reimplementarla.

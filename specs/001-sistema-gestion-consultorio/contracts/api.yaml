@@ -466,6 +466,190 @@ components:
           type: string
           format: date-time
           nullable: true
+    ConversationIntent:
+      type: string
+      description: |
+        Intencion con la que el asistente clasifica un mensaje entrante de
+        WhatsApp. Refleja el enum `ConversationIntent` de Prisma. Dos miembros
+        estan reservados y ningun productor los emite: `identity_check` (la
+        respuesta de identidad se reanuda como la solicitud `payment_status`
+        pendiente) y `payment_info` (supersedido por `payment_status`), por lo
+        que nunca se persisten.
+      enum:
+        [
+          faq,
+          availability,
+          book,
+          cancel,
+          payment_info,
+          payment_status,
+          identity_check,
+          handoff,
+          unknown
+        ]
+    VerificationStatus:
+      type: string
+      description: |
+        Estado de la verificacion de identidad exigida por FR-023 antes de
+        disclose el estado de una cita o de un saldo por WhatsApp.
+      enum: [not_needed, pending, verified, failed]
+    ChatConversation:
+      type: object
+      description: |
+        Conversacion de un numero de WhatsApp con el consultorio. FR-025 limita
+        el texto almacenado a un resumen administrativo; `content_mode` indica si
+        `contentText` es el texto literal o ese resumen.
+      required:
+        [id, whatsappPhone, currentIntent, verificationStatus, state]
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Se fija junto con `lastVerifiedAt` al verificar la identidad.
+        whatsappPhone:
+          type: string
+        currentIntent:
+          $ref: "#/components/schemas/ConversationIntent"
+        verificationStatus:
+          $ref: "#/components/schemas/VerificationStatus"
+        lastVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        state:
+          type: string
+          enum: [abierta, cerrada, derivada]
+        lastMessageAt:
+          type: string
+          format: date-time
+    ChatMessage:
+      type: object
+      description: |
+        Mensaje individual o saliente de una conversacion. Un mensaje entrante
+        con contenido clinico o con la confirmacion de identidad se guarda como
+        `admin_summary`, nunca como el texto enviado por el paciente.
+      required: [id, conversationId, direction, senderKind, contentMode]
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        waMessageId:
+          type: string
+        direction:
+          type: string
+          enum: [inbound, outbound]
+        senderKind:
+          type: string
+          enum: [patient, assistant, admin, system]
+        contentMode:
+          type: string
+          enum: [full_text, admin_summary]
+        contentText:
+          type: string
+        containsSensitiveClinicalContent:
+          type: boolean
+        intent:
+          $ref: "#/components/schemas/ConversationIntent"
+    WhatsAppAuditActions:
+      type: string
+      description: |
+        Acciones de `audit_logs` que el canal de WhatsApp registra para US5.
+        La metadata solo contiene banderas de presencia (`hasFullName`,
+        `hasBirthdate`), nunca el nombre ni la fecha de nacimiento, para que la
+        auditoria no se convierta en una segunda copia del expediente.
+      enum:
+        [
+          identity_verification_succeeded,
+          identity_verification_failed,
+          sensitive_status_query_denied,
+          appointment_cancellation_denied
+        ]
+    WhatsAppInboundEvent:
+      type: object
+      description: Cuerpo del webhook entrante de Meta, en la forma que se acepta.
+      required: [object, entry]
+      properties:
+        object:
+          type: string
+          enum: [whatsapp_business_account]
+        entry:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              changes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                      enum: [messages]
+                    value:
+                      type: object
+                      properties:
+                        messaging_product:
+                          type: string
+                          enum: [whatsapp]
+                        metadata:
+                          type: object
+                          properties:
+                            display_phone_number:
+                              type: string
+                            phone_number_id:
+                              type: string
+                        contacts:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              wa_id:
+                                type: string
+                        messages:
+                          type: array
+                          items:
+                            type: object
+                            required: [id, from, type]
+                            properties:
+                              id:
+                                type: string
+                              from:
+                                type: string
+                              timestamp:
+                                type: string
+                              type:
+                                type: string
+                                enum: [text, image, document, audio, video, sticker]
+                              text:
+                                type: object
+                                properties:
+                                  body:
+                                    type: string
+                              image:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                  mime_type:
+                                    type: string
+                              document:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                  filename:
+                                    type: string
+                                  mime_type:
+                                    type: string
 paths:
   /api/v1/auth/login:
     post:
@@ -1409,18 +1593,17 @@ paths:
     post:
       tags: [WhatsApp]
       summary: Recibe eventos de mensajes y estados desde WhatsApp
+      description: |
+        Acepta de forma asincrona los mensajes de texto, imagen y documento que
+        originan las intenciones `faq`, `availability`, `book`, `cancel`,
+        `payment_status` y `handoff`. FR-023 exige numero registrado mas nombre y
+        fecha de nacimiento antes de disclose el estado de una cita o de un saldo.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [entry]
-              properties:
-                entry:
-                  type: array
-                  items:
-                    type: object
+              $ref: "#/components/schemas/WhatsAppInboundEvent"
       responses:
         "202":
           description: Evento aceptado para procesamiento asincrono
