@@ -29,6 +29,10 @@ const PROOF_PREFIX = "demo-";
 // America/Mexico_City es UTC-6 todo el ano, sin horario de verano desde 2022.
 const OFFSET = 6;
 
+/**
+ * Convierte hora de pared en America/Mexico_City a instante UTC.
+ * 09:00 en Mexico son 15:00 UTC, de ahi el OFFSET que se suma.
+ */
 const mx = (
   year: number,
   month: number,
@@ -36,6 +40,23 @@ const mx = (
   hour = 0,
   minute = 0
 ): Date => new Date(Date.UTC(year, month - 1, day, hour + OFFSET, minute));
+
+/**
+ * Descompone el instante actual en sus componentes de calendario de Mexico.
+ * Mexico va seis horas DETRAS de UTC, por eso se resta el offset: leer el
+ * instante sin desplazar daria la fecha de Tokio y sembraria las citas un dia
+ * adelantado.
+ */
+const mexicoNow = () => {
+  const shifted = new Date(Date.now() - OFFSET * 3600 * 1000);
+
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    weekday: shifted.getUTCDay()
+  };
+};
 
 const THERAPISTS = [
   { key: "jocelyn", fullName: "Jocelyn Gutiérrez", phone: "525660950001" },
@@ -357,16 +378,11 @@ const main = async () => {
 
   await cleanPreviousRun();
 
-  const shifted = new Date(Date.now() + OFFSET * 3600 * 1000);
-  const weekday = shifted.getUTCDay();
+  const today = mexicoNow();
   // Si hoy es fin de semana, el dia de referencia pasa al siguiente lunes para
   // que las citas caigan en horario habil.
-  const skip = weekday === 0 ? 1 : weekday === 6 ? 2 : 0;
-  const reference = mx(
-    shifted.getUTCFullYear(),
-    shifted.getUTCMonth() + 1,
-    shifted.getUTCDate() + skip
-  );
+  const skip = today.weekday === 0 ? 1 : today.weekday === 6 ? 2 : 0;
+  const reference = mx(today.year, today.month, today.day + skip);
   const refYear = reference.getUTCFullYear();
   const refMonth = reference.getUTCMonth() + 1;
   const refDay = reference.getUTCDate();
