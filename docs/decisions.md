@@ -629,3 +629,34 @@ duplicar, en el panel, la logica de saldo.
 - La verificacion de identidad cubre ahora dos superficies, lectura y
   cancelacion; cualquier futura superficie que exponga datos de una cita debe
   reutilizar `verifyPatientIdentity` en lugar de reimplementarla.
+
+## 2026-10-03 - Headers de seguridad y presupuestos de peticiones (T066)
+
+**Contexto**
+
+`T066` pedia hardening de cookies, headers, limites de entrada y verificacion del webhook. Al cerrarla, dos de los cuatro puntos ya estaban resueltos: las opciones de cookie en `backend/src/modules/auth/session.service.ts` (`httpOnly`, `secure` en produccion, `sameSite: "lax"`, `path`, `maxAge`) y el limite de cuerpo de 1 MB en `backend/src/app.ts`. La verificacion del webhook tampoco estaba pendiente: `T208` ya comparaba `WHATSAPP_VERIFY_TOKEN` en tiempo constante dentro de `chatbot.controller.ts`. Faltaban los headers de seguridad y el limite de peticiones, y ninguna de las dos cosas aparece en `spec.md`: no hay requisito funcional que las exija.
+
+**Decision**
+
+1. **Allowlist explicita de helmet, sin CSP.** `backend/src/middleware/security.ts` activa `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` y HSTS de 180 dias, y desactiva `contentSecurityPolicy`. Una CSP mal situada rompe Next.js en produccion y no hay despliegue donde validarla; queda abierta como `T216`. `frontend/next.config.ts` replica los mismos cuatro headers, porque el panel se sirve desde ahi y no desde la API.
+
+2. **El limite se aplica por superficie, nunca global.** Solo `/api/v1/admin` (300 peticiones por minuto) y `/api/v1/webhooks` (120 por minuto). Un limite global habria penalizado a los workers de recordatorios y de inbox de WhatsApp, que comparten el despliegue, y habria convertido el limite en una fuente de fallos silenciosos en vez de una proteccion.
+
+3. **La clave es la IP que resuelve Express.** Sin `trust proxy` declarado, `X-Forwarded-For` no reinicia el contador: un encabezado falsificado no compra presupuesto. La prueba de contrato lo fija.
+
+4. **El 429 habla el idioma de la API.** `rate_limit_exceeded` con `message` y `requestId` en el mismo sobre que el resto de errores, y cabeceras `RateLimit` del draft 7 en vez de las `X-RateLimit-*` heredadas.
+
+5. **El rechazo se registra en `pino`, no en `audit_logs`.** Es un evento de seguridad, no una accion de negocio: escribir en PostgreSQL mientras se descarta una inundacion la amplifica. El limitador corre antes de `authenticate`, asi que un rechazo no es un acceso denegado que `FR-016` exija auditar.
+
+**Alternativas consideradas**
+
+- CSP estricta desde ya (descartada: sin despliegue que la valide, un `script-src` mal puesto deja la landing en blanco).
+- Limite global (descartada: rompe el trafico interno de los workers).
+- Auditar los 429 en `audit_logs` (descartada: amplifica la inundacion que se quiere contener).
+- Limitar tambien `/api/v1/auth/login` (descartada en esta fase: `T066` acoto el alcance a las superficies del panel y del webhook, y el login merece su propia tarea con su propio presupuesto).
+
+**Consecuencias**
+
+- El panel y el webhook quedan con un techo de peticiones; el resto de la API sigue sin limite, incluido el trafico de los workers.
+- El 429 no existe en `spec.md`: es endurecimiento tecnico sin requisito que lo respalde. Queda documentado en `contracts/api.yaml` para que el contrato no se quede atras.
+- `T216` sigue abierta: la CSP se define despues del primer despliegue, en modo `report-only` primero.

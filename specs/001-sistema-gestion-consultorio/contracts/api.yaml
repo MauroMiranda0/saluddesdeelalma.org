@@ -24,6 +24,17 @@ components:
       type: apiKey
       in: cookie
       name: sda_admin_session
+  responses:
+    RateLimited:
+      description: >-
+        Presupuesto de peticiones por minuto excedido para la IP de origen
+        (`rate_limit_exceeded`). Aplica solo a las superficies del panel
+        administrativo y del webhook de WhatsApp.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
   schemas:
     Error:
       type: object
@@ -747,6 +758,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
     post:
       tags: [Admin Therapists]
       summary: Crea un perfil clinico sin capacidad de inicio de sesion
@@ -793,6 +806,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /api/v1/admin/therapists/{therapistId}:
     patch:
       tags: [Admin Therapists]
@@ -847,6 +862,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /api/v1/admin/patients:
     get:
       tags: [Admin Patients]
@@ -878,6 +895,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
     post:
       tags: [Admin Patients]
       summary: Crea un paciente y opcionalmente le asigna un terapeuta activo
@@ -930,6 +949,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /api/v1/admin/patients/{patientId}:
     patch:
       tags: [Admin Patients]
@@ -984,6 +1005,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /api/v1/admin/patients/{patientId}/therapist:
     patch:
       tags: [Admin Patients]
@@ -1038,6 +1061,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /api/v1/appointments:
     get:
       tags: [Appointments]
@@ -1530,6 +1555,8 @@ paths:
                         type: string
                         format: date-time
                         nullable: true
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /api/v1/directory:
     get:
       tags: [Directory]
@@ -1590,6 +1617,8 @@ paths:
             text/plain:
               schema:
                 type: string
+        "429":
+          $ref: "#/components/responses/RateLimited"
     post:
       tags: [WhatsApp]
       summary: Recibe eventos de mensajes y estados desde WhatsApp
@@ -1607,3 +1636,5 @@ paths:
       responses:
         "202":
           description: Evento aceptado para procesamiento asincrono
+        "429":
+          $ref: "#/components/responses/RateLimited"

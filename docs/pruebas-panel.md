@@ -119,3 +119,23 @@ Las remediaciones T144-T164 estan cerradas en `tasks.md`.
 
 - `SC-010` es un criterio de UAT: la verificacion de que el paciente real consigue su estado por WhatsApp sigue sin ejecutarse desde un telefono.
 - La conexion con el WhatsApp real sigue pendiente de credenciales de Meta, igual que para US4.
+
+## Fase 9: Hardening de seguridad - 03/10/2026
+
+### Cobertura automatizada agregada
+
+- `backend/tests/contract/security-hardening.contract.test.ts` (5 pruebas) fija los cuatro headers de seguridad en toda ruta y la ausencia de `Content-Security-Policy`, la declaracion del presupuesto en el webhook y en las rutas administrativas (300 y 120 por minuto, observables en la cabecera `RateLimit`), que `/health` no se limita ni aunque se superen las 125 peticiones, la forma `429 rate_limit_exceeded` con `requestId`, y que un `X-Forwarded-For` falsificado no reinicia el presupuesto.
+- `backend/src/middleware/security.ts` expone una factory con dependencias inyectables, igual que `payments.routes.ts:91-124`, para que las pruebas fijen presupuestos pequenos sin abrir los puertos reales del panel.
+- `backend/tests/contract/whatsapp-webhook.contract.test.ts` sigue verde con el limitador montado: cada prueba levanta su propia instancia de `createApp()` y su propio presupuesto.
+
+### Gates ejecutados
+
+- `npm run typecheck`, `npm run lint` y `npm run format:check`: correctos.
+- `npm run test --workspace backend`: 159 pruebas, 129 correctas, 0 fallidas, 30 omitidas (el gate PostgreSQL y las preexistentes). Las 5 nuevas son de contrato y no dependen de PostgreSQL.
+- `npm run test --workspace frontend`: 8 pruebas, 8 correctas.
+
+### Lo que sigue exigiendo revision humana
+
+- Los presupuestos (300 y 120 por minuto) no se han medido contra el trafico real del consultorio. Meta entrega la conversacion a rafagas y un limite bajo descartaria eventos legitimos; el ajuste fino necesita el despliegue.
+- `T216`: la `Content-Security-Policy` sigue sin definirse porque no hay entorno donde validar que no rompa Next.js.
+- Ni `spec.md` ni `plan.md` exigen headers de seguridad ni limite de peticiones: el endurecimiento quedo implementado sin requisito que lo respalde, y `plan.md:15` declara `Supertest` y `Vitest`, que el repositorio no usa. Corresponde a la cliente decidir si se agrega el requisito, se actualiza el plan o se deja como detalle de implementacion.

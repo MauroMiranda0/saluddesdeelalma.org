@@ -5,6 +5,7 @@ import express from "express";
 
 import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
+import { createSecurityMiddleware } from "./middleware/security";
 import { adminAppointmentRoutes } from "./modules/appointments/appointments.routes";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { chatbotRoutes } from "./modules/chatbot/chatbot.routes";
@@ -16,6 +17,7 @@ import { therapistAdminRoutes } from "./modules/therapists/therapists.routes";
 
 export const createApp = () => {
   const app = express();
+  const security = createSecurityMiddleware();
 
   app.disable("x-powered-by");
   // FR-026: the audit trail records the caller's IP, so behind Hostinger or
@@ -31,6 +33,7 @@ export const createApp = () => {
     })
   );
   app.use(express.json({ limit: "1mb" }));
+  app.use(security.headers);
 
   app.use((request, response, next) => {
     const requestId = request.header("x-request-id") ?? crypto.randomUUID();
@@ -43,8 +46,16 @@ export const createApp = () => {
   app.use("/health", healthRoutes);
   app.use(`${env.API_PREFIX}/health`, healthRoutes);
   app.use(`${env.API_PREFIX}/auth`, authRoutes);
-  app.use(`${env.API_PREFIX}/webhooks`, chatbotRoutes);
-  app.use(`${env.API_PREFIX}/admin`, therapistAdminRoutes);
+  app.use(
+    `${env.API_PREFIX}/webhooks`,
+    security.webhookRateLimit,
+    chatbotRoutes
+  );
+  app.use(
+    `${env.API_PREFIX}/admin`,
+    security.adminRateLimit,
+    therapistAdminRoutes
+  );
   app.use(`${env.API_PREFIX}`, adminAppointmentRoutes);
   app.use(`${env.API_PREFIX}`, paymentRoutes);
   app.use(`${env.API_PREFIX}`, reminderRoutes);

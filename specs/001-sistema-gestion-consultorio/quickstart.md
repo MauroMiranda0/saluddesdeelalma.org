@@ -188,6 +188,9 @@ Procesa los eventos entrantes de WhatsApp persistidos en la bandeja durable al a
 - `/api/v1/auth/me` y `/api/v1/auth/logout` requieren una cookie de sesion valida emitida por el login; la sesion expira por inactividad de 30 minutos.
 - Las auditorías de denegacion incluyen `requestId`; la sesion se desliza en cada peticion autenticada y la cookie de `/auth/me` se renueva con opciones de sesion.
 - La API administrativa responde `400 validation_error` para parametros de ruta no-UUID.
+- La API responde en toda ruta con `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` y `Strict-Transport-Security: max-age=15552000`; el panel los replica desde `frontend/next.config.ts`. No hay `Content-Security-Policy`: queda abierta como `T216` porque sin despliegue no hay forma de validarla.
+- El cuerpo JSON se limita a 1 MB y la cookie de sesion es `httpOnly`, `secure` en produccion, `sameSite: lax`, con `path` `/` y `maxAge` de 30 minutos.
+- `/api/v1/admin` y `/api/v1/webhooks` responden `429 rate_limit_exceeded` al exceder su presupuesto por IP: 300 y 120 peticiones por minuto. El limite es por superficie, no global, para no penalizar el trafico interno de los workers; el rechazo queda en el log con `requestId`, metodo, ruta e IP, y no se escribe en `audit_logs`.
 - El adaptador de WhatsApp simula envios fuera de produccion si faltan `WHATSAPP_ACCESS_TOKEN` o `WHATSAPP_PHONE_NUMBER_ID`; produccion exige ambas credenciales.
 - La migración `20260911000000_therapist_session_rules` requiere PostgreSQL real con `btree_gist`; la migración de endurecimiento `20261101000000_convergence_hardening` refuerza la restricción a nivel de trigger. Ambas se verifican con el gate de la seccion 9.
 - Las citas nuevas requieren una psicóloga asignada por `admin`; individual dura 60 minutos y pareja/familiar 90 minutos.
