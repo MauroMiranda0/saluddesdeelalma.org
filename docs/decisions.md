@@ -630,6 +630,27 @@ duplicar, en el panel, la logica de saldo.
   cancelacion; cualquier futura superficie que exponga datos de una cita debe
   reutilizar `verifyPatientIdentity` en lugar de reimplementarla.
 
+## 2026-09-30 - Confianza de proxy declarable desde el entorno (T207)
+
+**Contexto**
+
+`FR-026` exige que la auditoria registre la IP real de quien solicita, y `receiveWhatsAppWebhook` persiste `request.ip` en `audit_logs`. Sin `app.set("trust proxy")` en ningun punto de `backend/src`, desplegado detras de un proxy como Hostinger o Cloudflare se guardaba la direccion del proxy, que es la misma para todas las peticiones y por lo tanto no distingue a nadie. El webhook es la superficie mas expuesta porque es la unica que acepta peticiones no autenticadas de Internet.
+
+**Decision**
+
+1. **`TRUST_PROXY` es opcional y no altera el comportamiento local.** `backend/src/config/env.ts:28` la valida como `boolean | "1" | number | string` sin valor por defecto, y `backend/src/app.ts:26-28` solo invoca `app.set("trust proxy", env.TRUST_PROXY)` cuando esta declarada. Sin la variable el comportamiento es exactamente el anterior: Express ignora `X-Forwarded-For`.
+
+2. **Declararla es una decision de despliegue, no un default.** Se documenta en `backend/.env.example` y en la lista de variables de `quickstart.md`. El valor debe fijarse segun cuantos proxies haya delante de la aplicacion: un numero si es uno solo, `true` si se confia en toda la cadena.
+
+3. **Cambia tambien la clave del limite de peticiones, no solo la IP de auditoria.** El limitador de `backend/src/middleware/security.ts:33-38` usa `request.ip`, que es el mismo valor. Al declarar la variable, el techo por superficie pasa a contar por IP real en lugar de por direccion de proxy. Es lo correcto para la auditoria, pero deja de ser una proteccion frente a un atacante unico que rota su direccion.
+
+**Consecuencias**
+
+- El commit `b9758db` implemento el codigo pero dejo `T207` sin marcar y sin documentar la variable en ningun lado. El checkbox se cerro el 03/10/2026 al alinear la documentacion, sin cambios de codigo.
+- `backend/tests/contract/security-hardening.contract.test.ts:176-190` fija el caso por defecto y su comentario asume que la variable no se declara. Si alguien la define en `backend/.env`, esa prueba cambia de significado sin aviso. Anadir una prueba para el caso declarado queda pendiente.
+- La resolucion real de `X-Forwarded-For` detras de mas de un salto no esta probada: ninguna prueba fija cuantos proxies hay delante.
+- La IP real se persiste en 15 rutas mas ademas del webhook (auth, directorio, citas, pagos y los dos middlewares de autorizacion), todas afectadas por el mismo cambio.
+
 ## 2026-10-03 - Headers de seguridad y presupuestos de peticiones (T066)
 
 **Contexto**
@@ -642,7 +663,7 @@ duplicar, en el panel, la logica de saldo.
 
 2. **El limite se aplica por superficie, nunca global.** Solo `/api/v1/admin` (300 peticiones por minuto) y `/api/v1/webhooks` (120 por minuto). Un limite global habria penalizado a los workers de recordatorios y de inbox de WhatsApp, que comparten el despliegue, y habria convertido el limite en una fuente de fallos silenciosos en vez de una proteccion.
 
-3. **La clave es la IP que resuelve Express.** Sin `trust proxy` declarado, `X-Forwarded-For` no reinicia el contador: un encabezado falsificado no compra presupuesto. La prueba de contrato lo fija.
+3. **La clave es la IP que resuelve Express.** Sin `trust proxy` declarado, `X-Forwarded-For` no reinicia el contador: un encabezado falsificado no compra presupuesto. La prueba de contrato lo fija. Este punto queda condicionado por la entrada del 30/09/2026 mas abajo: al declarar `TRUST_PROXY` en produccion, la clave pasa a ser la IP real del solicitante.
 
 4. **El 429 habla el idioma de la API.** `rate_limit_exceeded` con `message` y `requestId` en el mismo sobre que el resto de errores, y cabeceras `RateLimit` del draft 7 en vez de las `X-RateLimit-*` heredadas.
 
@@ -660,3 +681,22 @@ duplicar, en el panel, la logica de saldo.
 - El panel y el webhook quedan con un techo de peticiones; el resto de la API sigue sin limite, incluido el trafico de los workers.
 - El 429 no existe en `spec.md`: es endurecimiento tecnico sin requisito que lo respalde. Queda documentado en `contracts/api.yaml` para que el contrato no se quede atras.
 - `T216` sigue abierta: la CSP se define despues del primer despliegue, en modo `report-only` primero.
+
+## 2026-10-03 - La ruta raiz es la landing publica (cierra US6)
+
+**Contexto**
+
+La entrada del 11/09/2026 sobre la sesion administrativa afirma que "la cuenta raiz `/` redirige a `/admin/agenda`". Esa frase describe el comportamiento que era cierto cuando `US6` aun no existia. El commit `84b23eb` del 17/09/2026 implemento la landing publica en `frontend/app/page.tsx`, con hero, servicios, modalidades, contacto, CTA de WhatsApp, catalogo de FAQ y acceso discreto al panel, de modo que la afirmacion quedo obsoleta. `docs/decisions.md` es un registro de decisiones y no un documento de estado: reescribir la entrada del 11/09 falsearia la decision que se tomo ese dia. Lo correcto es registrar el cambio como una entrada nueva.
+
+**Decision**
+
+1. **`/` sirve la landing publica.** El panel sigue en `/admin`, protegido por `AdminGuard`, y la landing ofrece un acceso discreto que no la invade. Verificado en `frontend/app/page.tsx` y en `frontend/tests/e2e/public-landing.spec.ts`.
+
+2. **La entrada del 11/09/2026 se conserva sin corregir su texto** y queda superada por esta. Su afirmacion sobre `/` debe leerse como el estado de esa fecha.
+
+3. **De la consecuencia que el 11/09/2026 dejo abierta sobre el panel, solo queda una parte.** Aquella entrada decia que el panel pendiente debia incorporar asignacion y reasignacion, y mostrar tipo, duracion y fin de cita. La segunda mitad ya se cumple: el DTO de calendario proyecta tipo, duracion y fin de cita. Lo que sigue pendiente es solo la asignacion y reasignacion, que permanece en modo lectura y queda anotada como tal en `README.md`.
+
+**Consecuencias**
+
+- `quickstart.md` afirmaba tres veces que `/` redirigia al panel y que la landing seguia pendiente. Se corrigio al mismo tiempo que esta entrada.
+- `docs/avance-dia-10.md` y `docs/avance-dia-17.md` arrastran la era anterior a US6 y se marcaron como historicos con un aviso que remite al estado vigente.

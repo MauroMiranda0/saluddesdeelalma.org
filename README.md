@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Este repositorio cerró la **Fase 3: Historia de Usuario 1 - Agendar una cita por WhatsApp**, la **Fase comercial 6: Historia de Usuario 2 - Gestionar la agenda y las citas desde el panel**, las convergencias **Phase 23** a **Phase 31** y la **Phase 32: alineación de interfaz y landing pública** del proyecto `001-sistema-gestion-consultorio`. Las remediaciones `T091`-`T164`, la implementación completa de `US2` (`T025`-`T035`, `T081`-`T083`), la cancelación de citas por WhatsApp con verificación de identidad (`T140`-`T141`) y la landing pública (`T165`-`T171`) están cerradas y verificadas con sus gates disponibles.
+Este repositorio cerró las seis historias de usuario del proyecto `001-sistema-gestion-consultorio`: **US1** (agendar una cita por WhatsApp), **US2** (gestionar la agenda y las citas desde el panel), **US3** (pagos, anticipos y comprobantes), **US4** (recordatorios automáticos), **US5** (FAQ y consulta de estado de cita y pago por WhatsApp) y **US6** (landing pública y alineación de la interfaz al mockup aprobado). Las convergencias **Phase 23** a **Phase 40** y las remediaciones `T091`-`T220` están cerradas con sus gates disponibles, incluida la convergencia de seguridad `T066` (`T217`-`T220`). El avance al 03/10/2026 (día 34) es de **204 de 220 tareas (92.7%)**; el detalle por tarea y las 16 abiertas están en `specs/001-sistema-gestion-consultorio/tasks.md`.
 
 En este punto existe:
 
@@ -48,6 +48,13 @@ En este punto todavia no existe:
 
 - scheduler/programador que enlace el worker de recordatorios (hoy se ejecuta bajo demanda)
 - ejecución de la suite E2E automatizada en CI; requiere navegadores Playwright instalados y base sembrada (ver sección de comandos)
+- infraestructura de despliegue: no hay Dockerfile, ni definición de CI, ni configuración de plataforma. El despliegue es manual
+- destino de PostgreSQL en producción: las credenciales y el destino siguen sin definirse
+- UAT con la cliente, que nunca se ha ejecutado; de ella dependen SC-008, SC-010 y SC-016
+- conexión a la cuenta real de WhatsApp: sin `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID` los envíos van simulados
+- `Content-Security-Policy`, diferida a después del primer despliegue por decisión documentada en `quickstart.md` (`T216`)
+- badges de pendientes en el menú del panel (`T210`-`T215`)
+- asignación y reasignación de citas desde el panel (la interfaz es de solo lectura en ese sentido)
 
 ## Estructura actual
 
@@ -116,6 +123,12 @@ npm run prisma:validate
 ```
 
 El comando carga `backend/.env.example`, por lo que valida el schema sin requerir un archivo `.env` ni conectarse a PostgreSQL.
+
+Ejecutar toda la suite (backend y frontend encadenados desde la raíz):
+
+```bash
+npm run test
+```
 
 Ejecutar las pruebas del backend (contrato, integración y unitarias):
 
@@ -217,6 +230,20 @@ Worker de recordatorios (ejecuta el despacho y repite cada 5 minutos; requiere b
 npm run reminders:worker --workspace backend
 ```
 
+Worker del inbox de WhatsApp (procesa los eventos entrantes aceptados por el webhook; Arranca con el backend si `ENABLE_WHATSAPP_INBOX_WORKER=true`, o bajo demanda):
+
+```bash
+npm run whatsapp-inbox:worker --workspace backend
+```
+
+Datos de desarrollo (requieren `backend/.env` y una base sembrada):
+
+```bash
+npm run db:seed --workspace backend          # cuenta administrativa de Jocelyn
+npm run db:seed:demo --workspace backend     # agenda, recordatorios y pagos de ejemplo
+npm run db:clean:test-data --workspace backend # borra los residuos de integración
+```
+
 ## Limitaciones actuales
 
 - `npm run start:backend` requiere haber ejecutado `npm run build`.
@@ -225,10 +252,11 @@ npm run reminders:worker --workspace backend
 - El panel es funcional, pero la asignación de psicóloga a pacientes sigue requiriendo el listado legado de `therapists`/`patients`; el directorio las presenta solamente en modo lectura.
 - La suite E2E de Playwright no corre en CI: exige navegadores instalados, base sembrada (`ADMIN_SEED_PASSWORD`) y sesión `admin` real.
 - La prueba E2E pública de la landing se ejecuta en Chromium con el viewport y táctil de iPhone 13. WebKit no es portable en este Windows por DLLs del sistema no incluidas por Playwright.
-- Las migraciones se aplicaron y verificaron contra un PostgreSQL 16 real mediante el gate `RUN_POSTGRES_INTEGRATION` (incluida `20261101000000_convergence_hardening`); la configuracion de destino y credenciales de produccion sigue pendiente.
+- Las 11 migraciones se aplicaron contra un PostgreSQL 16 real, incluida `20261101000000_convergence_hardening`; la configuración de destino y credenciales de producción sigue pendiente.
 - La verificación de identidad por WhatsApp cubre las dos superficies que exponen datos de una cita: la cancelación y la consulta de estado (`payment_status`). Ambas exigen un número registrado y nombre + fecha de nacimiento coincidentes; sin esos datos la petición se rechaza y audita sin exponer información.
 - `ENABLE_REMINDER_WORKER` está deshabilitado por defecto; producción debe activarlo o ejecutar el worker de forma externa. El arranque en producción valida `SESSION_IDLE_TIMEOUT_MINUTES=30`.
-- `npm audit` no reporta vulnerabilidades conocidas en las dependencias instaladas.
+- El gate `RUN_POSTGRES_INTEGRATION` **está en rojo**: fallan `T203` y `T204`, y `T205` lo hace no determinista porque las pruebas corren sin `--test-concurrency=1` contra una base compartida e instalan triggers globales sobre `audit_logs`. La suite por defecto (sin el gate) sí pasa. Ver `docs/pruebas-panel.md` y `tasks.md:636`-`:640`.
+- `npm audit` no se ha vuelto a ejecutar desde que `helmet` y `express-rate-limit` se agregaron a las dependencias; la afirmación anterior de que no hay vulnerabilidades conocidas es previa a ese commit y no se ha re-verificado.
 
 ## Referencias
 

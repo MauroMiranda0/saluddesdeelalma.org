@@ -1,5 +1,7 @@
 # Segundo Avance - Estado Real del Proyecto
 
+> **Documento historico.** Snapshot del dia 10 (10/09/2026). No describe el estado vigente del proyecto: de los siete puntos que su seccion "Alcance aun pendiente" lista, cinco estan cerrados (panel, pagos, recordatorios, consultas por WhatsApp y landing publica). El estado vigente esta en `CONSTITUTION.md` seccion 8 y en `README.md` seccion "Estado actual".
+
 ## Contexto de la entrega
 
 El primer avance presentado cubrio la fase de diseno: identidad visual, wireframes, guiones de conversacion y aprobacion de la cliente.

@@ -3,8 +3,8 @@
 > **Proyecto:** Salud desde el Alma
 > **Eslogan:** "Tu bienestar, nuestro propósito"
 > **Servicio:** Psicología integral (Cuerpo, Mente, Espíritu)
-> **Versión:** 1.6
-> **Fecha:** 25 de septiembre de 2026
+> **Versión:** 1.7
+> **Fecha:** 3 de octubre de 2026
 > **Estado:** Guía constitutiva para el ciclo de vida del proyecto
 
 Este documento es la referencia de mayor jerarquía para el desarrollo, diseño, implementación y mantenimiento del asistente digital del consultorio de psicología **Salud desde el Alma**. Todo trabajo técnico o de diseño debe alinearse con lo aquí establecido.
@@ -271,7 +271,7 @@ appointment_reminders
 ├── recipient ENUM('paciente','grupo_psicologas')
 ├── scheduled_at TIMESTAMPTZ
 ├── sent_at TIMESTAMPTZ (NULL = pendiente)
-├── status ENUM('pendiente','enviado','fallido')
+├── status ENUM('pendiente','procesando','enviado','fallido','omitido')
 
 chat_conversations
 ├── id UUID PK
@@ -444,12 +444,13 @@ La persona debe percibir una conversación sencilla, cálida y fluida, similar a
 
 ## 8. Plan de desarrollo detallado
 
-Duración total estimada: **32 días calendario** (inicio: **31 de agosto de 2026**, entrega comprometida máxima: **1 de octubre de 2026**). Las fechas son estimadas y se ajustan según validaciones y disponibilidad de la cliente. El ajuste del plan (v1.5) incorpora una fase dedicada de alineación de la interfaz al mockup `mockupWithDashboard.png`, que se ejecuta **en paralelo con el desarrollo de la landing**.
+Duración total estimada: **32 días calendario** (inicio: **31 de agosto de 2026**, entrega comprometida máxima: **1 de octubre de 2026**). Las fechas son estimadas y se ajustan según validaciones y disponibilidad de la cliente. El ajuste del plan (v1.6) incorpora una fase dedicada de alineación de la interfaz al mockup `mockupWithDashboard.png`, que se ejecuta **en paralelo con el desarrollo de la landing**.
 
-## Estado al día 17 (16 de septiembre de 2026)
+## Estado al día 34 (3 de octubre de 2026)
 
-- **Completadas:** Fases 1, 2, 3 de este plan (diseño, MVP, pagos y recordatorios parciales), US1 (agendamiento WhatsApp), US2 (panel administrativo) y US3 (pagos). Progreso de tareas **137 de 164 (83.5%)**.
-- **Pendiente funcional:** US4 recordatorios automáticos, US5 FAQ/estado de cita y pago por WhatsApp, US6 landing pública y alineación visual de la interfaz al mockup aprobado.
+- **Completadas:** Fases 1 a 6 de este plan, es decir diseño, MVP, pagos, alineación visual al mockup aprobado y las seis historias de usuario: US1 (agendamiento WhatsApp), US2 (panel administrativo), US3 (pagos), US4 (recordatorios automáticos), US5 (FAQ y estado de cita y pago por WhatsApp) y US6 (landing pública). Progreso de tareas **204 de 220 (92.7%)**, contando como cerradas `T206`, `T207` y `T208`, cuyo código aterrizó el 30/09/2026 sin marcar. La Fase 7 avanza con el endurecimiento de seguridad cerrado (`T066`, `T217`-`T220`).
+- **Pendiente funcional:** ninguno de las seis historias. Lo que queda abierto es (a) la UAT con la cliente, que nunca se ha ejecutado y de la que dependen SC-008, SC-010 y SC-016; (b) el despliegue, que exige credenciales reales de Meta y un destino de PostgreSQL en producción; (c) la `Content-Security-Policy`, diferida a después del primer despliegue (`T216`); (d) el gate `RUN_POSTGRES_INTEGRATION` en rojo por `T203` y `T204` y no determinista por `T205`; (e) los badges de pendientes del menú (`T210`-`T215`); (f) la decisión sobre la capa de IA declarada en el plan y nunca implementada (`T209`); y (g) los puntos abiertos de Fase 9: `T064`, `T065`, `T067` y `T068`.
+- **Cronograma:** el día 34 excede los 32 días planificados y la entrega comprometida máxima del **1 de octubre de 2026** venció sin que se acordara una nueva fecha de cierre. La fecha por definir es decision de la cliente.
 
 ### Fase 1 — Diseño UI/UX (Días 1–5) · Completada
 
@@ -482,7 +483,7 @@ Duración total estimada: **32 días calendario** (inicio: **31 de agosto de 202
 | 15  | Registro y confirmación manual de pagos: anticipo 50% y pago completo |
 | 16  | Estados de pago y vista en el panel y comprobantes de WhatsApp |
 
-### Fase 4 — Recordatorios automáticos US4 (Días 17–20)
+### Fase 4 — Recordatorios automáticos US4 (Días 17–20) · Completada
 
 Los recordatorios programados quedan como alcance acordado. La confirmación inmediata ya se envía al agendar.
 
@@ -494,7 +495,7 @@ Los recordatorios programados quedan como alcance acordado. La confirmación inm
 
 **Criterio de aceptación:** recordatorios automáticos y manuales quedan trazables por destinatario; fuera de la ventana no se envían ni reintentan; avisos de saldo solo al paciente.
 
-### Fase 5 — Consultas por WhatsApp y FAQ US5 (Días 21–22)
+### Fase 5 — Consultas por WhatsApp y FAQ US5 (Días 21–22) · Completada
 
 | Día | Entregable                                                                                     |
 | --- | ---------------------------------------------------------------------------------------------- |
@@ -503,7 +504,7 @@ Los recordatorios programados quedan como alcance acordado. La confirmación inm
 
 **Criterio de aceptación:** el paciente identificado consulta su cita o saldo; si la verificación falla no se exponen datos y se deriva a la psicóloga.
 
-### Fase 6 — Landing pública + Alineación de interfaz al mockup (Días 23–25, en paralelo)
+### Fase 6 — Landing pública + Alineación de interfaz al mockup (Días 23–25, en paralelo) · Completada
 
 Trabajo **en paralelo**: se construye la landing pública con la identidad correcta, mientras la interfaz del panel se rediseña para ser **fiel al mockup** `mockupWithDashboard.png` (referencia visual en la raíz del proyecto), no genérica.
 
@@ -515,14 +516,14 @@ Trabajo **en paralelo**: se construye la landing pública con la identidad corre
 
 **Criterio de aceptación:** la landing y el panel se asemejan de forma evidente al mockup aprobado; a la cliente se le presenta comparativa antes/después.
 
-### Fase 7 — Pulido y seguridad (Días 26–27)
+### Fase 7 — Pulido y seguridad (Días 26–27) · En curso
 
 | Día | Entregable                                                                  |
 | --- | --------------------------------------------------------------------------- |
 | 26  | Pulido final de UX del panel y detalles visuales restantes                  |
 | 27  | Pruebas de seguridad (autenticación JWT, control de accesos, SSL, secretos) |
 
-### Fase 8 — UAT, ajustes y despliegue (Días 28–32)
+### Fase 8 — UAT, ajustes y despliegue (Días 28–32) · Pendiente
 
 | Día   | Entregable                                                                                     |
 | ----- | ---------------------------------------------------------------------------------------------- |
@@ -576,7 +577,7 @@ Los siguientes elementos **se dejan deliberadamente para fases posteriores**:
 - Cualquier enmienda (cambio de stack, paleta, alcance, fechas o conducta del chatbot) debe **reflejarse aquí** y registrarse en el historial de versiones antes de implementarse.
 - Los PRs y entregables por fase deben verificar el cumplimiento de los criterios de aceptación definidos en §6.4.
 
-**Versión:** 1.6 | **Ratificación:** 28/08/2026 | **Última enmienda:** 25/09/2026 — Se formaliza la paleta de `DESIGN.md` como fuente visual aprobada y se exigen pares de texto y fondo con contraste WCAG AA. | **Próxima revisión:** al cierre de cada fase.
+**Versión:** 1.7 | **Ratificación:** 28/08/2026 | **Última enmienda:** 03/10/2026 — Se actualiza §8 al avance real al día 34 (204 de 220 tareas, US1 a US6 completadas) con el inventario de lo pendiente, se marcan las Fases 4 a 8 con su estado, se completa el enum de `appointment_reminders` con `procesando` y `omitido`, y se registra que el cronograma excede los 32 días sin fecha de cierre acordada. | **Próxima revisión:** al cierre de cada fase.
 
 ---
 

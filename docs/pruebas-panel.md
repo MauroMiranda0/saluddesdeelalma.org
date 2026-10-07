@@ -1,5 +1,14 @@
 # Bitacora de pruebas del panel administrativo
 
+## Estado al 03/10/2026
+
+- La suite por defecto esta verde: `npm run test` encadena backend y frontend. Ultima cifra registrada, 159 pruebas de backend con 30 omitidas y 8 pruebas de componentes de frontend.
+- El **gate `RUN_POSTGRES_INTEGRATION` esta en rojo** por `T203` y `T204`, y `T205` lo hace no determinista porque los archivos corren en paralelo contra una base compartida. La suite por defecto lo omite, asi que esto no afecta a `npm run test`.
+- Abiertas y sin ejecucion: la UAT con la cliente (`SC-008`, `SC-010`, `SC-016`), la conexion al WhatsApp real, y `T216` (CSP, diferida a despues del primer despliegue).
+- Decisiones abiertas que no son de ingenieria: el respaldo de los requisitos de seguridad en `spec.md` y `plan.md`, y el destino de la capa de IA declarada en el plan (`T209`).
+
+Las secciones siguientes son bitacoras por fecha y sus cifras son las de su dia.
+
 ## Tercera vuelta inicial - 15/09/2026
 
 ### Alcance
@@ -105,7 +114,7 @@ Las remediaciones T144-T164 estan cerradas en `tasks.md`.
 ### Gates ejecutados
 
 - `npm run typecheck`, `npm run lint` y `npm run format:check`: correctos.
-- `npm run test --workspace backend`: 154 pruebas, 124 correctas, 0 fallidas, 30 omitidas (las 3 del gate PostgreSQL mas las preexistentes).
+- `npm run test --workspace backend`: 154 pruebas, 124 correctas, 0 fallidas, 30 omitidas (las 3 del gate PostgreSQL mas las preexistentes). Cifra superada por la del 03/10/2026 (159 pruebas); se conserva como registro de esta vuelta.
 - Las 3 pruebas de `backend/tests/integration/whatsapp-us5-persistence.postgres.integration.test.ts` pasan contra PostgreSQL 16 real con `RUN_POSTGRES_INTEGRATION=true`.
 - El gate completo sigue en rojo, ahora por defectos registrados como `T203` y `T204`, ambos ajenos a US5 y ambos revelados al destapar el que `T201` si cubria: `payments-flow.integration.test.ts:334` recibe 409 porque su propio fixture siembra un pago `completo` pendiente y el servicio rechaza un segundo pago del mismo tipo, y `auth-audit-rollback.postgres.integration.test.ts:16` choca con el `username: "admin"` que `backend/prisma/seed.ts` deja en la base de desarrollo.
 - Ademas el gate no es determinista: `npm run test --workspace backend` corre los archivos en paralelo contra una base compartida, y con concurrencia aparecen 5 fallos frente a los 2 reales, cambiando incluso el archivo que falla. Registrado como `T205`. Con `--test-concurrency=1` el resultado es estable: 154 pruebas, 152 correctas, 2 fallidas.
@@ -138,4 +147,4 @@ Las remediaciones T144-T164 estan cerradas en `tasks.md`.
 
 - Los presupuestos (300 y 120 por minuto) no se han medido contra el trafico real del consultorio. Meta entrega la conversacion a rafagas y un limite bajo descartaria eventos legitimos; el ajuste fino necesita el despliegue.
 - `T216`: la `Content-Security-Policy` sigue sin definirse porque no hay entorno donde validar que no rompa Next.js.
-- Ni `spec.md` ni `plan.md` exigen headers de seguridad ni limite de peticiones: el endurecimiento quedo implementado sin requisito que lo respalde, y `plan.md:15` declara `Supertest` y `Vitest`, que el repositorio no usa. Corresponde a la cliente decidir si se agrega el requisito, se actualiza el plan o se deja como detalle de implementacion.
+- Ni `spec.md` ni `plan.md` exigen headers de seguridad ni limite de peticiones: el endurecimiento quedo implementado sin requisito que lo respalde. Corresponde a la cliente decidir si se agrega el requisito, se actualiza el plan o se deja como detalle de implementacion. La desviacion es mas amplia de lo que se registro aqui el 03/10/2026 y sigue sin cerrarse: `plan.md:15` y `plan.md:19` atribuyen los contratos HTTP a Supertest y los componentes a React Testing Library cuando ambos se prueban con `node:test` y `tsx --test`; `plan.md:15` ademas omite `helmet` y `express-rate-limit`, que el repositorio si usa, y declara `bcrypt` y `node-cron` en `research.md:13`, ninguno de los dos instalado; `plan.md:118` lista `backend/src/integrations/ai/`, que no existe y es el objeto de `T209`; y `TRUST_PROXY` no figura en el plan pese a leerse en `backend/src/app.ts:26`. Detalle completo en la nota de desviacion de `tasks.md`.

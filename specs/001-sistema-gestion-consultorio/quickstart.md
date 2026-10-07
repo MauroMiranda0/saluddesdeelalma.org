@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Esta guia refleja el estado posterior a las convergencias de cierre de las fases comerciales de agendamiento (`US1`), panel administrativo (`US2`) y a las convergencias **Phase 24**, **Phase 25** y **Phase 26**. El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, panel administrativo movil, y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y detecta imagenes o documentos de comprobantes para avisar individualmente a Jocelyn; el pago nunca se valida de forma automatica. Tambien puede ofrecer horarios concretos, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital. Tambien puede cancelar por WhatsApp una cita activa tras verificar el numero registrado y el nombre y la fecha de nacimiento del paciente, confirmando la cancelacion y la oferta de reagendar; la verificacion fallida se audita y no expone datos. La evaluacion clinica ocurre antes que el flujo de reserva; los recordatorios del dia previo se programan a las 18:00 `America/Mexico_City` y solo se envian el dia calendario anterior a una cita aun futura. El login del panel es funcional para la cuenta `admin` (usuario `admin`, rol `admin`), la sesion expira por inactividad de 30 minutos, y la agenda permite crear, cancelar y mover/reagendar citas desde el movil. La landing publica aun no existe (US6): `/` redirige a `/admin/agenda`.
+Esta guia refleja el estado posterior a las convergencias de cierre de las fases comerciales de agendamiento (`US1`), panel administrativo (`US2`), pagos (`US3`), recordatorios (`US4`), consultas por WhatsApp (`US5`) y landing publica (`US6`), y a las convergencias **Phase 23** a **Phase 40**, incluida la convergencia de seguridad `T066` del 03/10/2026. El repositorio tiene backend Express compilable, schema y migraciones de Prisma, infraestructura de sesiones/auditoria, panel administrativo movil, y el flujo de agendamiento por WhatsApp. El webhook valida la suscripcion de Meta, procesa mensajes de texto de forma asincrona y detecta imagenes o documentos de comprobantes para avisar individualmente a Jocelyn; el pago nunca se valida de forma automatica. Tambien puede ofrecer horarios concretos, crear una cita, enviar la confirmacion inmediata, derivar temas clinicos y declarar que es un asistente digital. Tambien puede cancelar por WhatsApp una cita activa tras verificar el numero registrado y el nombre y la fecha de nacimiento del paciente, confirmando la cancelacion y la oferta de reagendar; la verificacion fallida se audita y no expone datos. La evaluacion clinica ocurre antes que el flujo de reserva; los recordatorios del dia previo se programan a las 18:00 `America/Mexico_City` y solo se envian el dia calendario anterior a una cita aun futura. El login del panel es funcional para la cuenta `admin` (usuario `admin`, rol `admin`), la sesion expira por inactividad de 30 minutos, y la agenda permite crear, cancelar y mover/reagendar citas desde el movil. La landing publica existe en `/`, con su catalogo de FAQ y acceso discreto al panel.
 
 ## Prerrequisitos verificados para esta fase
 
@@ -25,7 +25,7 @@ Archivo: `backend/.env.example`
 - `ADMIN_SEED_PASSWORD` (solo para ejecutar el seed de la cuenta administrativa; mínimo 16 caracteres)
 - `SESSION_COOKIE_NAME`
 - `SESSION_IDLE_TIMEOUT_MINUTES`
-- `REMINDER_TIMEZONE` (requerida al implementar Fase comercial 4; valor de producción: `America/Mexico_City`)
+- `REMINDER_TIMEZONE` (valor de producción: `America/Mexico_City`)
 - `ENABLE_REMINDER_WORKER` (`true` arranca el worker de recordatorios cada 5 minutos junto con el backend; recomendado en producción, deshabilitado por defecto)
 - `ENABLE_WHATSAPP_INBOX_WORKER` (`true` arranca el worker del inbox de WhatsApp cada 30 segundos junto con el backend; requerido en producción para que un webhook aceptado no quede sin procesar, deshabilitado por defecto)
 - `WHATSAPP_VERIFY_TOKEN`
@@ -33,7 +33,8 @@ Archivo: `backend/.env.example`
 - `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_ADMIN_PHONE` (número individual de Jocelyn para avisos de comprobantes)
 - `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` (destino interno; requiere proveedor compatible con grupos)
-- `AI_PROVIDER_API_KEY`
+- `AI_PROVIDER_API_KEY` (ningún módulo la lee hoy: la capa de IA que `plan.md` declara no existe. Ver `T209` en `tasks.md`)
+- `TRUST_PROXY` (opcional; si no se declara, Express ignora `X-Forwarded-For` y resuelve `request.ip` sin proxy. Defínela en producción si la app corre detrás de un proxy o CDN, para que `audit_logs` guarde la IP real del solicitante)
 
 ### Frontend
 
@@ -47,7 +48,7 @@ Archivo: `frontend/.env.example`
 npm install
 ```
 
-## Validacion disponible en Fase 3
+## Validacion disponible al dia 34 (03/10/2026)
 
 ### 1. Validar Prisma schema
 
@@ -122,7 +123,7 @@ npm run start:frontend
 Resultado esperado:
 
 - Next.js inicia en `http://localhost:3000`.
-- La ruta publica `/` redirige a `/admin/agenda` porque la landing se implementara en US6.
+- La ruta publica `/` es la landing, con secciones informativas, catalogo de FAQ, CTA a WhatsApp y acceso discreto al panel.
 
 ### 7. Validar lint
 
@@ -162,8 +163,8 @@ npm run test --workspace backend
 
 Resultado esperado:
 
-- Las 4 migraciones se aplican, incluida `20261101000000_convergence_hardening` (el trigger rechaza citas sin psicóloga activa asignada con SQLSTATE `23514`).
-- Los 10 escenarios del gate finalizan en verde.
+- Las 11 migraciones se aplican, incluida `20261101000000_convergence_hardening` (el trigger rechaza citas sin psicóloga activa asignada con SQLSTATE `23514`).
+- Los escenarios del gate **no** finalizan todos en verde a la fecha de este documento: el gate esta en rojo por `T203` y `T204`, y `T205` lo hace no determinista al correrlo sin `--test-concurrency=1`, porque varios archivos instalan triggers globales sobre `audit_logs` y compiten por las mismas filas de una base compartida. Ver la nota de operacion en `tasks.md:636` y la evidencia en `docs/pruebas-panel.md`.
 - Al terminar, retire el contenedor: `docker rm -f sda-pg-test`.
 
 ### 10. Worker de recordatorios (bajo demanda)
@@ -201,8 +202,8 @@ Procesa los eventos entrantes de WhatsApp persistidos en la bandeja durable al a
 - El catalogo de FAQ de `US5` responde duracion de sesion, modalidades, formas de pago, anticipo del 50%, privacidad y recordatorios; las preguntas que la landing publica las contesta el catalogo, no el prompt de reserva.
 - Las consultas de estado de cita y saldo (`payment_status`) exigen la misma verificacion de identidad que la cancelacion: numero registrado mas nombre y fecha de nacimiento coincidentes. Una consulta sin verificar se deniega, se audita (`sensitive_status_query_denied`) y se deriva a la psicologa, sin revelar si la cita existe.
 - El texto de un mensaje entrante con contenido clinico o con la confirmacion de identidad se guarda como `admin_summary`. La excepcion son las intenciones `book` y `cancel`, cuyo texto se conserva para que la reserva y la cancelacion queden trazables.
-- US3 permite registrar pagos, enviar recordatorios manuales y confirmar pagos desde `/admin/payments`. Los comprobantes de WhatsApp se reciben en una bandeja durable para asociacion manual, y las tarifas por tipo de sesion validan el anticipo del 50%. La landing publica (`US6`) sigue pendiente; el catalogo de FAQ, los recordatorios y las consultas de estado de `US5` ya estan implementados.
+- US3 permite registrar pagos, enviar recordatorios manuales y confirmar pagos desde `/admin/payments`. Los comprobantes de WhatsApp se reciben en una bandeja durable para asociacion manual, y las tarifas por tipo de sesion validan el anticipo del 50%. El catalogo de FAQ, los recordatorios, las consultas de estado y la landing publica estan implementados.
 - Las pruebas unitarias de la ventana de recordatorios ya existen. Los E2E de agenda y pagos requieren `ADMIN_E2E_PASSWORD` y datos de prueba sembrados.
 - La E2E de agenda incluye dos pruebas herméticas que no requieren ni clave ni PostgreSQL: mockean `auth/login`, `auth/me`, `directory` y `appointments`, y verifican la línea `Recordatorio: <estado> · <intentos>/3` en día y semana, su ausencia en mes y que la agenda no falle si la cita llega sin `reminders`. Para ejecutar todo el archivo hace falta `ADMIN_E2E_PASSWORD`; sin esa variable las tres pruebas de sesión real se omiten con `test.skip` y las herméticas corren igual.
 - La E2E de pagos no es idempotente: registrar un segundo pago del mismo tipo sobre la misma cita devuelve `409 La cita ya tiene un pago validado de este tipo`, por lo que requiere una base recién sembrada.
-- La landing publica no forma parte de esta fase; `/` redirige a `/admin/agenda`.
+- La landing publica vive en `/` y esta implementada y alineada al mockup aprobado; el acceso al panel es discreto y no la invade.

@@ -1,5 +1,7 @@
 # Informe de Avance — Salud desde el Alma
 
+> **Documento historico.** Snapshot del 25/09/2026. El nombre del archivo dice "dia 17" pero su cabecera dice "dia 25 de 32"; el nombre no se renombra porque el reporte se entrego bajo ese nombre. No describe el estado vigente: su tabla de cronograma (dias 18 a 32) esta cumplida o vencida salvo la UAT y el despliegue, y su lista de "Que falta para terminar" no incluye el gate PostgreSQL en rojo, `T216`, los badges del menu ni la capa de IA. El estado vigente esta en `CONSTITUTION.md` seccion 8 y en `README.md` seccion "Estado actual".
+
 **Fecha:** viernes 25 de septiembre de 2026 | **Día de desarrollo:** 25 de 32
 
 ---

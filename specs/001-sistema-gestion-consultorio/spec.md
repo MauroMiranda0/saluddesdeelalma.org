@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: En ejecución — US1 a US6 implementadas y verificadas (204 de 220 tareas al 03/10/2026). Pendientes: UAT con la cliente (SC-008, SC-010, SC-016) y despliegue.
 
 **Input**: User description: "Definir el qué y el porqué del proyecto: asistente digital de Salud desde el Alma, sistema integral de gestión para un consultorio de psicología con atención por WhatsApp, agenda, pagos y recordatorios."
 
@@ -230,22 +230,24 @@ Una persona visita la página del consultorio y encuentra la información esenci
 
 ### Measurable Outcomes
 
-- **SC-001**: Un paciente agenda su primera cita por WhatsApp en menos de 2 minutos de conversación activa.
-- **SC-002**: El 100% de las citas agendadas genera confirmación inmediata con datos de la sesión y la política de cancelación de 24 horas.
-- **SC-003**: El 100% de las citas activas para el día siguiente recibe un recordatorio al paciente y otro al grupo interno, enviados entre las 18:00 y las 19:00 de `America/Mexico_City` el día previo.
-- **SC-004**: La psicóloga registra un pago (anticipo o total) en menos de 30 segundos desde su teléfono.
-- **SC-005**: Cero dobles reservas: ninguna cita confirma un horario ya ocupado.
-- **SC-006**: El 100% de las cancelaciones genera aviso al paciente con opción de reagendar.
-- **SC-007**: El 100% de las acciones críticas (accesos, citas, pagos, cancelaciones) queda registrada y consultable para auditoría.
-- **SC-008**: En la prueba UAT, la psicóloga completa los escenarios principales (agendar, cancelar, cobrar, recibir recordatorios) sin asistencia y sin errores bloqueantes.
-- **SC-009**: El 100% de los accesos no autenticados o con sesión expirada al panel administrativo es bloqueado.
-- **SC-010**: En UAT, la psicóloga valida que el chatbot responde correctamente al menos a las preguntas frecuentes principales del consultorio sin contradicciones con la información oficial.
-- **SC-011**: El 100% de las consultas de cita o pago realizadas desde un número no identificado evita exponer datos sensibles y se deriva correctamente a la psicóloga.
-- **SC-012**: El 100% de las sesiones administrativas inactivas por 30 minutos exige un nuevo inicio de sesión antes de permitir acceso adicional.
-- **SC-013**: El 100% de los intentos de login o acceso administrativo de una identidad distinta de `admin` se rechaza, no crea sesión y deja una auditoría.
-- **SC-014**: El 100% de las cancelaciones conserva su clasificación temporal (`a_tiempo` o `tardia`) calculada contra la fecha de la cita.
-- **SC-015**: El 100% de los comprobantes de pago recibidos por WhatsApp genera un aviso individual trazable a Jocelyn y no cambia una cita a `completado` sin su confirmación manual.
-- **SC-016**: En UAT, Jocelyn puede registrar un pago, enviar un recordatorio y confirmar un pago pendiente desde su teléfono en menos de 30 segundos por acción.
+Estado al 03/10/2026: los criterios marcados **[automatizada]** están cubiertos por pruebas del repositorio; los marcados **[UAT]** requieren la prueba con la cliente, que no se ha ejecutado; **[parcial]** significa que hay cobertura automatizada pero falta verificación de extremo a extremo contra el proveedor real.
+
+- **SC-001**: Un paciente agenda su primera cita por WhatsApp en menos de 2 minutos de conversación activa. [UAT]
+- **SC-002**: El 100% de las citas agendadas genera confirmación inmediata con datos de la sesión y la política de cancelación de 24 horas. [automatizada]
+- **SC-003**: El 100% de las citas activas para el día siguiente recibe un recordatorio al paciente y otro al grupo interno, enviados entre las 18:00 y las 19:00 de `America/Mexico_City` el día previo. [parcial] La ventana de elegibilidad está probada de forma unitaria; el envío efectivo depende del worker y del proveedor de WhatsApp.
+- **SC-004**: La psicóloga registra un pago (anticipo o total) en menos de 30 segundos desde su teléfono. [UAT]
+- **SC-005**: Cero dobles reservas: ninguna cita confirma un horario ya ocupado. [automatizada]
+- **SC-006**: El 100% de las cancelaciones genera aviso al paciente con opción de reagendar. [automatizada]
+- **SC-007**: El 100% de las acciones críticas (accesos, citas, pagos, cancelaciones) queda registrada y consultable para auditoría. [automatizada]
+- **SC-008**: En la prueba UAT, la psicóloga completa los escenarios principales (agendar, cancelar, cobrar, recibir recordatorios) sin asistencia y sin errores bloqueantes. [UAT]
+- **SC-009**: El 100% de los accesos no autenticados o con sesión expirada al panel administrativo es bloqueado. [automatizada]
+- **SC-010**: En UAT, la psicóloga valida que el chatbot responde correctamente al menos a las preguntas frecuentes principales del consultorio sin contradicciones con la información oficial. [UAT]
+- **SC-011**: El 100% de las consultas de cita o pago realizadas desde un número no identificado evita exponer datos sensibles y se deriva correctamente a la psicóloga. [automatizada]
+- **SC-012**: El 100% de las sesiones administrativas inactivas por 30 minutos exige un nuevo inicio de sesión antes de permitir acceso adicional. [automatizada]
+- **SC-013**: El 100% de los intentos de login o acceso administrativo de una identidad distinta de `admin` se rechaza, no crea sesión y deja una auditoría. [automatizada]
+- **SC-014**: El 100% de las cancelaciones conserva su clasificación temporal (`a_tiempo` o `tardia`) calculada contra la fecha de la cita. [automatizada]
+- **SC-015**: El 100% de los comprobantes de pago recibidos por WhatsApp genera un aviso individual trazable a Jocelyn y no cambia una cita a `completado` sin su confirmación manual. [parcial] La bandeja durable y el aviso individual están probados; falta la verificación contra Meta.
+- **SC-016**: En UAT, Jocelyn puede registrar un pago, enviar un recordatorio y confirmar un pago pendiente desde su teléfono en menos de 30 segundos por acción. [UAT]
 
 ## Assumptions
 
