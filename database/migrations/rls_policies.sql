@@ -46,12 +46,18 @@ using (user_id = auth.uid());
 create policy "audit_logs_write_admin_only"
 on public.audit_logs
 for insert
-with check (auth.jwt() ->> 'role' = 'service_role' or auth.jwt() ->> 'role' = 'admin');
+with check (
+  auth.jwt() ->> 'role' = 'service_role'
+  or auth.jwt() ->> 'role' = 'admin'
+);
 
 create policy "audit_logs_read_admin_only"
 on public.audit_logs
 for select
-using (auth.jwt() ->> 'role' = 'service_role' or auth.jwt() ->> 'role' = 'admin');
+using (
+  auth.jwt() ->> 'role' = 'service_role'
+  or auth.jwt() ->> 'role' = 'admin'
+);
 
 create policy "audit_logs_no_update"
 on public.audit_logs
