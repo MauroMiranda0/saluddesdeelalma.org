@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "npm run prisma:generate --workspace backend && npm run build --workspaces",
+    "env:check:production": "npm run env:check:production --workspace backend",
     "clean:artifacts": "node -e \"for (const path of ['backend/dist','frontend/.next','frontend/tsconfig.tsbuildinfo']) require('node:fs').rmSync(path, { recursive: true, force: true })\"",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",

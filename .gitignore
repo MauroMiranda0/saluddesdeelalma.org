@@ -9,8 +9,13 @@ frontend/playwright-report/
 *.log
 .env*
 !.env.example
+!.env.production.example
 !backend/.env.example
+!backend/.env.production.example
+!backend/.env.production.template
 !frontend/.env.example
+!frontend/.env.production.example
+!frontend/.env.production.template
 .DS_Store
 Thumbs.db
 *.tmp
