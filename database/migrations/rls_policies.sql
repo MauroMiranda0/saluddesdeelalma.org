@@ -53,7 +53,12 @@ on public.audit_logs
 for select
 using (auth.jwt() ->> 'role' = 'service_role' or auth.jwt() ->> 'role' = 'admin');
 
-create policy "audit_logs_no_update_delete"
+create policy "audit_logs_no_update"
 on public.audit_logs
-for update using (false)
-for delete using (false);
+for update
+using (false);
+
+create policy "audit_logs_no_delete"
+on public.audit_logs
+for delete
+using (false);
