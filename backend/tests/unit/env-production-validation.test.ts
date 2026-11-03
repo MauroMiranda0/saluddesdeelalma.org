@@ -15,6 +15,8 @@ const productionEnvironment = {
   JWT_SECRET: "a-production-secret-with-at-least-32-characters",
   SESSION_COOKIE_NAME: "sda_admin_session",
   SESSION_IDLE_TIMEOUT_MINUTES: 30,
+  SUPABASE_URL: "https://example.supabase.co",
+  SUPABASE_ANON_KEY: "anon-key",
   WHATSAPP_VERIFY_TOKEN: "real-webhook-token",
   WHATSAPP_ACCESS_TOKEN: "real-access-token",
   WHATSAPP_PHONE_NUMBER_ID: "123456789",

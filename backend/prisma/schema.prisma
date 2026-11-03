@@ -162,12 +162,11 @@ enum AuditResult {
 }
 
 model User {
-  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                      String            @id @db.Uuid
   username                String?           @unique @db.VarChar(50)
   email                   String            @unique @db.VarChar(255)
-  passwordHash            String?           @map("password_hash") @db.VarChar(255)
   fullName                String            @map("full_name") @db.VarChar(120)
-  role                    UserRole          @default(admin)
+  role                    UserRole          @default(paciente)
   panelLoginEnabled       Boolean           @default(false) @map("panel_login_enabled")
   isActive                Boolean           @default(true) @map("is_active")
   lastLoginAt             DateTime?         @map("last_login_at") @db.Timestamptz(6)

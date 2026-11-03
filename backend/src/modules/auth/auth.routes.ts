@@ -51,16 +51,17 @@ export const createAuthRoutes = (
         throw new AppError(
           400,
           "validation_error",
-          "Username and password are required"
+          "Email or username and password are required"
         );
       }
 
-      const result = await login(parsed.data.username, parsed.data.password);
+      const identifier = parsed.data.email ?? parsed.data.username ?? "";
+      const result = await login(identifier, parsed.data.password);
       const baseAudit = {
         actorChannel: "admin_panel" as const,
         metadata: {
           requestId: response.locals.requestId,
-          username: parsed.data.username
+          username: parsed.data.username ?? parsed.data.email
         },
         ipAddress: request.ip,
         userAgent: request.header("user-agent")

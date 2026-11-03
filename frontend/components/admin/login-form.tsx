@@ -10,7 +10,7 @@ import { BrandLogo } from "../ui/brand-logo";
 export const LoginForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -19,8 +19,9 @@ export const LoginForm = () => {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!username.trim() || !password) {
-      setError("Ingresa tu usuario y contraseña.");
+    const trimmed = identifier.trim();
+    if (!trimmed || !password) {
+      setError("Ingresa tu correo o usuario y contraseña.");
       return;
     }
 
@@ -28,10 +29,12 @@ export const LoginForm = () => {
     setError(null);
 
     try {
-      await loginAdminSession({
-        username: username.trim(),
-        password
-      });
+      const isEmail = trimmed.includes("@");
+      await loginAdminSession(
+        isEmail
+          ? { email: trimmed, password }
+          : { username: trimmed, password }
+      );
       const next = searchParams.get("next");
       if (next?.startsWith("/") && !next.startsWith("//")) {
         router.replace(next);
@@ -63,14 +66,14 @@ export const LoginForm = () => {
       </div>
 
       <label className="mb-1 block text-xs font-semibold text-[--foreground]">
-        Usuario
+        Correo o usuario
       </label>
       <input
         autoComplete="username"
-        value={username}
-        onChange={(event) => setUsername(event.target.value)}
+        value={identifier}
+        onChange={(event) => setIdentifier(event.target.value)}
         className="admin-input mb-4 text-sm"
-        placeholder="admin"
+        placeholder="admin@saluddesdeelalma.org"
       />
 
       <label className="mb-1 block text-xs font-semibold text-[--foreground]">

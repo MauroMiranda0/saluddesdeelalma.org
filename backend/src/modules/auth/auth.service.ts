@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { verifyPassword } from "./password.service";
+import { getSupabaseAuthClient } from "./supabase-auth.service";
 
 export type AdminLoginResult =
   | { status: "invalid_credentials" }
@@ -14,32 +14,34 @@ export type AdminLoginResult =
       };
     };
 
+const GENERIC_AUTH_FAILURE = { status: "invalid_credentials" as const };
+
 export const identifyAdminForLogin = async (
-  username: string,
+  identifier: string,
   password: string
 ): Promise<AdminLoginResult> => {
-  const user = await prisma.user.findUnique({ where: { username } });
+  const authClient = getSupabaseAuthClient();
+  const authResult = await authClient.signInWithPassword({
+    email: identifier,
+    password
+  });
 
-  if (!user || !user.passwordHash) {
-    return { status: "invalid_credentials" };
+  if (authResult.error || !authResult.user?.id) {
+    return GENERIC_AUTH_FAILURE;
   }
 
-  if (
-    user.username !== "admin" ||
-    user.role !== "admin" ||
-    !user.panelLoginEnabled ||
-    !user.isActive
-  ) {
-    return {
-      status: "forbidden_identity",
-      userId: user.id
-    };
-  }
+  const user = await prisma.user.findUnique({
+    where: { id: authResult.user.id }
+  });
 
-  const valid = await verifyPassword(password, user.passwordHash);
-
-  if (!valid) {
-    return { status: "invalid_credentials" };
+  if (!user || !user.isActive || !user.panelLoginEnabled || user.role !== "admin") {
+    if (user?.id) {
+      return {
+        status: "forbidden_identity",
+        userId: user.id
+      };
+    }
+    return GENERIC_AUTH_FAILURE;
   }
 
   return {

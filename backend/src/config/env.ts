@@ -12,6 +12,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().min(1).default("sda_admin_session"),
   SESSION_IDLE_TIMEOUT_MINUTES: z.coerce.number().int().positive().default(30),
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_ANON_KEY: z.string().min(1),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
@@ -72,6 +74,12 @@ export const assertProductionEnvironment = (environment: Environment) => {
     throw new Error(
       "ENABLE_REMINDER_WORKER must be enabled in production so due reminders are not left unprocessed"
     );
+  }
+  if (isPlaceholder(environment.SUPABASE_URL)) {
+    throw new Error("SUPABASE_URL must be replaced in production");
+  }
+  if (isPlaceholder(environment.SUPABASE_ANON_KEY)) {
+    throw new Error("SUPABASE_ANON_KEY must be replaced in production");
   }
   if (
     environment.AI_PROVIDER_API_KEY &&

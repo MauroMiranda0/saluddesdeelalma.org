@@ -21,6 +21,10 @@
  */
 import { PrismaClient } from "@prisma/client";
 
+if (process.env.NODE_ENV === "production") {
+  throw new Error("db:seed:demo is disabled in production");
+}
+
 const prisma = new PrismaClient();
 
 const EMAIL_SUFFIX = "@demo.local";

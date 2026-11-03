@@ -14,7 +14,8 @@ export type AdminSession = {
 };
 
 export const loginAdminSession = (input: {
-  username: string;
+  username?: string;
+  email?: string;
   password: string;
 }) => {
   return apiRequest<AdminSession>("/auth/login", {

@@ -16,6 +16,10 @@
  */
 import { PrismaClient } from "@prisma/client";
 
+if (process.env.NODE_ENV === "production") {
+  throw new Error("db:clean:test-data is disabled in production");
+}
+
 const prisma = new PrismaClient();
 
 // Nombres literales que aparecen en backend/tests. Si un test los cambia, esta
