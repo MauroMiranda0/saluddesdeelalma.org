@@ -409,6 +409,8 @@ El runner de test usa PGlite como base embebida para contrato, integración y un
 
 ## 2026-09-11 - Panel administrativo: identidad `admin` con scrypt y auditoría (US2)
 
+**Estado:** Supersedida por la alineación con Supabase Auth descrita en `AUTH_SUPABASE_ALIGNMENT.md`. Esta decisión histórica documenta el diseño anterior.
+
 **Contexto**
 
 El panel requiere la única sesión admisible del MVP: la cuenta `admin` con rol `admin`, `panel_login_enabled` y `is_active`, validando `username` + contraseña. Los intentos no admin deben rechazarse sin emitir cookie y con auditoría de denegación.

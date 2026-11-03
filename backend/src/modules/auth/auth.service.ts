@@ -9,6 +9,7 @@ import {
 type LoginUser = Pick<
   User,
   | "id"
+  | "authUserId"
   | "username"
   | "email"
   | "fullName"
@@ -19,7 +20,7 @@ type LoginUser = Pick<
 
 export type AdminLoginDependencies = {
   authClient: SupabaseAuthClient;
-  findPublicUserById: (userId: string) => Promise<LoginUser | null>;
+  findPublicUserByAuthId: (authUserId: string) => Promise<LoginUser | null>;
 };
 
 export type AdminLoginResult =
@@ -53,8 +54,8 @@ export const identifyAdminForLogin = async (
   }
 
   const user = await (
-    dependencies.findPublicUserById ??
-    ((userId) => prisma.user.findUnique({ where: { id: userId } }))
+    dependencies.findPublicUserByAuthId ??
+    ((authUserId) => prisma.user.findUnique({ where: { authUserId } }))
   )(authResult.user.id);
 
   if (

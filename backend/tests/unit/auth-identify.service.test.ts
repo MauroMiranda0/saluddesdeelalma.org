@@ -12,6 +12,7 @@ import type { SupabaseAuthResult } from "../../src/modules/auth/supabase-auth.se
 type LoginUser = Pick<
   User,
   | "id"
+  | "authUserId"
   | "username"
   | "email"
   | "fullName"
@@ -21,8 +22,10 @@ type LoginUser = Pick<
 >;
 
 const userId = "11111111-1111-1111-1111-111111111111";
+const authUserId = "22222222-2222-2222-2222-222222222222";
 const adminUser: LoginUser = {
   id: userId,
+  authUserId,
   username: "admin",
   email: "admin@test.com",
   fullName: "Admin",
@@ -39,9 +42,9 @@ const dependenciesFor = (
   authClient: {
     signInWithPassword: async () => authResult
   },
-  findPublicUserById: async (id) => {
+  findPublicUserByAuthId: async (id) => {
     lookups.push(id);
-    return user;
+    return user?.authUserId === id ? user : null;
   }
 });
 
@@ -50,7 +53,11 @@ test("Supabase y usuario público admin activo habilitado identifican al usuario
   const result = await identifyAdminForLogin(
     "admin@test.com",
     "local-password",
-    dependenciesFor({ user: { id: userId }, error: null }, adminUser, lookups)
+    dependenciesFor(
+      { user: { id: authUserId }, error: null },
+      adminUser,
+      lookups
+    )
   );
 
   assert.deepEqual(result, {
@@ -62,7 +69,7 @@ test("Supabase y usuario público admin activo habilitado identifican al usuario
       fullName: "Admin"
     }
   });
-  assert.deepEqual(lookups, [userId]);
+  assert.deepEqual(lookups, [authUserId]);
 });
 
 test("rechaza credenciales rechazadas por Supabase antes de consultar usuarios", async () => {
@@ -97,10 +104,26 @@ test("rechaza identidad de Supabase sin fila pública", async () => {
   const result = await identifyAdminForLogin(
     "missing@test.com",
     "local-password",
-    dependenciesFor({ user: { id: userId }, error: null }, null)
+    dependenciesFor({ user: { id: authUserId }, error: null }, null)
   );
 
   assert.deepEqual(result, { status: "invalid_credentials" });
+});
+
+test("un usuario de dominio sin authUserId no es encontrado para login", async () => {
+  const lookups: string[] = [];
+  const result = await identifyAdminForLogin(
+    "patient@test.com",
+    "local-password",
+    dependenciesFor(
+      { user: { id: authUserId }, error: null },
+      { ...adminUser, authUserId: null, role: "paciente" },
+      lookups
+    )
+  );
+
+  assert.deepEqual(result, { status: "invalid_credentials" });
+  assert.deepEqual(lookups, [authUserId]);
 });
 
 for (const [description, publicUser] of [
@@ -112,7 +135,7 @@ for (const [description, publicUser] of [
     const result = await identifyAdminForLogin(
       "admin@test.com",
       "local-password",
-      dependenciesFor({ user: { id: userId }, error: null }, publicUser)
+      dependenciesFor({ user: { id: authUserId }, error: null }, publicUser)
     );
 
     assert.deepEqual(result, { status: "invalid_credentials" });
@@ -121,7 +144,7 @@ for (const [description, publicUser] of [
 
 test("metadata de usuario controlada por el cliente no concede acceso", async () => {
   const supabaseUser = Object.assign(
-    { id: userId },
+    { id: authUserId },
     {
       user_metadata: { role: "admin", panel_login_enabled: true },
       app_metadata: { role: "admin", panel_login_enabled: true }

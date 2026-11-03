@@ -17,7 +17,6 @@ test(
       data: {
         username: "admin",
         email: "admin@audit-test.local",
-        passwordHash: "test-password-hash",
         fullName: "Audit Test",
         role: "admin",
         panelLoginEnabled: true

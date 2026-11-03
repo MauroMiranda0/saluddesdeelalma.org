@@ -58,6 +58,9 @@ export const LoginForm = () => {
           Panel del consultorio
         </h1>
         <p className="mt-2 text-sm text-[--muted]">Panel administrativo</p>
+        <p className="mt-1 text-xs text-[--muted]">
+          Usa las credenciales de tu cuenta administrativa de Supabase Auth.
+        </p>
       </div>
 
       <label className="mb-1 block text-xs font-semibold text-[--foreground]">
@@ -69,7 +72,7 @@ export const LoginForm = () => {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         className="admin-input mb-4 text-sm"
-        placeholder="admin@saluddesdeelalma.org"
+        placeholder="correo de administrador"
       />
 
       <label className="mb-1 block text-xs font-semibold text-[--foreground]">

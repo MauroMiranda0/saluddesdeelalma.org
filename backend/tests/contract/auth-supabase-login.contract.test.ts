@@ -21,6 +21,7 @@ import { createAdminSessionWithAudit } from "../../src/modules/auth/session.serv
 type LoginUser = Pick<
   User,
   | "id"
+  | "authUserId"
   | "username"
   | "email"
   | "fullName"
@@ -31,15 +32,17 @@ type LoginUser = Pick<
 
 type LoginScenario = {
   authResult: SupabaseAuthResult;
-  publicUser: LoginUser | null;
+  domainUser: LoginUser | null;
 };
 
 const userId = "00000000-0000-0000-0000-000000000001";
+const authUserId = "00000000-0000-0000-0000-000000000101";
 const attemptEmail = "attempt.secret@example.com";
 const attemptPassword = "password-never-audited";
 
 const adminUser: LoginUser = {
   id: userId,
+  authUserId,
   username: "admin",
   email: "admin@example.com",
   fullName: "Admin",
@@ -48,7 +51,7 @@ const adminUser: LoginUser = {
   panelLoginEnabled: true
 };
 
-const successfulAuth = (id = userId): SupabaseAuthResult => ({
+const successfulAuth = (id = authUserId): SupabaseAuthResult => ({
   user: { id, email: "admin@example.com" },
   error: null
 });
@@ -59,6 +62,7 @@ const withLoginServer = async (
 ) => {
   const events = {
     sessionCreations: 0,
+    sessionUserIds: [] as string[],
     audits: [] as AuditCreateInput[],
     authCredentials: [] as Array<{ email: string; password: string }>,
     publicUserLookups: [] as string[]
@@ -72,9 +76,11 @@ const withLoginServer = async (
   const login = (email: string, password: string): Promise<AdminLoginResult> =>
     identifyAdminForLogin(email, password, {
       authClient,
-      findPublicUserById: async (id) => {
+      findPublicUserByAuthId: async (id) => {
         events.publicUserLookups.push(id);
-        return scenario.publicUser;
+        return scenario.domainUser?.authUserId === id
+          ? scenario.domainUser
+          : null;
       }
     });
 
@@ -87,6 +93,7 @@ const withLoginServer = async (
         input: Parameters<typeof createAdminSessionWithAudit>[0]
       ) => {
         events.sessionCreations += 1;
+        events.sessionUserIds.push(input.userId);
         events.audits.push(input.audit);
         return {
           session: {
@@ -129,7 +136,7 @@ const withLoginServer = async (
 test("Supabase Auth + public admin habilitado crean sesión y cookie HttpOnly", async () => {
   const scenario: LoginScenario = {
     authResult: successfulAuth(),
-    publicUser: adminUser
+    domainUser: adminUser
   };
   const events = await withLoginServer(scenario, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/login`, {
@@ -152,8 +159,9 @@ test("Supabase Auth + public admin habilitado crean sesión y cookie HttpOnly", 
   assert.deepEqual(events.authCredentials, [
     { email: attemptEmail, password: attemptPassword }
   ]);
-  assert.deepEqual(events.publicUserLookups, [userId]);
+  assert.deepEqual(events.publicUserLookups, [authUserId]);
   assert.equal(events.sessionCreations, 1);
+  assert.deepEqual(events.sessionUserIds, [userId]);
   assert.equal(events.audits[0]?.action, "auth_login");
   const auditText = JSON.stringify(events.audits);
   assert.equal(auditText.includes(attemptEmail), false);
@@ -166,36 +174,43 @@ const denialScenarios: Array<{ name: string; scenario: LoginScenario }> = [
     name: "credenciales rechazadas por Supabase",
     scenario: {
       authResult: { user: null, error: new Error("invalid credentials") },
-      publicUser: adminUser
+      domainUser: adminUser
     }
   },
   {
     name: "respuesta de Supabase sin identidad",
-    scenario: { authResult: { user: null, error: null }, publicUser: adminUser }
+    scenario: { authResult: { user: null, error: null }, domainUser: adminUser }
   },
   {
-    name: "identidad válida sin fila pública",
-    scenario: { authResult: successfulAuth(), publicUser: null }
+    name: "identidad Auth sin fila de dominio enlazada",
+    scenario: { authResult: successfulAuth(), domainUser: null }
+  },
+  {
+    name: "usuario de dominio sin authUserId no obtiene login",
+    scenario: {
+      authResult: successfulAuth(),
+      domainUser: { ...adminUser, authUserId: null }
+    }
   },
   {
     name: "fila pública con rol distinto de admin",
     scenario: {
       authResult: successfulAuth(),
-      publicUser: { ...adminUser, role: "paciente" }
+      domainUser: { ...adminUser, role: "paciente" }
     }
   },
   {
     name: "fila pública inactiva",
     scenario: {
       authResult: successfulAuth(),
-      publicUser: { ...adminUser, isActive: false }
+      domainUser: { ...adminUser, isActive: false }
     }
   },
   {
     name: "login de panel deshabilitado",
     scenario: {
       authResult: successfulAuth(),
-      publicUser: { ...adminUser, panelLoginEnabled: false }
+      domainUser: { ...adminUser, panelLoginEnabled: false }
     }
   },
   {
@@ -203,7 +218,7 @@ const denialScenarios: Array<{ name: string; scenario: LoginScenario }> = [
     scenario: {
       authResult: {
         user: Object.assign(
-          { id: userId, email: "admin@example.com" },
+          { id: authUserId, email: "admin@example.com" },
           {
             user_metadata: { role: "admin", panel_login_enabled: true },
             app_metadata: { role: "admin", panel_login_enabled: true }
@@ -211,7 +226,7 @@ const denialScenarios: Array<{ name: string; scenario: LoginScenario }> = [
         ),
         error: null
       },
-      publicUser: {
+      domainUser: {
         ...adminUser,
         role: "paciente",
         panelLoginEnabled: false

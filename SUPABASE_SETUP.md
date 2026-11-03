@@ -34,6 +34,7 @@
 ## 3. Obtener DATABASE_URL
 
 ### 3.1 Acceder a connection string
+
 1. Ir a **Project Settings** → **Database**
 2. Buscar sección **Connection string**
 3. Seleccionar pestaña **URI**
@@ -44,18 +45,20 @@
 
 Usar **Connection pooling → Transaction mode** o **Session mode**
 
-| Modo | Puerto | Cuándo usar | Notas |
-| :-- | :-- | :-- | :-- |
-| **Transaction (Pooler)** | `6543` | **Recomendado** | Mejor para serverless/servidor con múltiples conexiones. Ideal para este proyecto con 3 procesos + posibles conexiones. |
-| **Session (Pooler)** | `6543` | Alternativo | Similar al pooler, mantener persistencia de sesión. |
-| **Direct connection** | `5432` | **NO RECOMENDADO** | Sin pooler. Más propenso a agotar conexiones con múltiples workers PM2. |
+| Modo                     | Puerto | Cuándo usar        | Notas                                                                                                                   |
+| :----------------------- | :----- | :----------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| **Transaction (Pooler)** | `6543` | **Recomendado**    | Mejor para serverless/servidor con múltiples conexiones. Ideal para este proyecto con 3 procesos + posibles conexiones. |
+| **Session (Pooler)**     | `6543` | Alternativo        | Similar al pooler, mantener persistencia de sesión.                                                                     |
+| **Direct connection**    | `5432` | **NO RECOMENDADO** | Sin pooler. Más propenso a agotar conexiones con múltiples workers PM2.                                                 |
 
 **Cadena a copiar (ejemplo):**
+
 ```text
 postgresql://postgres.[PROJECT_REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 ```
 
 **Importante:**
+
 - Reemplazar `[YOUR-PASSWORD]` con la contraseña de base de datos creada
 - Usar **puerto 6543** con pooler
 - NO usar la cadena directa `5432` a menos que sea estrictamente necesario
@@ -67,6 +70,7 @@ postgresql://postgres.[PROJECT_REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supaba
 1. Copiar `DATABASE_URL` obtenida
 2. En el servidor Hostinger, crear/editar `apps/backend/.env`
 3. Agregar:
+
 ```env
 DATABASE_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres"
 ```
@@ -88,10 +92,12 @@ npx prisma db pull --schema prisma/schema.prisma
 ```
 
 **Resultado esperado:**
+
 - `prisma validate`: `The schema at prisma\schema.prisma is valid 🚀`
 - `prisma db pull`: Debe conectarse sin errores. Si es base vacía, puede reportar que no hay tablas o crear introspección. Lo importante es **conexión exitosa**.
 
 **Si falla:**
+
 - Verificar `DATABASE_URL` correcta (password sin caracteres especiales mal escapados)
 - Verificar conectividad desde servidor a internet
 - Verificar que el proyecto Supabase esté activo
@@ -109,17 +115,21 @@ npx prisma migrate deploy --schema prisma/schema.prisma
 ```
 
 **Resultado esperado:**
+
 ```text
 11 migrations found in prisma/migrations
 All migrations have been applied successfully.
 ```
+
 O bien:
+
 ```text
 12 migrations found in prisma/migrations
 All migrations have been applied successfully.
 ```
 
 **Notas:**
+
 - `prisma migrate deploy` **SOLO** aplica migraciones ya versionadas. NO crea nuevas migraciones.
 - NO usar `prisma migrate dev` en producción
 - Este comando crea todas las tablas, enums, índices, restricciones y funciones/triggers versionados
@@ -130,9 +140,11 @@ All migrations have been applied successfully.
 ## 7. Verificaciones posteriores
 
 ### 7.1 Verificar tablas creadas
+
 En Supabase Dashboard → **Table Editor** o **Database** → **Tables**
 
 Debe aparecer al menos:
+
 - `users`
 - `patients`
 - `therapist_profiles`
@@ -149,14 +161,30 @@ Debe aparecer al menos:
 - `session_rates`
 
 ### 7.2 Verificar Prisma Client
+
 ```bash
 cd ~/apps/backend
 node -e "require('@prisma/client'); console.log('OK')"
 ```
+
 **Resultado:** `OK`
 
-### 7.3 Verificar conexión desde backend
+### 7.3 Aprovisionar el acceso administrativo
+
+Los registros de `public.users` son perfiles de dominio y conservan su propio
+UUID generado por PostgreSQL. Pacientes y terapeutas no necesitan una identidad
+de login. Para el administrador, crea primero la identidad en Supabase Auth
+mediante un procedimiento administrativo autorizado y luego asocia el UUID
+devuelto en `public.users.auth_user_id`. No sustituyas `public.users.id` ni
+asumas que ambos UUID coinciden. El registro enlazado debe tener
+`role='admin'`, `username='admin'`, `panel_login_enabled=true` e
+`is_active=true`. Asigna esos permisos solo mediante una acción controlada; no
+los tomes de metadata ni del formulario.
+
+### 7.4 Verificar conexión desde backend
+
 Tras configurar PM2 con proceso `api`, revisar logs:
+
 ```bash
 pm2 logs api --lines 20
 ```

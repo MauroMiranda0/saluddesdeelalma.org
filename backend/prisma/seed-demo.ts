@@ -7,7 +7,7 @@
  *
  * Respeta a proposito estas restricciones del schema:
  * - users_access_profile_check: todo no-admin nace con username NULL,
- *   panel_login_enabled false y password_hash NULL.
+ *   panel_login_enabled false y auth_user_id NULL.
  * - users_single_admin_key: el unico admin lo crea seed.ts.
  * - appointments_duration_matches_type_check: individual 60 min, pareja y
  *   familiar 90 min.
