@@ -1,5 +1,26 @@
+import type { User } from "@prisma/client";
+
 import { prisma } from "../../lib/prisma";
-import { getSupabaseAuthClient } from "./supabase-auth.service";
+import {
+  getSupabaseAuthClient,
+  type SupabaseAuthClient
+} from "./supabase-auth.service";
+
+type LoginUser = Pick<
+  User,
+  | "id"
+  | "username"
+  | "email"
+  | "fullName"
+  | "role"
+  | "isActive"
+  | "panelLoginEnabled"
+>;
+
+export type AdminLoginDependencies = {
+  authClient: SupabaseAuthClient;
+  findPublicUserById: (userId: string) => Promise<LoginUser | null>;
+};
 
 export type AdminLoginResult =
   | { status: "invalid_credentials" }
@@ -18,9 +39,10 @@ const GENERIC_AUTH_FAILURE = { status: "invalid_credentials" as const };
 
 export const identifyAdminForLogin = async (
   email: string,
-  password: string
+  password: string,
+  dependencies: Partial<AdminLoginDependencies> = {}
 ): Promise<AdminLoginResult> => {
-  const authClient = getSupabaseAuthClient();
+  const authClient = dependencies.authClient ?? getSupabaseAuthClient();
   const authResult = await authClient.signInWithPassword({
     email,
     password
@@ -30,11 +52,17 @@ export const identifyAdminForLogin = async (
     return GENERIC_AUTH_FAILURE;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: authResult.user.id }
-  });
+  const user = await (
+    dependencies.findPublicUserById ??
+    ((userId) => prisma.user.findUnique({ where: { id: userId } }))
+  )(authResult.user.id);
 
-  if (!user || !user.isActive || !user.panelLoginEnabled || user.role !== "admin") {
+  if (
+    !user ||
+    !user.isActive ||
+    !user.panelLoginEnabled ||
+    user.role !== "admin"
+  ) {
     return GENERIC_AUTH_FAILURE;
   }
 

@@ -16,11 +16,21 @@ import {
   revokeAdminSessionWithAudit
 } from "./session.service";
 
+type CreatedAdminSession = {
+  session: {
+    expiresAt: Date;
+    user: Parameters<typeof adminUserDto>[0];
+  };
+  token: string;
+};
+
 type AuthRouteDependencies = {
   authenticate: RequestHandler;
   authorizeAdmin: RequestHandler;
   login: typeof identifyAdminForLogin;
-  createSession: typeof createAdminSessionWithAudit;
+  createSession: (
+    input: Parameters<typeof createAdminSessionWithAudit>[0]
+  ) => Promise<CreatedAdminSession>;
   audit: typeof auditService;
   refreshAdminSessionWithAudit: typeof refreshAdminSessionWithAudit;
   revokeAdminSessionWithAudit: typeof revokeAdminSessionWithAudit;
