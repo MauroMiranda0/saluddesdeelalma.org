@@ -150,6 +150,7 @@ test("failed login does not create a session and is audited", async () => {
         method: "POST",
         headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: "admin@saluddesdeelalma.org", password: "wrong-password" })
+      });
       assert.equal(response.status, 401);
       const body = (await response.json()) as { code: string };
       assert.equal(body.code, "unauthorized");
