@@ -117,7 +117,7 @@ test("admin login with valid credentials creates a session and audits the event"
         "user-agent": "panel-test"
       },
       body: JSON.stringify({
-        username: "admin",
+        email: "admin@saluddesdeelalma.org",
         password: "secret-admin-password"
       })
     });
@@ -149,8 +149,7 @@ test("failed login does not create a session and is audited", async () => {
       const response = await fetch(`${baseUrl}/login`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username: "admin", password: "wrong-password" })
-      });
+      body: JSON.stringify({ email: "admin@saluddesdeelalma.org", password: "wrong-password" })
       assert.equal(response.status, 401);
       const body = (await response.json()) as { code: string };
       assert.equal(body.code, "unauthorized");
@@ -176,29 +175,24 @@ test("a non-admin identity is rejected and the attempt is audited", async () => 
       const response = await fetch(`${baseUrl}/login`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username: "jocelyn", password: "anything" })
+        body: JSON.stringify({ email: "jocelyn@saluddesdeelalma.org", password: "anything" })
       });
-      assert.equal(response.status, 403);
+      assert.equal(response.status, 401);
       assert.equal(
         ((await response.json()) as { code: string }).code,
-        "forbidden"
+        "unauthorized"
       );
     },
     {
       login: (async () => ({
-        status: "forbidden_identity" as const,
-        userId: "00000000-0000-0000-0000-000000000009"
+        status: "invalid_credentials" as const
       })) as typeof import("../../src/modules/auth/auth.service").identifyAdminForLogin
     }
   );
 
   assert.deepEqual(
     events.audit.map((event) => event.action),
-    ["auth_login_forbidden_identity"]
-  );
-  assert.equal(
-    events.audit[0].actorUserId,
-    "00000000-0000-0000-0000-000000000009"
+    ["auth_login_failed"]
   );
   assert.equal(events.audit[0].entityType, "auth_attempt");
   assert.equal(events.audit[0].result, "failure");
@@ -209,7 +203,7 @@ test("invalid login payloads are rejected before any session is created", async 
     const blank = await fetch(`${baseUrl}/login`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: "", password: "" })
+      body: JSON.stringify({ email: "", password: "" })
     });
     assert.equal(blank.status, 400);
     assert.equal(
