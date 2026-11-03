@@ -17,12 +17,12 @@ export type AdminLoginResult =
 const GENERIC_AUTH_FAILURE = { status: "invalid_credentials" as const };
 
 export const identifyAdminForLogin = async (
-  identifier: string,
+  email: string,
   password: string
 ): Promise<AdminLoginResult> => {
   const authClient = getSupabaseAuthClient();
   const authResult = await authClient.signInWithPassword({
-    email: identifier,
+    email,
     password
   });
 
@@ -35,12 +35,6 @@ export const identifyAdminForLogin = async (
   });
 
   if (!user || !user.isActive || !user.panelLoginEnabled || user.role !== "admin") {
-    if (user?.id) {
-      return {
-        status: "forbidden_identity",
-        userId: user.id
-      };
-    }
     return GENERIC_AUTH_FAILURE;
   }
 

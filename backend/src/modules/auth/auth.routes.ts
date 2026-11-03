@@ -51,17 +51,16 @@ export const createAuthRoutes = (
         throw new AppError(
           400,
           "validation_error",
-          "Email or username and password are required"
+          "Email and password are required"
         );
       }
 
-      const identifier = parsed.data.email ?? parsed.data.username ?? "";
-      const result = await login(identifier, parsed.data.password);
+      const result = await login(parsed.data.email, parsed.data.password);
       const baseAudit = {
         actorChannel: "admin_panel" as const,
         metadata: {
           requestId: response.locals.requestId,
-          username: parsed.data.username ?? parsed.data.email
+          email: parsed.data.email
         },
         ipAddress: request.ip,
         userAgent: request.header("user-agent")
@@ -90,9 +89,9 @@ export const createAuthRoutes = (
           result: "failure"
         });
         throw new AppError(
-          403,
-          "forbidden",
-          "Esta identidad no tiene acceso al panel"
+          401,
+          "unauthorized",
+          "Usuario o contraseña incorrectos"
         );
       }
 

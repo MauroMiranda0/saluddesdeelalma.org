@@ -9,12 +9,12 @@ Backend (`backend/src/config/env.ts`):
 No se deben exponer valores. Solo nombres.
 
 ## Flujo
-1. Login recibe `email` o `username` + `password`.
+1. Login recibe `email` + `password` (únicamente).
 2. Backend valida credenciales contra Supabase Auth vía `POST {SUPABASE_URL}/auth/v1/token?grant_type=password` con `apikey: {SUPABASE_ANON_KEY}` (sin `service_role`).
 3. Tras éxito, consulta `public.users` por `id` (UUID de `auth.users`).
-4. Permite acceso solo si `is_active=true`, `panel_login_enabled=true`, `role='admin'`. Cualquier otro caso: error genérico `unauthorized` o `forbidden` según corresponda, sin enumerar usuarios.
+4. Permite acceso solo si `is_active=true`, `panel_login_enabled=true`, `role='admin'`. Cualquier otro caso (credenciales inválidas, sin fila, rol no admin, inactivo, panel deshabilitado): respuesta pública genérica `401 unauthorized` "Usuario o contraseña incorrectos", sin enumerar usuarios/rol/existencia.
 5. Si autorizado, crea/emite cookie de sesión administrativa (`AdminSession`) igual que antes (conserva logout/revocación/expiración).
-6. Nunca guarda contraseña de Supabase Auth ni tokens en `public.users`, logs ni `AdminSession`.
+6. Nunca guarda contraseña de Supabase Auth ni tokens en `public.users`, logs ni `AdminSession`. Auditar sin datos sensibles.
 
 ## Alineación Prisma
 - `User.id` ahora es `@id @db.Uuid` sin `default(dbgenerated("gen_random_uuid()"))` (debe coincidir con `auth.users.id`).
@@ -25,7 +25,7 @@ No se deben exponer valores. Solo nombres.
 ## Seeds/limpieza
 - `prisma/seed.ts`: deshabilitado en `NODE_ENV=production`, ya no crea contraseñas ni eleva roles.
 - `prisma/seed-demo.ts` y `prisma/clean-test-data.ts`: lanzan error si `NODE_ENV=production`.
-- Procedimiento piloto: crear identidad admin en Supabase Auth (propietario del proyecto). Asignar fila en `public.users` con `id = auth.users.id`, `role='admin'`, `panel_login_enabled=true`, `is_active=true`. **Nunca** asignar rol desde metadata pública.
+- Procedimiento piloto (correcto): crear usuario en **Supabase Auth** (propietario del proyecto, con email/password). Crear fila en `public.users` con `id = auth.users.id`, `email`, `full_name`, `role='admin'`, `panel_login_enabled=true`, `is_active=true`, `username='admin'` si aplica. **Nunca** tomar `role` desde `raw_user_meta_data` ni desde cliente; asignarlo únicamente por acción controlada. La migración nueva elimina `password_hash` y ajusta la restricción `users_access_profile_check` para modelo sin contraseña local.
 
 ## Rate limiting
 - `POST /api/v1/auth/login` limitado (10 req/min) sin bloquear resto de rutas.
