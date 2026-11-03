@@ -59,8 +59,7 @@ export const createAuthRoutes = (
       const baseAudit = {
         actorChannel: "admin_panel" as const,
         metadata: {
-          requestId: response.locals.requestId,
-          email: parsed.data.email
+          requestId: response.locals.requestId
         },
         ipAddress: request.ip,
         userAgent: request.header("user-agent")
