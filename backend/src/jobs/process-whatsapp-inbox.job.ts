@@ -3,6 +3,7 @@ import {
   type WhatsAppGateway
 } from "../integrations/whatsapp/whatsapp.gateway";
 import { logger } from "../lib/logger";
+import { safeErrorFields } from "../lib/safe-error";
 import { saveOutboundMessage } from "../modules/chatbot/chat-messages.repository";
 import {
   processIncomingPaymentProof,
@@ -182,7 +183,7 @@ export const processIncomingWhatsAppInbox = async (
     } catch (error) {
       await dependencies.markIncomingFailed({ ...event, error });
       logger.error(
-        { error, waMessageId: event.waMessageId },
+        { ...safeErrorFields(error), waMessageId: event.waMessageId },
         "WhatsApp inbox event processing failed"
       );
     }
@@ -222,12 +223,11 @@ export const processIncomingWhatsAppInbox = async (
       if (event.reminderId) {
         await dependencies.markReminderFailed({
           reminderId: event.reminderId,
-          reason:
-            error instanceof Error ? error.message : "Unknown delivery error"
+          reason: "WhatsApp delivery failed"
         });
       }
       logger.error(
-        { error, outgoingEventId: event.id },
+        { ...safeErrorFields(error), outgoingEventId: event.id },
         "WhatsApp outgoing inbox event delivery failed"
       );
     }
@@ -248,7 +248,7 @@ export const startWhatsAppInboxWorker = () => {
     try {
       await processIncomingWhatsAppInbox();
     } catch (error) {
-      logger.error({ error }, "WhatsApp inbox dispatch failed");
+      logger.error(safeErrorFields(error), "WhatsApp inbox dispatch failed");
     } finally {
       running = false;
     }

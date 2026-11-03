@@ -27,10 +27,7 @@ export type IncomingWhatsAppInboxEvent =
 
 const processingLeaseMs = 15 * 60_000;
 
-const errorMessage = (error: unknown) =>
-  error instanceof Error
-    ? error.message.slice(0, 2_000)
-    : "Unknown processing error";
+const errorMessage = (_error: unknown) => "Processing failed";
 
 export const enqueueIncomingWhatsAppEvents = async (
   events: IncomingWhatsAppInboxEvent[]

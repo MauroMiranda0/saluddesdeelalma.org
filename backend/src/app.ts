@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
 
-import express from "express";
+import express, { type Request } from "express";
 
 import { env } from "./config/env";
+import { createCsrfProtection } from "./middleware/csrf";
 import { createCorsMiddleware } from "./middleware/cors";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { createSecurityMiddleware } from "./middleware/security";
@@ -35,9 +36,7 @@ export const createApp = () => {
     app.set("trust proxy", env.TRUST_PROXY);
   }
   app.use(createCorsMiddleware(env.FRONTEND_ORIGIN));
-  app.use(express.json({ limit: "1mb" }));
   app.use(security.headers);
-
   app.use((request, response, next) => {
     const requestId = request.header("x-request-id") ?? crypto.randomUUID();
 
@@ -45,6 +44,15 @@ export const createApp = () => {
     response.setHeader("x-request-id", requestId);
     next();
   });
+  app.use(createCsrfProtection(env.FRONTEND_ORIGIN, env.SESSION_COOKIE_NAME));
+  app.use(
+    express.json({
+      limit: "1mb",
+      verify: (request, _response, body) => {
+        (request as Request & { rawBody?: Buffer }).rawBody = Buffer.from(body);
+      }
+    })
+  );
 
   app.use("/health", healthRoutes);
   app.use(`${env.API_PREFIX}/health`, healthRoutes);

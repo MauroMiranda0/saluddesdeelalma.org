@@ -36,6 +36,7 @@ Nombres de variables del backend:
 - Runtime: `NODE_ENV`, `PORT`, `API_PREFIX`, `FRONTEND_ORIGIN`,
   `DATABASE_URL`, `JWT_SECRET`, `SESSION_COOKIE_NAME`,
   `SESSION_IDLE_TIMEOUT_MINUTES`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `META_APP_SECRET`,
   `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ACCESS_TOKEN`,
   `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ADMIN_PHONE`,
   `WHATSAPP_PSYCHOLOGISTS_GROUP_ID`, `REMINDER_TIMEZONE`, `LOG_LEVEL`,
@@ -48,6 +49,14 @@ Nombres de variables del backend:
 
 `FRONTEND_ORIGIN` es una lista separada por comas de orígenes HTTPS exactos,
 sin paths. Solo esos orígenes reciben `Access-Control-Allow-Credentials`.
+Las mutaciones que usan la cookie de sesión y el login también requieren un
+header `Origin` coincidente; el webhook POST se valida con `X-Hub-Signature-256`
+calculada con `META_APP_SECRET`.
+
+La cookie de sesión es host-only (sin `Domain`), `HttpOnly`, `SameSite=Lax`,
+`Path=/` y `Secure` en producción; su expiración sigue el timeout inactivo.
+Logout y sesiones inválidas la borran con atributos coincidentes. No modificar
+`SameSite` ni compartirla con subdominios sin revisión de CSRF.
 
 `DATABASE_URL` es la conexión permanente de runtime al transaction pooler de
 Supabase (`6543`, `pgbouncer=true`). `MIGRATION_DATABASE_URL` es una URL
@@ -96,6 +105,10 @@ reproducible usa `package-lock.json` de la raíz.
   `pm2 logs web`. No compartir logs que puedan contener datos operativos.
 - Verificar webhook solo en una ventana autorizada; no enviar mensajes reales
   durante pruebas de despliegue.
+- El código actual no carga ni descarga comprobantes desde Supabase Storage;
+  `payment_proofs` debe mantenerse privado y no se deben entregar URLs
+  permanentes. Revisar carga/descarga firmada en un entorno aislado antes de
+  habilitar ese flujo.
 
 ## Rollback de código y límite de esquema
 

@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { RequestHandler } from "express";
 
@@ -205,6 +205,31 @@ export const receiveWhatsAppWebhook: RequestHandler = async (
   response,
   next
 ) => {
+  const signature = request.header("x-hub-signature-256");
+  const rawBody = (request as typeof request & { rawBody?: Buffer }).rawBody;
+  const expectedSignature = rawBody
+    ? `sha256=${createHmac("sha256", env.META_APP_SECRET)
+        .update(rawBody)
+        .digest("hex")}`
+    : "";
+  const expected = Buffer.from(expectedSignature);
+  const provided = Buffer.from(signature ?? "");
+
+  if (
+    !rawBody ||
+    expected.length !== provided.length ||
+    !timingSafeEqual(expected, provided)
+  ) {
+    next(
+      new AppError(
+        403,
+        "webhook_signature_invalid",
+        "Webhook signature is invalid"
+      )
+    );
+    return;
+  }
+
   let messages: IncomingWhatsAppMessage[];
   let paymentProofs: IncomingPaymentProof[];
 

@@ -7,15 +7,15 @@ export const createTherapistProfileSchema = z.object({
     .trim()
     .regex(/^\+?[0-9]{8,30}$/, "Provide a valid phone number"),
   email: z.email().optional()
-});
+}).strict();
 
 export const updateTherapistProfileSchema = z.object({
   isActive: z.boolean()
-});
+}).strict();
 
 export const assignPatientTherapistSchema = z.object({
   therapistId: z.uuid().nullable()
-});
+}).strict();
 
 export type CreateTherapistProfileInput = z.infer<
   typeof createTherapistProfileSchema

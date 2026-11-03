@@ -32,7 +32,7 @@ export const updateAppointmentSchema = z.object({
   therapyType: therapyTypeSchema.optional(),
   status: appointmentStatusSchema.optional(),
   cancelReason: z.string().max(500).optional()
-});
+}).strict();
 
 export const appointmentRangeQuerySchema = z.object({
   from: z.iso.datetime(),
@@ -50,6 +50,7 @@ export const createAdminAppointmentSchema = z
     locationLabel: z.string().max(255).optional(),
     meetingLink: z.url().optional()
   })
+  .strict()
   .refine((value) => Boolean(value.patientId || value.patient), {
     message: "patientId or patient data is required"
   });
@@ -59,11 +60,11 @@ export const rescheduleAppointmentSchema = z.object({
   modality: modalitySchema.optional(),
   therapyType: therapyTypeSchema.optional(),
   manualExceptionConfirmed: z.boolean().default(false)
-});
+}).strict();
 
 export const cancelAppointmentSchema = z.object({
   reason: z.string().trim().min(1).max(500)
-});
+}).strict();
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;

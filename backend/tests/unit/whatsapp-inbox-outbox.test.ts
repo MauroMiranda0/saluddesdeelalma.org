@@ -187,7 +187,7 @@ test("a failed outbox delivery reports the failure on its linked reminder", asyn
 
   assert.deepEqual(markedSent, []);
   assert.deepEqual(markedFailed, [
-    { reminderId: "reminder-1", reason: "Meta timeout" }
+    { reminderId: "reminder-1", reason: "WhatsApp delivery failed" }
   ]);
 });
 

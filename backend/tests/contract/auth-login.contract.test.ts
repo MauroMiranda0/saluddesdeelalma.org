@@ -297,3 +297,47 @@ test("a session issued to a non-admin username is denied without a cookie", asyn
   assert.equal(audit[0].result, "failure");
   assert.equal(audit[0].requestId, "request-1");
 });
+
+test("admin logout revokes the session and expires the host-only cookie", async () => {
+  let revokedSessionId: string | undefined;
+  const app = express();
+  app.use(
+    createAuthRoutes({
+      authenticate: (request, _response, next) => {
+        request.adminSession = requestSessionFor("admin");
+        next();
+      },
+      authorizeAdmin: (_request, _response, next) => next(),
+      revokeAdminSessionWithAudit: (async (input) => {
+        revokedSessionId = input.sessionId;
+      }) as typeof import("../../src/modules/auth/session.service").revokeAdminSessionWithAudit
+    })
+  );
+  app.use(errorHandler);
+
+  const server = app.listen(0);
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Test server did not expose a TCP address");
+  }
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/logout`, {
+      method: "POST"
+    });
+    assert.equal(response.status, 204);
+    assert.equal(revokedSessionId, "00000000-0000-0000-0000-000000000001");
+    const cookie = response.headers.get("set-cookie") ?? "";
+    assert.match(cookie, /sda_admin_session=;/);
+    assert.match(cookie, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/i);
+    assert.match(cookie, /HttpOnly/i);
+    assert.match(cookie, /Path=\//i);
+    assert.match(cookie, /SameSite=Lax/i);
+    assert.doesNotMatch(cookie, /Domain=/i);
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    );
+  }
+});

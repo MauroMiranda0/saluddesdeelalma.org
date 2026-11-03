@@ -48,8 +48,6 @@ export const createRateLimiter = (policy: RateLimitPolicy): RequestHandler =>
           code: RATE_LIMIT_ERROR_CODE,
           requestId,
           method: request.method,
-          path: request.originalUrl,
-          ipAddress: request.ip,
           limit: policy.limit,
           windowMs: policy.windowMs
         },

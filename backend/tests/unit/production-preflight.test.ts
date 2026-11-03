@@ -25,6 +25,7 @@ const createBackendEnv = async (directory: string) => {
       "SESSION_IDLE_TIMEOUT_MINUTES=30",
       "SUPABASE_URL=https://projectref.supabase.co",
       "SUPABASE_ANON_KEY=fake-anon-key",
+      "META_APP_SECRET=fake-meta-app-secret",
       "WHATSAPP_VERIFY_TOKEN=fake-verify-token",
       "WHATSAPP_ACCESS_TOKEN=fake-access-token",
       "WHATSAPP_PHONE_NUMBER_ID=123456789012345",
@@ -72,6 +73,7 @@ test("production preflight validates runtime and temporary migration URLs withou
     "fake-password",
     "fake-jwt-secret",
     "fake-anon-key",
+    "fake-meta-app-secret",
     "fake-verify-token",
     "fake-access-token",
     "fake-migration-password"

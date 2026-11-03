@@ -32,6 +32,7 @@ const envSchema = z.object({
   SESSION_IDLE_TIMEOUT_MINUTES: z.coerce.number().int().positive().default(30),
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
+  META_APP_SECRET: z.string().min(1).default("development-meta-app-secret"),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
@@ -86,6 +87,9 @@ export const assertProductionEnvironment = (environment: Environment) => {
   }
   if (isPlaceholder(environment.SUPABASE_ANON_KEY)) {
     throw new Error("SUPABASE_ANON_KEY must be replaced in production");
+  }
+  if (isPlaceholder(environment.META_APP_SECRET)) {
+    throw new Error("META_APP_SECRET must be configured in production");
   }
   if (
     environment.AI_PROVIDER_API_KEY &&

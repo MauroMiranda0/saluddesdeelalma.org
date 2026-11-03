@@ -28,7 +28,10 @@ export const paymentDto = (payment: {
   amount: Number(payment.amount.toString()),
   method: payment.method,
   status: payment.status,
-  proofReference: payment.proofReference,
+  proofReference:
+    payment.proofReference && /^https?:\/\//i.test(payment.proofReference)
+      ? null
+      : payment.proofReference,
   paidAt: payment.paidAt?.toISOString() ?? null,
   createdAt: payment.createdAt.toISOString()
 });

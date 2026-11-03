@@ -7,6 +7,7 @@ import type {
 } from "express";
 
 import { logger } from "../lib/logger";
+import { safeErrorFields } from "../lib/safe-error";
 
 export class AppError extends Error {
   readonly statusCode: number;
@@ -53,7 +54,7 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   logger.error(
-    { error, requestId, path: request.path },
+    { ...safeErrorFields(error), requestId },
     "Unhandled request error"
   );
   response.status(500).json({

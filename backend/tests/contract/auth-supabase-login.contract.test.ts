@@ -141,7 +141,10 @@ test("Supabase Auth + public admin habilitado crean sesión y cookie HttpOnly", 
   const events = await withLoginServer(scenario, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/login`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000"
+      },
       body: JSON.stringify({ email: attemptEmail, password: attemptPassword })
     });
 
@@ -285,7 +288,10 @@ test("POST /api/v1/auth/login aplica el rate limit montado", async () => {
         `http://127.0.0.1:${address.port}/api/v1/auth/login`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            origin: "http://localhost:3000"
+          },
           body: JSON.stringify({})
         }
       );

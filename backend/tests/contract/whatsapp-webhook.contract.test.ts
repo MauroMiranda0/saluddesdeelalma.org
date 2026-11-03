@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 
 import { createApp } from "../../src/app.js";
@@ -22,6 +23,9 @@ const withServer = async (run: (baseUrl: string) => Promise<void>) => {
     );
   }
 };
+
+const webhookSignature = (body: string) =>
+  `sha256=${createHmac("sha256", env.META_APP_SECRET).update(body).digest("hex")}`;
 
 test("GET WhatsApp webhook returns Meta's challenge for the configured token", async () => {
   await withServer(async (baseUrl) => {
@@ -52,15 +56,53 @@ test("GET WhatsApp webhook rejects an invalid verification token", async () => {
   });
 });
 
-test("POST WhatsApp webhook accepts a valid Meta envelope asynchronously", async () => {
+test("POST WhatsApp webhook requires a valid Meta signature", async () => {
   await withServer(async (baseUrl) => {
+    const body = JSON.stringify({ object: "whatsapp_business_account", entry: [] });
     const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ object: "whatsapp_business_account", entry: [] })
+      body
+    });
+
+    assert.equal(response.status, 403);
+    assert.equal(
+      ((await response.json()) as { code: string }).code,
+      "webhook_signature_invalid"
+    );
+  });
+});
+
+test("POST WhatsApp webhook accepts a valid signed Meta envelope", async () => {
+  await withServer(async (baseUrl) => {
+    const body = JSON.stringify({ object: "whatsapp_business_account", entry: [] });
+    const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-hub-signature-256": webhookSignature(body)
+      },
+      body
     });
 
     assert.equal(response.status, 202);
+  });
+});
+
+test("POST WhatsApp webhook rejects an altered payload", async () => {
+  await withServer(async (baseUrl) => {
+    const signedBody = JSON.stringify({ object: "whatsapp_business_account", entry: [] });
+    const alteredBody = JSON.stringify({ object: "whatsapp_business_account", entry: [{}] });
+    const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-hub-signature-256": webhookSignature(signedBody)
+      },
+      body: alteredBody
+    });
+
+    assert.equal(response.status, 403);
   });
 });
 

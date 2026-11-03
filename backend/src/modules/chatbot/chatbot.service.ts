@@ -201,7 +201,7 @@ export const processIncomingPaymentProof = async (
     receivedAt: proof.receivedAt,
     intent: "unknown",
     containsSensitiveClinicalContent: false,
-    metadata: { mediaId: proof.mediaId, mediaType: proof.mediaType }
+    metadata: { mediaType: proof.mediaType }
   });
   if (!conversation) {
     conversation = await proofDependencies.findConversationByIncomingMessage(

@@ -355,7 +355,7 @@ export const sendReminder = async (input: {
   } catch (error) {
     await failReminder({
       reminderId: input.reminderId,
-      reason: error instanceof Error ? error.message : "Unknown send error",
+      reason: "WhatsApp delivery failed",
       attemptsCount: input.attemptsCount
     });
     throw error;

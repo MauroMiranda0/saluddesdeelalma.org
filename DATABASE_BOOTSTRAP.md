@@ -19,6 +19,11 @@ No ejecutar `prisma migrate deploy`, `migrate status` ni SQL como parte de una
 validación local. Toda migración de producción requiere revisión y autorización
 separadas.
 
+Los scripts de `database/migrations/` son SQL manual histórico y no son
+migraciones Prisma; no ejecutarlos en bloque. Sus advertencias, RLS, límites
+del rol runtime y Storage privado están descritos en
+[`database/migrations/README.md`](./database/migrations/README.md).
+
 Las instrucciones históricas de Supabase que detallan el acceso al dashboard
 no forman parte de la secuencia automatizada; ver la guía operativa vigente
 antes de cualquier operación.

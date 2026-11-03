@@ -5,6 +5,7 @@ import {
 } from "../../integrations/whatsapp/whatsapp.gateway";
 import { prisma } from "../../lib/prisma";
 import { logger } from "../../lib/logger";
+import { safeErrorFields } from "../../lib/safe-error";
 import { modalityLabel, therapyTypeLabel } from "../chatbot/response-templates";
 import {
   failReminder,
@@ -212,7 +213,7 @@ export const dispatchDueReminders = async (input?: {
       });
     } catch (error) {
       logger.error(
-        { error, reminderId: reminder.id },
+        { ...safeErrorFields(error), reminderId: reminder.id },
         "Reminder delivery failed"
       );
     }

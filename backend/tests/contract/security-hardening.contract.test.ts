@@ -79,6 +79,31 @@ test("el webhook y las rutas administrativas declaran su presupuesto de peticion
   });
 });
 
+test("el rate limit del POST webhook responde 429 al superar su límite", async () => {
+  await withApp(async (baseUrl) => {
+    for (let attempt = 0; attempt < WEBHOOK_RATE_LIMIT.limit; attempt += 1) {
+      const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}"
+      });
+      assert.equal(response.status, 403);
+      await response.body?.cancel();
+    }
+
+    const limited = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}"
+    });
+    assert.equal(limited.status, 429);
+    assert.equal(
+      ((await limited.json()) as { code: string }).code,
+      RATE_LIMIT_ERROR_CODE
+    );
+  });
+});
+
 test("el rate limiting no es global: el health check nunca se limita", async () => {
   await withApp(async (baseUrl) => {
     const first = await fetch(`${baseUrl}/health`);

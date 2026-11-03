@@ -17,6 +17,7 @@ const productionEnvironment = {
   SESSION_IDLE_TIMEOUT_MINUTES: 30,
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_ANON_KEY: "anon-key",
+  META_APP_SECRET: "fake-meta-app-secret",
   WHATSAPP_VERIFY_TOKEN: "real-webhook-token",
   WHATSAPP_ACCESS_TOKEN: "real-access-token",
   WHATSAPP_PHONE_NUMBER_ID: "123456789",
@@ -98,6 +99,17 @@ test("production rejects documented secret placeholders", () => {
 
 test("production accepts configured non-placeholder secrets", () => {
   assert.doesNotThrow(() => assertProductionEnvironment(productionEnvironment));
+});
+
+test("production requires the Meta app secret for webhook signature verification", () => {
+  assert.throws(
+    () =>
+      assertProductionEnvironment({
+        ...productionEnvironment,
+        META_APP_SECRET: "replace-with-meta-app-secret"
+      }),
+    /META_APP_SECRET/
+  );
 });
 
 test("production rejects an idle timeout different from 30 minutes", () => {

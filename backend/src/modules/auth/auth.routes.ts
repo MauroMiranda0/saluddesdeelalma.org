@@ -12,6 +12,7 @@ import {
   createAdminSessionWithAudit,
   getClearSessionCookieOptions,
   getSessionCookieOptions,
+  InvalidAdminSessionError,
   refreshAdminSessionWithAudit,
   revokeAdminSessionWithAudit
 } from "./session.service";
@@ -141,20 +142,32 @@ export const createAuthRoutes = (
         throw new AppError(401, "unauthorized", "Authentication required");
       }
 
-      const refreshed = await refreshSession({
-        sessionId: request.adminSession.id,
-        audit: {
-          actorUserId: request.adminSession.user.id,
-          actorChannel: "admin_panel",
-          action: "auth_session_accessed",
-          entityType: "admin_session",
-          entityId: request.adminSession.id,
-          result: "success",
-          metadata: { requestId: response.locals.requestId },
-          ipAddress: request.ip,
-          userAgent: request.header("user-agent")
+      let refreshed: Awaited<ReturnType<typeof refreshAdminSessionWithAudit>>;
+      try {
+        refreshed = await refreshSession({
+          sessionId: request.adminSession.id,
+          audit: {
+            actorUserId: request.adminSession.user.id,
+            actorChannel: "admin_panel",
+            action: "auth_session_accessed",
+            entityType: "admin_session",
+            entityId: request.adminSession.id,
+            result: "success",
+            metadata: { requestId: response.locals.requestId },
+            ipAddress: request.ip,
+            userAgent: request.header("user-agent")
+          }
+        });
+      } catch (error) {
+        if (!(error instanceof InvalidAdminSessionError)) {
+          throw error;
         }
-      });
+        response.clearCookie(
+          env.SESSION_COOKIE_NAME,
+          getClearSessionCookieOptions()
+        );
+        throw new AppError(401, "unauthorized", "Session expired or invalid");
+      }
       response.cookie(
         env.SESSION_COOKIE_NAME,
         refreshed.token,
