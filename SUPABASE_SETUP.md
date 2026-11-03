@@ -1,5 +1,9 @@
 # SUPABASE_SETUP.md
 
+> **Histórico/manual.** No ejecutar los pasos de esta guía como despliegue
+> automatizado. La secuencia vigente está en
+> [DEPLOY_EXECUTION_GUIDE.md](./DEPLOY_EXECUTION_GUIDE.md).
+
 **Proyecto:** Salud desde el Alma  
 **Objetivo:** Preparar base de datos PostgreSQL en Supabase para producción (sin migración desde PostgreSQL local)  
 **Referencia:** DEPLOY_AUDIT.md, DEPLOY_PLAN.md  

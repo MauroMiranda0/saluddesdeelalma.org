@@ -1,34 +1,65 @@
 #!/usr/bin/env bash
-set -e
+set -Eeuo pipefail
 
-echo "=== ROLLBACK START ==="
+REPOSITORY_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+EXPECTED_ORIGIN="MauroMiranda0/saluddesdeelalma.org"
 
-# Get previous commit
-PREV_COMMIT=$(git -C ~/apps/repo rev-parse HEAD~1)
-echo "Rolling back to: $PREV_COMMIT"
+fail() {
+  printf '[ERROR] %s\n' "$1" >&2
+  exit 1
+}
 
-# Rollback backend
-cd ~/apps/backend
-git fetch origin
-git reset --hard $PREV_COMMIT
+: "${ROLLBACK_REVISION:?Indica el SHA conocido de código que se desea restaurar.}"
+: "${ROLLBACK_WORKTREE_DIR:?Indica una ruta absoluta nueva fuera del checkout para el worktree de rollback.}"
+: "${BACKEND_ENV_FILE:?BACKEND_ENV_FILE debe señalar el entorno externo de runtime.}"
+: "${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL es requerida para el build.}"
 
-npm ci
-npx prisma generate --schema prisma/schema.prisma
+[[ "$ROLLBACK_WORKTREE_DIR" = /* ]] || fail "ROLLBACK_WORKTREE_DIR debe ser una ruta absoluta."
+case "$ROLLBACK_WORKTREE_DIR/" in
+  "$REPOSITORY_ROOT/"*) fail "El worktree de rollback debe estar fuera del checkout." ;;
+esac
+[[ ! -e "$ROLLBACK_WORKTREE_DIR" ]] || fail "ROLLBACK_WORKTREE_DIR ya existe."
+[[ -f "$BACKEND_ENV_FILE" ]] || fail "No existe el archivo indicado por BACKEND_ENV_FILE."
+BACKEND_ENV_REALPATH="$(realpath -- "$BACKEND_ENV_FILE")" \
+  || fail "No se pudo resolver BACKEND_ENV_FILE."
+case "$BACKEND_ENV_REALPATH" in
+  "$REPOSITORY_ROOT"/*) fail "El archivo de runtime debe estar fuera del checkout." ;;
+esac
+
+for env_file in "$REPOSITORY_ROOT"/.env "$REPOSITORY_ROOT"/.env.* \
+  "$REPOSITORY_ROOT"/backend/.env "$REPOSITORY_ROOT"/backend/.env.* \
+  "$REPOSITORY_ROOT"/frontend/.env "$REPOSITORY_ROOT"/frontend/.env.*; do
+  [[ -e "$env_file" ]] || continue
+  [[ "$env_file" == *.example || "$env_file" == *.template ]] && continue
+  fail "Se detectó un archivo local de entorno dentro del checkout; usa un archivo externo y variables inyectadas."
+done
+
+ORIGIN_URL="$(git -C "$REPOSITORY_ROOT" remote get-url origin 2>/dev/null)" \
+  || fail "Falta el remote origin."
+shopt -s nocasematch
+[[ "$ORIGIN_URL" =~ (github\.com[:/])MauroMiranda0/saluddesdeelalma\.org(\.git)?$ ]] \
+  || fail "El remote origin no corresponde al repositorio esperado."
+shopt -u nocasematch
+git -C "$REPOSITORY_ROOT" cat-file -e "${ROLLBACK_REVISION}^{commit}" \
+  || fail "ROLLBACK_REVISION no existe localmente."
+
+node "$REPOSITORY_ROOT/backend/scripts/validate-production-env.mjs" \
+  --backend-env "$BACKEND_ENV_FILE" \
+  --require-frontend
+
+git -C "$REPOSITORY_ROOT" worktree add --detach \
+  "$ROLLBACK_WORKTREE_DIR" "$ROLLBACK_REVISION"
+cd "$ROLLBACK_WORKTREE_DIR"
+
+printf 'Rollback de código a revisión: %s\n' "$ROLLBACK_REVISION"
+npm ci --include=dev
 npm run build
-# Note: prisma migrate deploy not reverted automatically; migrations are forward-only
 
-# Rollback frontend
-cd ~/apps/frontend
-git reset --hard $PREV_COMMIT
-npm ci
-npm run build
-
-# Restart PM2
-pm2 restart api
-pm2 restart reminders
-pm2 restart whatsapp-inbox
-pm2 restart web
+mkdir -p "$ROLLBACK_WORKTREE_DIR/logs"
+pm2 startOrReload backend/ecosystem.config.js --update-env
+pm2 startOrReload frontend/ecosystem.config.js --update-env
 pm2 save
 
-echo "=== ROLLBACK COMPLETE ==="
-pm2 ls
+curl --fail --silent --show-error http://127.0.0.1:4000/api/v1/health >/dev/null
+curl --fail --silent --show-error http://127.0.0.1:3000/ >/dev/null
+printf 'Rollback de código completado. No se ejecutaron migraciones.\n'

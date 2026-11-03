@@ -1,13 +1,31 @@
 import "./load-env-file";
 import { z } from "zod";
 
+import { parseFrontendOrigins } from "./frontend-origins";
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
   API_PREFIX: z.string().startsWith("/").default("/api/v1"),
-  FRONTEND_ORIGIN: z.url().default("http://localhost:3000"),
+  FRONTEND_ORIGIN: z
+    .string()
+    .default("http://localhost:3000")
+    .transform((value, context) => {
+      try {
+        return parseFrontendOrigins(value);
+      } catch (error) {
+        context.addIssue({
+          code: "custom",
+          message:
+            error instanceof Error
+              ? error.message
+              : "FRONTEND_ORIGIN is invalid"
+        });
+        return z.NEVER;
+      }
+    }),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().min(1).default("sda_admin_session"),
@@ -26,8 +44,6 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
-  ENABLE_REMINDER_WORKER: z.enum(["true", "false"]).default("false"),
-  ENABLE_WHATSAPP_INBOX_WORKER: z.enum(["true", "false"]).default("false"),
   TRUST_PROXY: z
     .union([z.boolean(), z.literal("1"), z.number(), z.string()])
     .optional()
@@ -63,16 +79,6 @@ export const assertProductionEnvironment = (environment: Environment) => {
   ) {
     throw new Error(
       "WhatsApp credentials, Jocelyn destination and psychology group destination must be configured in production"
-    );
-  }
-  if (environment.ENABLE_WHATSAPP_INBOX_WORKER !== "true") {
-    throw new Error(
-      "ENABLE_WHATSAPP_INBOX_WORKER must be enabled in production so accepted WhatsApp inbox events are not left unprocessed"
-    );
-  }
-  if (environment.ENABLE_REMINDER_WORKER !== "true") {
-    throw new Error(
-      "ENABLE_REMINDER_WORKER must be enabled in production so due reminders are not left unprocessed"
     );
   }
   if (isPlaceholder(environment.SUPABASE_URL)) {

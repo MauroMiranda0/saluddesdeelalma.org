@@ -1,5 +1,9 @@
 # Plan de despliegue para `saluddesdeelalma.org`
 
+> **Histórico.** Este plan conserva decisiones anteriores y ya no es la
+> instrucción operativa. Para procesos y pasos vigentes, sigue
+> [DEPLOY_EXECUTION_GUIDE.md](../DEPLOY_EXECUTION_GUIDE.md).
+
 ## 1. Arquitectura Objetivo
 
 ```text

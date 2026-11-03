@@ -480,7 +480,7 @@ Las filas de recordatorio programadas al agendar o confirmar debían ser un efec
 
 **Decisión**
 
-La programación y confirmación de recordatorios se ejecutan dentro de la misma transacción Prisma que persiste la cita: si la cita no se guarda, tampoco sus recordatorios. El arranque del worker depende de `ENABLE_REMINDER_WORKER` (`z.enum(["true","false"])`, default `false`) en `server.ts`, y existe una entrada dedicada `backend/src/jobs/reminders-worker.entry.ts` invocable con `npm run reminders:worker`. La validación de entorno de producción exige además `SESSION_IDLE_TIMEOUT_MINUTES=30`.
+La programación y confirmación de recordatorios se ejecutan dentro de la misma transacción Prisma que persiste la cita: si la cita no se guarda, tampoco sus recordatorios. **La decisión de arranque descrita a continuación quedó supersedida:** producción usa el proceso PM2 dedicado `reminders`, sin `ENABLE_REMINDER_WORKER`; el API no inicia workers. La validación de entorno de producción exige además `SESSION_IDLE_TIMEOUT_MINUTES=30`. Ver [DEPLOY_EXECUTION_GUIDE.md](../DEPLOY_EXECUTION_GUIDE.md).
 
 **Alternativas consideradas**
 

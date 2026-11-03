@@ -1,5 +1,10 @@
 # DEPLOY_AUDIT.md
 
+> **Histórico.** Auditoría de una revisión anterior; sus comandos y
+> recomendaciones no describen necesariamente la configuración vigente.
+> Consulta [DEPLOY_EXECUTION_GUIDE.md](../DEPLOY_EXECUTION_GUIDE.md) antes de
+> cualquier operación.
+
 **Fecha:** 31 de octubre de 2026  
 **Repositorio:** saluddesdeelalma.org  
 **Rama analizada:** prod (actual)  

@@ -1,5 +1,10 @@
 # Checklist de Variables de Entorno - Producción
 
+> **Histórico.** Las rutas `apps/backend`/`apps/frontend` y algunos campos de
+> esta lista ya no aplican. Usa
+> [DEPLOY_EXECUTION_GUIDE.md](./DEPLOY_EXECUTION_GUIDE.md) como única guía
+> operativa vigente; no copies archivos `.env` al checkout.
+
 **Proyecto:** Salud desde el Alma  
 **Basado en:** DEPLOY_AUDIT.md  
 **Fecha:** _______________  
@@ -39,8 +44,7 @@ Verificar que todas estas variables estén configuradas en `apps/backend/.env` p
 | 15 | `SESSION_IDLE_TIMEOUT_MINUTES` | [ ] | Administrador | `30` | Debe ser 30 en producción según validación |
 | 16 | `REMINDER_TIMEZONE` | [ ] | Administrador | `America/Mexico_City` | Usado por workers de recordatorios |
 | 17 | `LOG_LEVEL` | [ ] | Administrador | `info` | Nivel de logging Pino |
-| 18 | `ENABLE_REMINDER_WORKER` | [ ] | Administrador | `false` | Con PM2 usar proceso `reminders` separado |
-| 19 | `ENABLE_WHATSAPP_INBOX_WORKER` | [ ] | Administrador | `false` | Con PM2 usar proceso `whatsapp-inbox` separado |
+| 18 | Procesos PM2 | [ ] | Administrador | `api`, `reminders`, `whatsapp-inbox`, `web` | No son variables de entorno; confirmar en `pm2 ls` |
 | 20 | `TRUST_PROXY` | [ ] | Administrador | `1` | Configurar si hay proxy reverso (Hostinger). Ver configuración de VirtualHost |
 
 ---

@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 
-import cors from "cors";
 import express from "express";
 
 import { env } from "./config/env";
+import { createCorsMiddleware } from "./middleware/cors";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { createSecurityMiddleware } from "./middleware/security";
 import { adminAppointmentRoutes } from "./modules/appointments/appointments.routes";
@@ -19,7 +19,8 @@ import { createRateLimiter } from "./middleware/security";
 const loginRateLimiter = createRateLimiter({
   windowMs: 60_000,
   limit: 10,
-  message: "Demasiados intentos de inicio de sesión. Intenta de nuevo en un minuto."
+  message:
+    "Demasiados intentos de inicio de sesión. Intenta de nuevo en un minuto."
 });
 
 export const createApp = () => {
@@ -33,12 +34,7 @@ export const createApp = () => {
   if (env.TRUST_PROXY !== undefined) {
     app.set("trust proxy", env.TRUST_PROXY);
   }
-  app.use(
-    cors({
-      origin: env.FRONTEND_ORIGIN,
-      credentials: true
-    })
-  );
+  app.use(createCorsMiddleware(env.FRONTEND_ORIGIN));
   app.use(express.json({ limit: "1mb" }));
   app.use(security.headers);
 

@@ -1,5 +1,10 @@
 # saluddesdeelalma.org
 
+> Para producción, la única secuencia vigente está en
+> [DEPLOY_EXECUTION_GUIDE.md](./DEPLOY_EXECUTION_GUIDE.md). Los comandos de
+> workers descritos abajo son para ejecución local/manual; producción usa
+> procesos PM2 dedicados.
+
 ## Estado actual
 
 Este repositorio cerró las seis historias de usuario del proyecto `001-sistema-gestion-consultorio`: **US1** (agendar una cita por WhatsApp), **US2** (gestionar la agenda y las citas desde el panel), **US3** (pagos, anticipos y comprobantes), **US4** (recordatorios automáticos), **US5** (FAQ y consulta de estado de cita y pago por WhatsApp) y **US6** (landing pública y alineación de la interfaz al mockup aprobado). Las convergencias **Phase 23** a **Phase 40** y las remediaciones `T091`-`T220` están cerradas con sus gates disponibles, incluida la convergencia de seguridad `T066` (`T217`-`T220`). El avance al 03/10/2026 (día 34) es de **204 de 220 tareas (92.7%)**; el detalle por tarea y las 16 abiertas están en `specs/001-sistema-gestion-consultorio/tasks.md`.
@@ -31,7 +36,7 @@ En este punto existe:
 - confirmación grupal marcada `omitido` si el destino interno no está configurado, sin interrumpir la cabida del paciente
 - los recordatorios creados al agendar/confirmar se persisten dentro de la misma transacción que la cita
 - la API administrativa responde `400 validation_error` para parámetros de ruta no-UUID
-- worker de recordatorios configurable: arranca con el backend si `ENABLE_REMINDER_WORKER=true` (default `false`) o bajo demanda con `npm run reminders:worker` (entradas `backend/src/jobs/process-reminders.job.ts` y `backend/src/jobs/reminders-worker.entry.ts`), sin scheduler externo aún
+- worker de recordatorios disponible mediante el entrypoint dedicado `npm run reminders:worker --workspace backend`; producción lo ejecuta como proceso PM2 separado del API
 - pruebas de contrato del webhook, pruebas de integracion del flujo de agendamiento y de cancelación (clasificación del intent, verificación de identidad, flujo completo y denegación auditable), pruebas unitarias de la ventana de recordatorios y un gate opt-in de integración con PostgreSQL real (`RUN_POSTGRES_INTEGRATION`)
 - **Panel `admin` (US2)**: login real con `username` + contraseña scrypt y cookie HttpOnly en `POST /api/v1/auth/login`, sesión activa en `GET /api/v1/auth/me` y logout en `POST /api/v1/auth/logout`, todo auditable y transaccional (`createAdminSessionWithAudit`)
 - guard de identidad inyectable `createAuthorizeAdminIdentity(audit)` aplicado a las rutas administrativas, rechazando cualquier usuario distinto de `admin` sin cookie y con auditoría de denegación (constraints `users_single_admin_key` / `users_access_profile_check`)
@@ -224,13 +229,13 @@ npm run test --workspace backend
 # 4) Finalizado: docker rm -f sda-pg-test
 ```
 
-Worker de recordatorios (ejecuta el despacho y repite cada 5 minutos; requiere base de datos y credenciales de WhatsApp). Arranca con el backend si `ENABLE_REMINDER_WORKER=true`, o bajo demanda:
+Worker de recordatorios (ejecuta el despacho y repite cada 5 minutos; requiere base de datos y credenciales de WhatsApp). Para ejecución local/manual:
 
 ```bash
 npm run reminders:worker --workspace backend
 ```
 
-Worker del inbox de WhatsApp (procesa los eventos entrantes aceptados por el webhook; Arranca con el backend si `ENABLE_WHATSAPP_INBOX_WORKER=true`, o bajo demanda):
+Worker del inbox de WhatsApp (procesa los eventos entrantes aceptados por el webhook). Para ejecución local/manual:
 
 ```bash
 npm run whatsapp-inbox:worker --workspace backend
@@ -254,7 +259,7 @@ npm run db:clean:test-data --workspace backend # borra los residuos de integraci
 - La prueba E2E pública de la landing se ejecuta en Chromium con el viewport y táctil de iPhone 13. WebKit no es portable en este Windows por DLLs del sistema no incluidas por Playwright.
 - Las 11 migraciones se aplicaron contra un PostgreSQL 16 real, incluida `20261101000000_convergence_hardening`; la configuración de destino y credenciales de producción sigue pendiente.
 - La verificación de identidad por WhatsApp cubre las dos superficies que exponen datos de una cita: la cancelación y la consulta de estado (`payment_status`). Ambas exigen un número registrado y nombre + fecha de nacimiento coincidentes; sin esos datos la petición se rechaza y audita sin exponer información.
-- `ENABLE_REMINDER_WORKER` está deshabilitado por defecto; producción debe activarlo o ejecutar el worker de forma externa. El arranque en producción valida `SESSION_IDLE_TIMEOUT_MINUTES=30`.
+- Producción ejecuta `api`, `reminders` y `whatsapp-inbox` como procesos PM2 separados; el API no inicia workers. Ver la guía operativa enlazada arriba.
 - El gate `RUN_POSTGRES_INTEGRATION` **está en rojo**: fallan `T203` y `T204`, y `T205` lo hace no determinista porque las pruebas corren sin `--test-concurrency=1` contra una base compartida e instalan triggers globales sobre `audit_logs`. La suite por defecto (sin el gate) sí pasa. Ver `docs/pruebas-panel.md` y `tasks.md:636`-`:640`.
 - `npm audit` no se ha vuelto a ejecutar desde que `helmet` y `express-rate-limit` se agregaron a las dependencias; la afirmación anterior de que no hay vulnerabilidades conocidas es previa a ese commit y no se ha re-verificado.
 
