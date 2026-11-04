@@ -319,6 +319,10 @@ test(
         ),
         "anticipo"
       );
+      await prisma.payment.update({
+        where: { id: mismatchedFullPayment.id },
+        data: { status: "rechazado" }
+      });
 
       const registeredFullPayment = await request(`${baseUrl}/payments`, {
         method: "POST",

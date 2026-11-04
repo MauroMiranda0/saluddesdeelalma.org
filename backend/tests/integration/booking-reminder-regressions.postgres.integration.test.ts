@@ -20,12 +20,6 @@ type Created = {
 
 const registerCleanup = (t: test.TestContext, created: Created) => {
   t.after(async () => {
-    await prisma.$executeRawUnsafe(
-      'DROP TRIGGER IF EXISTS "audit_logs_fail_insert" ON "audit_logs"'
-    );
-    await prisma.$executeRawUnsafe(
-      "DROP FUNCTION IF EXISTS fail_audit_insert()"
-    );
     await prisma.appointmentReminder.deleteMany({
       where: { appointmentId: { in: created.appointments } }
     });
@@ -101,15 +95,31 @@ const createBookingPatient = async (created: Created, therapistId: string) => {
   return patient;
 };
 
-const installAuditFailureTrigger = () =>
-  prisma.$transaction([
-    prisma.$executeRawUnsafe(
-      "CREATE FUNCTION fail_audit_insert() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'forced audit failure'; END; $$ LANGUAGE plpgsql"
-    ),
-    prisma.$executeRawUnsafe(
-      'CREATE TRIGGER "audit_logs_fail_insert" BEFORE INSERT ON "audit_logs" FOR EACH ROW EXECUTE FUNCTION fail_audit_insert()'
-    )
-  ]);
+const installAuditFailureTrigger = async (t: test.TestContext) => {
+  const suffix = randomUUID().replaceAll("-", "");
+  const triggerName = `audit_fail_${suffix}`;
+  const functionName = `fail_audit_${suffix}`;
+
+  await prisma.$executeRawUnsafe(`
+    CREATE FUNCTION "${functionName}"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'forced audit failure';
+    END;
+    $$ LANGUAGE plpgsql
+  `);
+  await prisma.$executeRawUnsafe(`
+    CREATE TRIGGER "${triggerName}" BEFORE INSERT ON "audit_logs"
+    FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+  `);
+  t.after(async () => {
+    await prisma.$executeRawUnsafe(
+      `DROP TRIGGER IF EXISTS "${triggerName}" ON "audit_logs"`
+    );
+    await prisma.$executeRawUnsafe(
+      `DROP FUNCTION IF EXISTS "${functionName}"()`
+    );
+  });
+};
 
 test(
   "a failed audit insert rolls back the WhatsApp appointment creation",
@@ -125,7 +135,7 @@ test(
 
     const therapist = await createTherapist(created);
     const patient = await createBookingPatient(created, therapist.id);
-    await installAuditFailureTrigger();
+    await installAuditFailureTrigger(t);
 
     await assert.rejects(
       createWhatsAppAppointment({
@@ -134,7 +144,7 @@ test(
           whatsappPhone: patient.whatsappPhone,
           birthdate: patient.birthdate
         },
-        scheduledAt: new Date("2026-10-05T15:00:00.000Z"),
+        scheduledAt: new Date("2027-10-05T15:00:00.000Z"),
         modality: "presencial",
         therapyType: "individual",
         createdVia: "whatsapp",
@@ -174,7 +184,7 @@ test(
 
     const therapist = await createTherapist(created);
     const patient = await createBookingPatient(created, therapist.id);
-    const scheduledAt = new Date("2026-10-05T15:00:00.000Z");
+    const scheduledAt = new Date("2027-10-05T15:00:00.000Z");
 
     const { appointment } = await createWhatsAppAppointment({
       patient: {
@@ -242,7 +252,7 @@ test(
     const deliveries: string[] = [];
     const appointment = await createPanelAppointmentWithAudit({
       patient: { patientId: patient.id },
-      scheduledAt: new Date("2026-10-05T15:00:00.000Z"),
+      scheduledAt: new Date("2027-10-05T15:00:00.000Z"),
       modality: "online",
       therapyType: "individual",
       isManualException: false,
@@ -281,9 +291,9 @@ test(
     );
     assert.equal(byKey["confirmacion:grupo_psicologas"].status, "fallido");
     assert.equal(byKey["confirmacion:grupo_psicologas"].attemptsCount, 1);
-    assert.match(
-      byKey["confirmacion:grupo_psicologas"].lastError ?? "",
-      /group delivery failed/
+    assert.equal(
+      byKey["confirmacion:grupo_psicologas"].lastError,
+      "WhatsApp delivery failed"
     );
     assert.equal(byKey["recordatorio_24h:paciente"].status, "pendiente");
     assert.equal(
@@ -308,13 +318,13 @@ test(
 
     const therapist = await createTherapist(created);
     const patient = await createBookingPatient(created, therapist.id);
-    await installAuditFailureTrigger();
+    await installAuditFailureTrigger(t);
     let sends = 0;
 
     await assert.rejects(
       createPanelAppointmentWithAudit({
         patient: { patientId: patient.id },
-        scheduledAt: new Date("2026-10-05T15:00:00.000Z"),
+        scheduledAt: new Date("2027-10-05T15:00:00.000Z"),
         modality: "online",
         therapyType: "individual",
         isManualException: false,

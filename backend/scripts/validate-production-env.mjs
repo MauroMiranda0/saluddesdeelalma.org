@@ -103,6 +103,7 @@ const required = [
   "FRONTEND_ORIGIN",
   "DATABASE_URL",
   "JWT_SECRET",
+  "ADMIN_ACCESS_RECOVERY_TOKEN",
   "SESSION_COOKIE_NAME",
   "SESSION_IDLE_TIMEOUT_MINUTES",
   "SUPABASE_URL",
@@ -133,6 +134,12 @@ if (env.PORT && !/^\d+$/.test(env.PORT)) {
 }
 if (!isPlaceholder(env.JWT_SECRET) && env.JWT_SECRET.trim().length < 32) {
   error("JWT_SECRET debe tener al menos 32 caracteres.");
+}
+if (
+  !isPlaceholder(env.ADMIN_ACCESS_RECOVERY_TOKEN) &&
+  env.ADMIN_ACCESS_RECOVERY_TOKEN.trim().length < 32
+) {
+  error("ADMIN_ACCESS_RECOVERY_TOKEN debe tener al menos 32 caracteres.");
 }
 if (
   !isPlaceholder(env.SESSION_IDLE_TIMEOUT_MINUTES) &&

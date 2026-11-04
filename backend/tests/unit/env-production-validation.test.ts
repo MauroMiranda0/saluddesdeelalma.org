@@ -13,6 +13,8 @@ const productionEnvironment = {
   FRONTEND_ORIGIN: "https://saluddesdeelalma.org",
   DATABASE_URL: "postgresql://user:password@localhost:5432/salud",
   JWT_SECRET: "a-production-secret-with-at-least-32-characters",
+  ADMIN_ACCESS_RECOVERY_TOKEN:
+    "a-production-recovery-token-with-at-least-32-characters",
   SESSION_COOKIE_NAME: "sda_admin_session",
   SESSION_IDLE_TIMEOUT_MINUTES: 30,
   SUPABASE_URL: "https://example.supabase.co",
@@ -52,6 +54,14 @@ test("production rejects documented secret placeholders", () => {
         JWT_SECRET: "replace-with-a-strong-secret-of-at-least-32-characters"
       }),
     /JWT_SECRET/
+  );
+  assert.throws(
+    () =>
+      assertProductionEnvironment({
+        ...productionEnvironment,
+        ADMIN_ACCESS_RECOVERY_TOKEN: undefined
+      }),
+    /ADMIN_ACCESS_RECOVERY_TOKEN/
   );
   assert.throws(
     () =>

@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 
 import { env } from "../../config/env";
@@ -8,6 +9,7 @@ import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identit
 import { asyncHandler, AppError } from "../../middleware/error-handler";
 import { audit as auditService } from "../audit/audit.service";
 import { adminUserDto, identifyAdminForLogin } from "./auth.service";
+import { reactivateAdminPanelAccessWithAudit } from "./admin-access-recovery.service";
 import {
   createAdminSessionWithAudit,
   getClearSessionCookieOptions,
@@ -35,6 +37,25 @@ type AuthRouteDependencies = {
   audit: typeof auditService;
   refreshAdminSessionWithAudit: typeof refreshAdminSessionWithAudit;
   revokeAdminSessionWithAudit: typeof revokeAdminSessionWithAudit;
+  adminAccessRecoveryToken?: string;
+  reactivateAdminPanelAccess: typeof reactivateAdminPanelAccessWithAudit;
+};
+
+export const isValidAdminAccessRecoveryToken = (
+  providedToken: string | undefined,
+  expectedToken: string | undefined
+) => {
+  if (!providedToken || !expectedToken) {
+    return false;
+  }
+
+  const provided = Buffer.from(providedToken);
+  const expected = Buffer.from(expectedToken);
+  return (
+    provided.length === expected.length &&
+    provided.length >= 32 &&
+    timingSafeEqual(provided, expected)
+  );
 };
 
 export const createAuthRoutes = (
@@ -52,6 +73,11 @@ export const createAuthRoutes = (
     dependencies.refreshAdminSessionWithAudit ?? refreshAdminSessionWithAudit;
   const revokeSession =
     dependencies.revokeAdminSessionWithAudit ?? revokeAdminSessionWithAudit;
+  const adminAccessRecoveryToken =
+    dependencies.adminAccessRecoveryToken ?? env.ADMIN_ACCESS_RECOVERY_TOKEN;
+  const reactivateAdminPanelAccess =
+    dependencies.reactivateAdminPanelAccess ??
+    reactivateAdminPanelAccessWithAudit;
 
   router.post(
     "/login",
@@ -203,6 +229,40 @@ export const createAuthRoutes = (
           ipAddress: request.ip,
           userAgent: request.header("user-agent")
         }
+      });
+      response.clearCookie(
+        env.SESSION_COOKIE_NAME,
+        getClearSessionCookieOptions()
+      );
+      response.status(204).send();
+    })
+  );
+
+  router.post(
+    "/admin-access/reactivate",
+    asyncHandler(async (request, response) => {
+      const authorization = request.header("authorization");
+      const providedToken = authorization?.startsWith("Bearer ")
+        ? authorization.slice("Bearer ".length)
+        : undefined;
+
+      if (
+        !isValidAdminAccessRecoveryToken(
+          providedToken,
+          adminAccessRecoveryToken
+        )
+      ) {
+        throw new AppError(
+          401,
+          "unauthorized",
+          "Recovery authorization required"
+        );
+      }
+
+      await reactivateAdminPanelAccess({
+        requestId: response.locals.requestId,
+        ipAddress: request.ip,
+        userAgent: request.header("user-agent")
       });
       response.clearCookie(
         env.SESSION_COOKIE_NAME,

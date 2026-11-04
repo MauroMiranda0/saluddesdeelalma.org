@@ -6,7 +6,10 @@ import { env } from "./config/env";
 import { createCsrfProtection } from "./middleware/csrf";
 import { createCorsMiddleware } from "./middleware/cors";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
-import { createSecurityMiddleware } from "./middleware/security";
+import {
+  createRateLimiter,
+  createSecurityMiddleware
+} from "./middleware/security";
 import { adminAppointmentRoutes } from "./modules/appointments/appointments.routes";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { chatbotRoutes } from "./modules/chatbot/chatbot.routes";
@@ -15,13 +18,17 @@ import { healthRoutes } from "./modules/health/health.routes";
 import { paymentRoutes } from "./modules/payments/payments.routes";
 import { reminderRoutes } from "./modules/reminders/reminders.routes";
 import { therapistAdminRoutes } from "./modules/therapists/therapists.routes";
-import { createRateLimiter } from "./middleware/security";
 
 const loginRateLimiter = createRateLimiter({
   windowMs: 60_000,
   limit: 10,
   message:
     "Demasiados intentos de inicio de sesión. Intenta de nuevo en un minuto."
+});
+const adminAccessRecoveryRateLimiter = createRateLimiter({
+  windowMs: 15 * 60_000,
+  limit: 5,
+  message: "Demasiados intentos de recuperación. Intenta de nuevo más tarde."
 });
 
 export const createApp = () => {
@@ -57,6 +64,10 @@ export const createApp = () => {
   app.use("/health", healthRoutes);
   app.use(`${env.API_PREFIX}/health`, healthRoutes);
   app.use(`${env.API_PREFIX}/auth/login`, loginRateLimiter);
+  app.use(
+    `${env.API_PREFIX}/auth/admin-access/reactivate`,
+    adminAccessRecoveryRateLimiter
+  );
   app.use(`${env.API_PREFIX}/auth`, authRoutes);
   app.use(
     `${env.API_PREFIX}/webhooks`,

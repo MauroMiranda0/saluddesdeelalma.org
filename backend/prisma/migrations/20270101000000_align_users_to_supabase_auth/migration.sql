@@ -27,7 +27,6 @@ ALTER TABLE public.users
     (
       "role" = 'admin'
       AND "username" = 'admin'
-      AND "panel_login_enabled" = true
     )
     OR
     (

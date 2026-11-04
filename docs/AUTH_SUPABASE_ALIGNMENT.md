@@ -6,6 +6,7 @@ Backend (`backend/src/config/env.ts`):
 
 - `SUPABASE_URL` (requerida)
 - `SUPABASE_ANON_KEY` (requerida)
+- `ADMIN_ACCESS_RECOVERY_TOKEN` (requerida en producción; independiente de `JWT_SECRET`)
 - Otras existentes: `DATABASE_URL`, `JWT_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_IDLE_TIMEOUT_MINUTES`, etc.
 
 No se deben exponer valores. Solo nombres.
@@ -18,6 +19,14 @@ No se deben exponer valores. Solo nombres.
 4. Permite acceso solo si `is_active=true`, `panel_login_enabled=true`, `role='admin'`. Cualquier otro caso (credenciales inválidas, sin fila, rol no admin, inactivo, panel deshabilitado): respuesta pública genérica `401 unauthorized` "Usuario o contraseña incorrectos", sin enumerar usuarios/rol/existencia.
 5. Si autorizado, crea/emite cookie de sesión administrativa (`AdminSession`) igual que antes (conserva logout/revocación/expiración).
 6. Nunca guarda contraseña de Supabase Auth ni tokens en `public.users`, logs ni `AdminSession`. Auditar sin datos sensibles.
+
+La cuenta admin es única. Si el acceso del panel se deshabilita, las sesiones
+existentes dejan de autorizar y no se reactivan por volver a habilitar el flag.
+Un operador autorizado puede usar `POST /api/v1/auth/admin-access/reactivate`
+con `ADMIN_ACCESS_RECOVERY_TOKEN`; el servidor valida que la cuenta esté activa
+y enlazada a Auth, reactiva el acceso, revoca las sesiones previas y audita la
+acción sin almacenar el token. El endpoint está limitado a 5 intentos por 15
+minutos. Guardar el token fuera del repositorio y no incluirlo en logs.
 
 ## Alineación Prisma
 

@@ -28,6 +28,7 @@ const envSchema = z.object({
     }),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
+  ADMIN_ACCESS_RECOVERY_TOKEN: z.string().min(32).optional(),
   SESSION_COOKIE_NAME: z.string().min(1).default("sda_admin_session"),
   SESSION_IDLE_TIMEOUT_MINUTES: z.coerce.number().int().positive().default(30),
   SUPABASE_URL: z.string().url(),
@@ -62,6 +63,11 @@ export const assertProductionEnvironment = (environment: Environment) => {
 
   if (isPlaceholder(environment.JWT_SECRET)) {
     throw new Error("JWT_SECRET must be replaced in production");
+  }
+  if (isPlaceholder(environment.ADMIN_ACCESS_RECOVERY_TOKEN)) {
+    throw new Error(
+      "ADMIN_ACCESS_RECOVERY_TOKEN must be replaced in production"
+    );
   }
   if (isPlaceholder(environment.DATABASE_URL)) {
     throw new Error("DATABASE_URL must be replaced in production");

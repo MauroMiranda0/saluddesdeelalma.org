@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { prisma } from "../../src/lib/prisma.js";
@@ -13,12 +14,21 @@ test(
   "audit insert failure rolls back session refresh and revocation",
   { skip: !enabled },
   async (t) => {
+    const authUserId = randomUUID();
+    const email = `admin-audit-${randomUUID()}@integration.local`;
+    const triggerSuffix = randomUUID().replaceAll("-", "");
+    const triggerName = `audit_fail_${triggerSuffix}`;
+    const functionName = `fail_audit_${triggerSuffix}`;
+    await prisma.$executeRaw`
+      INSERT INTO auth.users (id) VALUES (${authUserId}::uuid)
+    `;
     const user = await prisma.user.create({
       data: {
         username: "admin",
-        email: "admin@audit-test.local",
+        email,
         fullName: "Audit Test",
         role: "admin",
+        authUserId,
         panelLoginEnabled: true
       }
     });
@@ -33,27 +43,30 @@ test(
 
     t.after(async () => {
       await prisma.$executeRawUnsafe(
-        'DROP TRIGGER IF EXISTS "audit_logs_fail_insert" ON "audit_logs"'
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "audit_logs"`
       );
       await prisma.$executeRawUnsafe(
-        "DROP FUNCTION IF EXISTS fail_audit_insert()"
+        `DROP FUNCTION IF EXISTS "${functionName}"()`
       );
       await prisma.adminSession.delete({ where: { id: session.id } });
       await prisma.user.delete({ where: { id: user.id } });
+      await prisma.$executeRaw`
+        DELETE FROM auth.users WHERE id = ${authUserId}::uuid
+      `;
       await prisma.$disconnect();
     });
 
     await prisma.$executeRawUnsafe(`
-      CREATE FUNCTION fail_audit_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+      CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
         RAISE EXCEPTION 'forced audit failure';
       END;
       $$
     `);
     await prisma.$executeRawUnsafe(`
-      CREATE TRIGGER "audit_logs_fail_insert"
+      CREATE TRIGGER "${triggerName}"
       BEFORE INSERT ON "audit_logs"
-      FOR EACH ROW EXECUTE FUNCTION fail_audit_insert()
+      FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
     `);
 
     const audit = {

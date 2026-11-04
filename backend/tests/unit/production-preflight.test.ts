@@ -21,6 +21,7 @@ const createBackendEnv = async (directory: string) => {
       "FRONTEND_ORIGIN=https://saluddesdeelalma.org,https://www.saluddesdeelalma.org",
       "DATABASE_URL=postgresql://postgres.projectref:fake-password@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true",
       "JWT_SECRET=fake-jwt-secret-with-32-characters-minimum",
+      "ADMIN_ACCESS_RECOVERY_TOKEN=fake-recovery-token-with-32-characters-minimum",
       "SESSION_COOKIE_NAME=sda_admin_session",
       "SESSION_IDLE_TIMEOUT_MINUTES=30",
       "SUPABASE_URL=https://projectref.supabase.co",
@@ -72,6 +73,7 @@ test("production preflight validates runtime and temporary migration URLs withou
   for (const forbiddenValue of [
     "fake-password",
     "fake-jwt-secret",
+    "fake-recovery-token",
     "fake-anon-key",
     "fake-meta-app-secret",
     "fake-verify-token",

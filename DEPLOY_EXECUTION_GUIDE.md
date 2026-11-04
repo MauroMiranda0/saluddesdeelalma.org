@@ -12,12 +12,12 @@ por el operador, por ejemplo `~/apps/saluddesdeelalma.org`. `deploy.sh` encuentr
 su raíz a partir de su propia ubicación; no requiere directorios hermanos
 `apps/backend` ni `apps/frontend`. PM2 administra cuatro procesos:
 
-| Proceso | Archivo | Función |
-|---|---|---|
-| `api` | `backend/dist/server.js` | API HTTP; no inicia workers. |
-| `reminders` | `backend/dist/jobs/reminders-worker.entry.js` | Worker dedicado de recordatorios. |
-| `whatsapp-inbox` | `backend/dist/jobs/whatsapp-inbox-worker.entry.js` | Worker dedicado de inbox/outbox. |
-| `web` | Next.js en `frontend/` | Frontend. |
+| Proceso          | Archivo                                            | Función                           |
+| ---------------- | -------------------------------------------------- | --------------------------------- |
+| `api`            | `backend/dist/server.js`                           | API HTTP; no inicia workers.      |
+| `reminders`      | `backend/dist/jobs/reminders-worker.entry.js`      | Worker dedicado de recordatorios. |
+| `whatsapp-inbox` | `backend/dist/jobs/whatsapp-inbox-worker.entry.js` | Worker dedicado de inbox/outbox.  |
+| `web`            | Next.js en `frontend/`                             | Frontend.                         |
 
 Las rutas de `cwd` y logs se resuelven desde los archivos ecosystem; los logs
 quedan en `logs/` junto a los directorios `backend/` y `frontend/`. Solo los
@@ -34,7 +34,8 @@ como `ENV_FILE` y el backend carga el archivo al iniciar.
 Nombres de variables del backend:
 
 - Runtime: `NODE_ENV`, `PORT`, `API_PREFIX`, `FRONTEND_ORIGIN`,
-  `DATABASE_URL`, `JWT_SECRET`, `SESSION_COOKIE_NAME`,
+  `DATABASE_URL`, `JWT_SECRET`, `ADMIN_ACCESS_RECOVERY_TOKEN`,
+  `SESSION_COOKIE_NAME`,
   `SESSION_IDLE_TIMEOUT_MINUTES`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
   `META_APP_SECRET`,
   `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ACCESS_TOKEN`,
@@ -64,6 +65,13 @@ temporal al session pooler (`5432`). El preflight valida nombres y formatos sin
 imprimir valores; el script aborta antes de reiniciar procesos si falta la URL
 de migración o tiene formato incorrecto. No usar `prisma db push` ni
 `prisma db pull`.
+
+`ADMIN_ACCESS_RECOVERY_TOKEN` es un secreto independiente de `JWT_SECRET`, de
+al menos 32 caracteres. Solo se usa en `POST /api/v1/auth/admin-access/reactivate`
+para recuperar el acceso del administrador único. La operación reactiva el
+acceso únicamente si la cuenta está activa y enlazada a Supabase Auth, revoca
+las sesiones existentes y se registra en auditoría. Mantener el token fuera de
+logs y del repositorio; las solicitudes inválidas reciben una respuesta genérica.
 
 ## Orden de operación
 

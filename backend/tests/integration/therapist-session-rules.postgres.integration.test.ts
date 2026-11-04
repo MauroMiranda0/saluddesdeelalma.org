@@ -19,6 +19,9 @@ import {
 } from "../../src/modules/therapists/therapists.service.js";
 
 const enabled = process.env.RUN_POSTGRES_INTEGRATION === "true";
+const localConfirmationGateway = {
+  sendText: async () => ({ messageId: "wamid.local-test" })
+};
 
 type Created = {
   users: string[];
@@ -28,12 +31,6 @@ type Created = {
 
 const registerCleanup = (t: test.TestContext, created: Created) => {
   t.after(async () => {
-    await prisma.$executeRawUnsafe(
-      'DROP TRIGGER IF EXISTS "audit_logs_fail_insert" ON "audit_logs"'
-    );
-    await prisma.$executeRawUnsafe(
-      "DROP FUNCTION IF EXISTS fail_audit_insert()"
-    );
     await prisma.appointmentReminder.deleteMany({
       where: { appointmentId: { in: created.appointments } }
     });
@@ -213,6 +210,7 @@ test(
       therapyType: "individual",
       isManualException: false,
       actorUserId: therapistUser.id,
+      confirmationGateway: localConfirmationGateway,
       audit
     });
     created.appointments.push(first.id);
@@ -242,6 +240,7 @@ test(
       therapyType: "individual",
       isManualException: false,
       actorUserId: therapistUser.id,
+      confirmationGateway: localConfirmationGateway,
       audit
     });
     created.appointments.push(later.id);
@@ -715,17 +714,28 @@ test(
     });
     created.appointments.push(appointment.id);
 
+    const suffix = randomUUID().replaceAll("-", "");
+    const triggerName = `audit_fail_${suffix}`;
+    const functionName = `fail_audit_${suffix}`;
+    t.after(async () => {
+      await prisma.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "audit_logs"`
+      );
+      await prisma.$executeRawUnsafe(
+        `DROP FUNCTION IF EXISTS "${functionName}"()`
+      );
+    });
     await prisma.$executeRawUnsafe(`
-      CREATE FUNCTION fail_audit_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+      CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
         RAISE EXCEPTION 'forced audit failure';
       END;
       $$
     `);
     await prisma.$executeRawUnsafe(`
-      CREATE TRIGGER "audit_logs_fail_insert"
+      CREATE TRIGGER "${triggerName}"
       BEFORE INSERT ON "audit_logs"
-      FOR EACH ROW EXECUTE FUNCTION fail_audit_insert()
+      FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
     `);
 
     await assert.rejects(
