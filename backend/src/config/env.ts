@@ -35,6 +35,10 @@ const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1),
   META_APP_SECRET: z.string().min(1).default("development-meta-app-secret"),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
+  WHATSAPP_OUTBOUND_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ADMIN_PHONE: z.string().min(1).optional(),

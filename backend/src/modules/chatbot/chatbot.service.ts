@@ -1,4 +1,7 @@
-import type { WhatsAppGateway } from "../../integrations/whatsapp/whatsapp.gateway";
+import {
+  isWhatsAppOutboundDisabled,
+  type WhatsAppGateway
+} from "../../integrations/whatsapp/whatsapp.gateway";
 import { env } from "../../config/env";
 import { audit } from "../audit/audit.service";
 import {
@@ -265,6 +268,9 @@ const sendResponse = async (input: {
   }
 
   const sent = await input.gateway.sendText({ to: input.to, text: input.text });
+  if (isWhatsAppOutboundDisabled(sent)) {
+    return;
+  }
   await input.saveOutboundMessage({
     conversationId: input.conversationId,
     waMessageId: sent.messageId,

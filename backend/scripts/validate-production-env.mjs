@@ -64,6 +64,9 @@ const parseEnvFile = (content) => {
 const args = process.argv.slice(2);
 const requireMigration = args.includes("--require-migration");
 const requireFrontend = args.includes("--require-frontend");
+const requireWhatsAppOutboundDisabled = args.includes(
+  "--require-whatsapp-outbound-disabled"
+);
 const optionValue = (name) => {
   const index = args.indexOf(name);
   return index < 0 ? undefined : args[index + 1];
@@ -121,6 +124,20 @@ for (const key of required) {
   if (isPlaceholder(env[key])) {
     error(`${key} falta o conserva un valor placeholder.`);
   }
+}
+
+if (env.WHATSAPP_OUTBOUND_ENABLED === undefined) {
+  warn(
+    "WHATSAPP_OUTBOUND_ENABLED no definida; el envio saliente quedara deshabilitado."
+  );
+} else if (!["true", "false"].includes(env.WHATSAPP_OUTBOUND_ENABLED)) {
+  error('WHATSAPP_OUTBOUND_ENABLED debe ser exactamente "true" o "false".');
+}
+if (
+  requireWhatsAppOutboundDisabled &&
+  env.WHATSAPP_OUTBOUND_ENABLED !== "false"
+) {
+  error('WHATSAPP_OUTBOUND_ENABLED debe ser "false" en modo piloto.');
 }
 
 if (env.NODE_ENV && env.NODE_ENV !== "production") {

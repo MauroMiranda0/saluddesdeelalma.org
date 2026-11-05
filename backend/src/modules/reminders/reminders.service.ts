@@ -1,7 +1,10 @@
 import type { Appointment, Patient, Prisma } from "@prisma/client";
 
 import { env } from "../../config/env";
-import type { WhatsAppGateway } from "../../integrations/whatsapp/whatsapp.gateway";
+import {
+  isWhatsAppOutboundDisabled,
+  type WhatsAppGateway
+} from "../../integrations/whatsapp/whatsapp.gateway";
 import { prisma } from "../../lib/prisma";
 import { createAuditLogInTransaction } from "../audit/audit.repository";
 import {
@@ -105,6 +108,12 @@ const claimReminder = async (id: string) => {
 
   return claimed.count === 1;
 };
+
+export const releaseReminderClaim = (reminderId: string) =>
+  prisma.appointmentReminder.updateMany({
+    where: { id: reminderId, status: "procesando" },
+    data: { status: "pendiente", lastError: null }
+  });
 
 const reminderAudit = (input: {
   reminderId: string;
@@ -327,11 +336,17 @@ export const sendReminder = async (input: {
     return null;
   }
 
+  let outboundDisabled = false;
   try {
     const sent = await input.gateway.sendText({
       to: input.to,
       text: input.text
     });
+    if (isWhatsAppOutboundDisabled(sent)) {
+      outboundDisabled = true;
+      await releaseReminderClaim(input.reminderId);
+      return null;
+    }
     await prisma.$transaction(async (transaction) => {
       await transaction.appointmentReminder.update({
         where: { id: input.reminderId },
@@ -353,6 +368,9 @@ export const sendReminder = async (input: {
     });
     return sent;
   } catch (error) {
+    if (outboundDisabled) {
+      throw error;
+    }
     await failReminder({
       reminderId: input.reminderId,
       reason: "WhatsApp delivery failed",

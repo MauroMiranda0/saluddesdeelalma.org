@@ -228,6 +228,24 @@ export const claimDueOutgoingWhatsAppEvents = async (input?: {
   return claimed;
 };
 
+export const releaseOutgoingWhatsAppEvent = (input: {
+  id: string;
+  processingToken: string;
+}) =>
+  prisma.outgoingWhatsAppEvent.updateMany({
+    where: {
+      id: input.id,
+      status: "procesando",
+      processingToken: input.processingToken
+    },
+    data: {
+      status: "pendiente",
+      lastError: null,
+      processingStartedAt: null,
+      processingToken: null
+    }
+  });
+
 export const markOutgoingWhatsAppEventSent = (input: {
   id: string;
   processingToken: string;

@@ -226,3 +226,52 @@ test("an outbox message without a linked reminder leaves reminder state untouche
 
   assert.equal(reminderCalls, 0);
 });
+
+test("disabled outbound releases outbox events without marking sent or consuming retries", async () => {
+  const calls: string[] = [];
+
+  await processIncomingWhatsAppInbox({
+    claimIncoming: async () => [] as never,
+    claimOutgoing: async () =>
+      [
+        {
+          id: "outgoing-1",
+          processingToken: "outgoing-token",
+          attemptsCount: 2,
+          whatsappPhone: "5215550000000",
+          contentText: "Synthetic test message",
+          conversationId: "conversation-1",
+          intent: "book",
+          reminderId: "reminder-1",
+          status: "pendiente"
+        }
+      ] as never,
+    releaseOutgoing: async (input) => {
+      calls.push(`released:${input.id}:${input.processingToken}`);
+      return { count: 1 } as never;
+    },
+    markOutgoingSent: async () => {
+      calls.push("sent");
+      return { count: 1 } as never;
+    },
+    markOutgoingFailed: async () => {
+      calls.push("failed");
+      return { count: 1 } as never;
+    },
+    markReminderSent: async () => {
+      calls.push("reminder-sent");
+      return { count: 1 } as never;
+    },
+    markReminderFailed: async () => {
+      calls.push("reminder-failed");
+      return { count: 1 } as never;
+    },
+    saveOutboundMessage: async () => {
+      calls.push("saved");
+      return {} as never;
+    },
+    gateway: { sendText: async () => ({ status: "disabled" }) }
+  });
+
+  assert.deepEqual(calls, ["released:outgoing-1:outgoing-token"]);
+});

@@ -20,6 +20,7 @@ const productionEnvironment = {
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_ANON_KEY: "anon-key",
   META_APP_SECRET: "fake-meta-app-secret",
+  WHATSAPP_OUTBOUND_ENABLED: false,
   WHATSAPP_VERIFY_TOKEN: "real-webhook-token",
   WHATSAPP_ACCESS_TOKEN: "real-access-token",
   WHATSAPP_PHONE_NUMBER_ID: "123456789",
@@ -141,6 +142,34 @@ test("production rejects an idle timeout different from 30 minutes", () => {
 
 test("DATABASE_URL must be configured", () => {
   assert.throws(() => parseEnvironment({}), /DATABASE_URL/);
+});
+
+test("WhatsApp outbound defaults off and accepts only the exact true value", () => {
+  const { WHATSAPP_OUTBOUND_ENABLED: _outboundEnabled, ...withoutSwitch } =
+    productionEnvironment;
+  assert.equal(parseEnvironment(withoutSwitch).WHATSAPP_OUTBOUND_ENABLED, false);
+  assert.equal(
+    parseEnvironment({
+      ...withoutSwitch,
+      WHATSAPP_OUTBOUND_ENABLED: "true"
+    }).WHATSAPP_OUTBOUND_ENABLED,
+    true
+  );
+  assert.equal(
+    parseEnvironment({
+      ...withoutSwitch,
+      WHATSAPP_OUTBOUND_ENABLED: "false"
+    }).WHATSAPP_OUTBOUND_ENABLED,
+    false
+  );
+  assert.throws(
+    () =>
+      parseEnvironment({
+        ...withoutSwitch,
+        WHATSAPP_OUTBOUND_ENABLED: "TRUE"
+      }),
+    /WHATSAPP_OUTBOUND_ENABLED/
+  );
 });
 
 test("production environment validation does not require worker flags", () => {

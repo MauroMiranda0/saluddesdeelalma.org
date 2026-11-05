@@ -4,7 +4,7 @@
 - **Rama:** `review/fase6-deploy-pilot`
 - **Base:** `443f72cf9df46074925b6d0c5a0a7ccc9de75e94` (`docs(fase5c): record disabled data API probe`)
 - **Proyecto Supabase aislado:** `xynquaiqkbwvfglwplut`
-- **Estado:** validación local completada. No se ejecutó ningún comando en Hostinger, no se desplegó, no se iniciaron workers y no se enviaron mensajes de WhatsApp.
+- **Estado:** código y scripts específicos de piloto implementados; validación local de esta entrega reportada abajo. No se ejecutó ningún comando en Hostinger, no se desplegó, no se iniciaron workers y no se enviaron mensajes de WhatsApp.
 - **Aprobación pendiente:** confirmación expresa del propietario antes de cualquier acción en el servidor.
 
 ## Objetivo
@@ -17,7 +17,7 @@ Preparar el despliegue del piloto con datos ficticios en Hostinger, usando el Su
 4. No iniciar los procesos `reminders` ni `whatsapp-inbox`.
 5. No enviar mensajes reales de WhatsApp.
 6. No crear PR ni hacer merge.
-7. No ejecutar `deploy.sh` ni `rollback.sh` sin la adaptación descrita en este documento.
+7. Usar `deploy-pilot.sh` y `rollback-pilot.sh`; `deploy.sh` y `rollback.sh` conservan sin cambios su comportamiento normal de producción.
 8. Mantener secretos fuera del repositorio y fuera de logs.
 
 ## Estado de partida
@@ -26,7 +26,7 @@ Preparar el despliegue del piloto con datos ficticios en Hostinger, usando el Su
 - RLS 15/15, 0 políticas, 0 grants de tablas/secuencias para `anon`, `authenticated` y `PUBLIC`; 2 funciones propias sin `EXECUTE`; 188 funciones de `btree_gist` aún ejecutables como riesgo residual.
 - Esquema Prisma con 12 migraciones aplicadas y sin pendientes.
 - Base aislada con 1 usuario, 1 administrador y 0 citas. No se cargaron datos ficticios en esta fase.
-- Checkout local limpio en la rama `review/fase6-deploy-pilot`, sin commit propio todavía.
+- La rama de trabajo es `review/fase6-deploy-pilot`; el SHA final y el estado del árbol se informan al entregar.
 
 ## Variables que debe configurar el propietario
 
@@ -53,6 +53,7 @@ Los valores no se guardan en el repositorio ni se imprimen en este documento. El
 | `SUPABASE_ANON_KEY` | Sí | Clave pública `anon`; no usar `service_role` |
 | `META_APP_SECRET` | Sí | Secreto de Meta para validar `X-Hub-Signature-256` |
 | `WHATSAPP_VERIFY_TOKEN` | Sí | Token propio para el challenge del webhook |
+| `WHATSAPP_OUTBOUND_ENABLED` | Sí, piloto | Debe ser exactamente `false`; solo el valor exacto `true` habilita los envíos |
 | `WHATSAPP_ACCESS_TOKEN` | Sí | Para el piloto, usar un valor sintético/no válido |
 | `WHATSAPP_PHONE_NUMBER_ID` | Sí | Para el piloto, usar un valor sintético |
 | `WHATSAPP_ADMIN_PHONE` | Sí | Para el piloto, usar un valor sintético |
@@ -62,7 +63,7 @@ Los valores no se guardan en el repositorio ni se imprimen en este documento. El
 | `TRUST_PROXY` | No | `1` detrás del proxy de Hostinger |
 | `AI_PROVIDER_API_KEY` | No | Si se define, no debe ser placeholder |
 
-`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ADMIN_PHONE` y `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` son obligatorias para que el backend arranque en producción. Para el piloto se propone usar valores sintéticos que no permitan entregas reales; no usar credenciales reales de Meta.
+`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ADMIN_PHONE` y `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` son obligatorias para que el backend arranque en producción. El gateway bloquea todos los envíos salientes si `WHATSAPP_OUTBOUND_ENABLED` falta o no es exactamente `true`; para el piloto debe definirse explícitamente como `false`. Las credenciales sintéticas siguen siendo recomendables como defensa adicional, no sustituyen el kill switch.
 
 ### Backend: solo despliegue
 
@@ -71,6 +72,7 @@ Los valores no se guardan en el repositorio ni se imprimen en este documento. El
 | `BACKEND_ENV_FILE` | Ruta absoluta al archivo de runtime externo |
 | `MIGRATION_DATABASE_URL` | Solo para `prisma migrate status` read-only; no guardar en el archivo de runtime |
 | `DEPLOY_EXPECTED_SHA` | Opcional; fija el commit esperado |
+| `DEPLOY_MODE` | Obligatoria para `deploy-pilot.sh`: valor exacto `pilot` |
 
 ### Frontend
 
@@ -102,9 +104,9 @@ El propietario debe confirmar, sin compartir secretos en el chat:
 9. Archivo de runtime externo al checkout, con permisos restringidos.
 10. Meta: no configurar ni apuntar el webhook real durante el piloto; no usar credenciales reales de WhatsApp.
 
-## Resultados de validación local
+## Validación local previa a esta entrega
 
-Todos los resultados siguientes son locales. No equivalen a un despliegue probado ni confirman acceso a Hostinger, Supabase o Meta.
+Los datos históricos de esta tabla corresponden a una revisión anterior; no son los resultados de los cambios descritos en esta entrega. Ningún resultado local equivale a un despliegue ni confirma acceso a Hostinger, Supabase o Meta.
 
 | Validación | Resultado |
 | --- | --- |
@@ -133,34 +135,38 @@ Notas de ejecución:
 - `npm audit` no se corrigió: la corrección disponible implica un salto mayor de `typescript-eslint` y no corresponde a este piloto.
 - Los errores de lint y formato son preexistentes; este documento no los modifica.
 
-## Bloqueos y decisiones pendientes
+## Resultados de esta entrega
 
-### 1. WhatsApp no tiene un interruptor de apagado
+Todas estas validaciones fueron locales con datos sintéticos. No se conectó a Hostinger, Supabase ni Meta, ni se consultó el estado real de migraciones.
 
-`backend/src/integrations/whatsapp/whatsapp.gateway.ts` envía a Meta si existen `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`. La API puede disparar confirmaciones inmediatas al crear o confirmar citas, no solo los workers. No existe un flag de “dry-run” ni un kill switch.
+| Validación | Resultado |
+| --- | --- |
+| `prisma:validate` | OK |
+| `typecheck` | OK, backend y frontend |
+| `npm test` | 222 tests: 191 pasan, 31 omitidos, 0 fallan |
+| Tests focalizados del kill switch y preflight | 17 pasan, 0 fallan |
+| `preflight:deploy` con variables inyectadas | OK, 0 advertencias; no imprimió valores |
+| Build backend (`npm run build --workspace backend`) | OK |
+| Build frontend (`npm run build --workspace frontend`) | OK con `NEXT_PUBLIC_API_BASE_URL` inyectada |
+| `npm run build` completo | Falló durante `prisma:generate` con `EPERM` al renombrar el motor Prisma de Windows, consistente con archivo bloqueado; los builds de ambos workspaces por separado sí pasan |
+| `bash -n deploy-pilot.sh rollback-pilot.sh` | OK |
+| Simulación de deploy | OK: consulta solo `migrate status`, elimina workers existentes, inicia solo `api`/`web` |
+| Simulación de abortos | OK: detiene deploy ante migraciones pendientes y ante `WHATSAPP_OUTBOUND_ENABLED=true` |
+| Simulación de rollback | OK: no consulta migraciones ni inicia workers; recarga solo `api`/`web` |
 
-Para el piloto se propone:
+El build frontend encontró los archivos de entorno locales ignorados del checkout, pero recibió la URL pública mediante variable inyectada. El build completo no se repitió para evitar disputar el motor Prisma bloqueado. El archivo de tipos generado por Next.js se restauró tras el build.
 
-- Iniciar PM2 solo con `api` y `web`.
-- No iniciar `reminders` ni `whatsapp-inbox`.
-- Usar credenciales sintéticas/no válidas de WhatsApp en el runtime.
-- No configurar el webhook real de Meta.
-- Verificar en logs y en el panel de Meta que no hubo entregas.
+## Bloqueos cerrados y riesgos residuales
 
-Esta mitigación evita mensajes reales si las credenciales son inválidas, pero no es un apagado duro a nivel de código. Si el propietario prefiere una garantía de código, se debe autorizar un cambio pequeño para deshabilitar el gateway en el piloto antes de desplegar.
+- `WHATSAPP_OUTBOUND_ENABLED` se valida en `env.ts` y en preflight. Falta equivale a apagado; solo el string exacto `true` habilita los envíos. El gateway común bloquea antes de cualquier HTTP de WhatsApp y emite un log sin datos de pacientes.
+- Cuando se apaga, las filas de outbox/reminders reclamadas vuelven a pendiente; no se marcan enviadas ni se incrementan sus reintentos.
+- `deploy-pilot.sh` exige `DEPLOY_MODE=pilot`, un valor explícito `WHATSAPP_OUTBOUND_ENABLED=false`, consulta estado de migraciones sin aplicarlas y arranca solo `api`/`web`. El script de producción `deploy.sh` no cambia.
+- `rollback-pilot.sh` restaura código en un worktree y recarga `api`/`web`; no consulta ni altera migraciones y no inicia workers.
+- El preflight local valida configuración y formato, no que las credenciales o destinos existan realmente. El propietario debe configurarlos en el archivo externo de Hostinger; no compartirlos en el chat ni subirlos al repositorio.
+- El apagado no desactiva recepción/verificación de webhooks ni otras integraciones HTTP; no se debe configurar el webhook real de Meta para el piloto.
+- La Data API de Supabase sigue desactivada. No reactivarla ni ejecutar SQL, seeds o cambios de esquema.
 
-### 2. `deploy.sh` y `rollback.sh` no sirven sin cambios para este piloto
-
-- `deploy.sh` ejecuta `prisma migrate deploy` y luego `pm2 startOrReload` de los dos ecosystems, lo que inicia los cuatro procesos.
-- `rollback.sh` también inicia los cuatro procesos.
-
-Por eso el plan de este documento es manual y solo para `api` y `web`. No ejecutar ninguno de los dos scripts sin una adaptación revisada que omita migraciones y workers.
-
-### 3. Faltan valores reales de producción
-
-El env seguro local solo contiene las variables de Supabase. El preflight con archivo externo se hizo con valores sintéticos para el resto. Falta que el propietario configure los secretos y destinos reales que correspondan, o los sintéticos del piloto para WhatsApp. El preflight sintético valida nombres y formatos, no la existencia de secretos reales.
-
-### 4. Riesgos residuales de Fase 5C
+### Riesgos residuales de Fase 5C
 
 - Data API desactivada; no reactivarla.
 - 188 funciones de `btree_gist` siguen con `EXECUTE` para `anon`/`authenticated`/`PUBLIC`; no son `SECURITY DEFINER`, pero son un riesgo si se reactiva la Data API.
@@ -207,59 +213,39 @@ read -rsp 'MIGRATION_DATABASE_URL: ' MIGRATION_DATABASE_URL; echo
 export MIGRATION_DATABASE_URL
 export NEXT_PUBLIC_API_BASE_URL='https://api.saluddesdeelalma.org/api/v1'
 export DEPLOY_EXPECTED_SHA='<sha-aprobado>'
+export DEPLOY_MODE=pilot
 ```
 
 Criterio de aborto: el archivo está dentro del checkout, tiene permisos amplios o faltan variables requeridas.
 
-### C. Preflight, instalación y build
+### C. Ejecutar el script de despliegue del piloto
 
 ```bash
-node backend/scripts/validate-production-env.mjs \
-  --backend-env "$BACKEND_ENV_FILE" \
-  --require-migration \
-  --require-frontend
-
-npm ci --include=dev
-NEXT_PUBLIC_API_BASE_URL="$NEXT_PUBLIC_API_BASE_URL" npm run build
+bash deploy-pilot.sh
 ```
 
-Criterio de aborto: preflight con errores, instalación fallida o build fallido. No continuar con un build que haya cargado `.env` locales.
+El script exige `DEPLOY_MODE=pilot` y `WHATSAPP_OUTBOUND_ENABLED=false`; ejecuta preflight, instalación y build, luego solo `prisma migrate status`. Si el estado no está actualizado o cualquier paso falla, aborta. No ejecuta `prisma migrate deploy`, `db push`, seeds ni SQL.
 
-### D. Verificación de esquema sin migrar
-
-```bash
-DATABASE_URL="$MIGRATION_DATABASE_URL" \
-  npm exec --workspace backend -- prisma migrate status --schema prisma/schema.prisma
-```
-
-Resultado esperado: 12 migraciones y `Database schema is up to date!`.
-
-No ejecutar `prisma migrate deploy`, `prisma db push`, `prisma db pull`, seeds ni SQL manual. Si hay migraciones pendientes o el estado no coincide, detenerse y escalar.
-
-### E. Arranque PM2 solo para el piloto
+### D. Verificación del estado de procesos y health checks
 
 ```bash
-pm2 delete reminders whatsapp-inbox 2>/dev/null || true
-pm2 startOrReload backend/ecosystem.config.js --only api --update-env
-pm2 startOrReload frontend/ecosystem.config.js --only web --update-env
-pm2 save
 pm2 ls
-```
-
-Resultado esperado: `api` y `web` online; `reminders` y `whatsapp-inbox` ausentes. Si aparecen workers, detenerlos y volver a `pm2 save` antes de continuar.
-
-### F. Verificación local en el servidor
-
-```bash
 curl -fsS http://127.0.0.1:4000/api/v1/health
 curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/
+curl -fsS https://api.saluddesdeelalma.org/api/v1/health
+curl -sS -o /dev/null -w '%{http_code}\n' https://saluddesdeelalma.org/
+```
+
+Resultado esperado: API health `200`, frontend `200` o redirección HTTPS válida, `api` y `web` online; `reminders` y `whatsapp-inbox` ausentes. El script elimina solo esos dos procesos PM2 si ya existían, y persiste el estado. No continuar si aparece un worker o falla un health check.
+
+Logs para diagnóstico, evitando copiar datos sensibles al chat:
+
+```bash
 pm2 logs api --lines 100
 pm2 logs web --lines 100
 ```
 
-Criterio de aborto: health distinto de 200, frontend distinto de 200/redirección válida, workers online o errores de arranque.
-
-### G. Verificación HTTPS, CORS y cookies
+### E. Verificación HTTPS, CORS y cookies
 
 ```bash
 curl -I https://saluddesdeelalma.org
@@ -293,7 +279,7 @@ Esperado: sin `Access-Control-Allow-Origin` para el origen desconocido.
 
 Cookie de sesión: el propietario debe iniciar sesión desde el navegador o con credenciales propias y revisar `Set-Cookie`. Este agente no usó ni usará la contraseña. Esperado: `sda_admin_session`, `Path=/`, `HttpOnly`, `SameSite=Lax`, `Secure`, sin `Domain`.
 
-### H. Webhook y ausencia de mensajes reales
+### F. Webhook y ausencia de mensajes reales
 
 ```bash
 curl -sS -o /dev/null -w '%{http_code}\n' \
@@ -311,33 +297,32 @@ Esperado: `403` en ambos casos; el POST devuelve `webhook_signature_invalid`. No
 Verificación de WhatsApp apagado:
 
 1. `pm2 ls` no muestra `reminders` ni `whatsapp-inbox`.
-2. El archivo de runtime usa credenciales sintéticas/no válidas.
-3. No se configuró el webhook real en Meta.
-4. Después de una prueba de panel con datos ficticios, revisar que Meta no registre mensajes enviados y que los logs no muestren entregas exitosas.
-5. Si se usaron credenciales reales por error, detener `api` y `web`, rotar las credenciales y reportar el incidente antes de continuar.
+2. El archivo de runtime tiene exactamente `WHATSAPP_OUTBOUND_ENABLED=false`.
+3. No se configuró el webhook real en Meta; usar destinos ficticios para pruebas.
+4. Los logs solo deben incluir el evento genérico `whatsapp_outbound_disabled`, sin teléfono ni contenido.
+5. Si Meta registra un envío, detener `api` y `web`, preservar logs y escalar el incidente antes de continuar.
 
-### I. Datos ficticios
+### G. Datos ficticios
 
 1. Crear los datos ficticios manualmente desde el panel, no con seeds.
 2. Usar nombres y teléfonos claramente ficticios que no pertenezcan a personas reales.
-3. Antes de crear citas, confirmar que las credenciales de WhatsApp son sintéticas y que `reminders`/`whatsapp-inbox` están detenidos.
-4. Si una cita dispara una confirmación desde la API, verificar que falle sin entrega real y revisar los logs.
+3. Antes de crear citas, confirmar el switch `false`, y que `reminders`/`whatsapp-inbox` están detenidos.
+4. Si la API encola confirmaciones, comprobar que el outbox/reminders queda pendiente, sin incremento de reintentos ni entrega.
 5. No cargar comprobantes, datos clínicos ni información de personas reales durante el piloto.
 
 No ejecutar `db:seed`, `db:seed:demo`, `db:clean:test-data` ni SQL manual.
 
-### J. Rollback de código
+### H. Rollback de código del piloto
 
 El rollback es solo de código. No ejecutar migraciones ni restaurar datos sin aprobación.
 
-1. Confirmar que el esquema aplicado (12 migraciones) es compatible con el commit de rollback.
-2. Restaurar el código a `443f72c` o al SHA aprobado.
-3. Instalar y compilar en el worktree de rollback.
-4. Recargar solo `api` y `web`.
-5. Verificar que `reminders` y `whatsapp-inbox` sigan detenidos.
-6. Ejecutar health checks y `pm2 save`.
+1. Confirmar que el esquema actual es compatible con el commit de código de rollback; el script no consulta ni cambia la base de datos.
+2. Elegir un SHA aprobado y una ruta absoluta nueva, fuera del checkout, para el worktree.
+3. Configurar `BACKEND_ENV_FILE`, `NEXT_PUBLIC_API_BASE_URL`, `ROLLBACK_REVISION` y `ROLLBACK_WORKTREE_DIR`; el runtime debe mantener `WHATSAPP_OUTBOUND_ENABLED=false`.
+4. Ejecutar `bash rollback-pilot.sh`. Instala y compila el código del SHA, elimina solo workers de piloto preexistentes y recarga únicamente `api` y `web`.
+5. Confirmar `pm2 ls` (workers ausentes), ejecutar health checks y verificar `pm2 save`.
 
-`rollback.sh` inicia los cuatro procesos; no usarlo sin adaptación. Si el código anterior no es compatible con el esquema actual, detenerse y preparar un plan de recuperación revisado.
+El rollback del piloto no ejecuta `prisma migrate status`, `prisma migrate deploy` ni ningún worker. No usar `rollback.sh`, que conserva el comportamiento normal de producción. Si el código anterior no es compatible con el esquema actual, detenerse y preparar un plan revisado.
 
 ## Criterios de aborto
 
@@ -350,21 +335,16 @@ Detener el despliegue si ocurre cualquiera de estos casos:
 - `prisma migrate status` no muestra 12 migraciones aplicadas.
 - Se intenta ejecutar `prisma migrate deploy`, seeds o SQL manual.
 - PM2 intenta iniciar `reminders` o `whatsapp-inbox`.
-- Se detectan credenciales reales de WhatsApp en el piloto.
+- `WHATSAPP_OUTBOUND_ENABLED` falta, es distinto de `false` o se registra cualquier envío saliente.
 - El health check o HTTPS falla.
 - CORS autoriza un origen desconocido.
 - La cookie no tiene los atributos esperados.
 - El webhook acepta una firma inválida.
 - Se envía un mensaje real de WhatsApp.
 
-## Pendientes antes de aprobar el servidor
+## Aprobación humana pendiente
 
-1. Decidir entre credenciales sintéticas de WhatsApp o un kill switch de código.
-2. Confirmar que se acepta el plan manual, sin `deploy.sh` ni `rollback.sh` sin adaptación.
-3. Entregar al propietario la lista de variables y confirmar que el archivo externo está configurado.
-4. Confirmar SSH, DNS, SSL, proxy y PM2 en Hostinger.
-5. Confirmar que el piloto usará datos ficticios creados manualmente; no se ejecutarán seeds.
-6. Confirmar la ventana de despliegue y la persona que aprobará cada bloque.
+La implementación local no autoriza ni ejecuta el despliegue. Antes de tocar Hostinger, el propietario debe aprobar el SHA publicado, configurar los valores de la lista de variables, confirmar SSH/DNS/SSL/proxy/PM2 y acordar la ventana del piloto. Usar solo datos ficticios creados manualmente; no ejecutar seeds.
 
 ## Comandos locales ejecutados
 
@@ -376,15 +356,8 @@ npm run prisma:validate
 npm run typecheck
 npm test
 npm run build
-npm run build --workspace backend
-npm run build --workspace frontend
-git worktree add --detach <temp> HEAD
-npm ci --include=dev
-NEXT_PUBLIC_API_BASE_URL=... npm run build
-npm audit --json
-DATABASE_URL="$MIGRATION_DATABASE_URL" npm exec --workspace backend -- prisma migrate status --schema prisma/schema.prisma
-npm run lint
-npm run format:check
+bash -n deploy-pilot.sh rollback-pilot.sh
+tests locales simulados de deploy-pilot.sh y rollback-pilot.sh
 ```
 
-No se ejecutaron `deploy.sh`, `rollback.sh`, migraciones, seeds, limpieza, comandos SSH, cambios en Supabase ni llamadas a Meta.
+No se ejecutaron `deploy.sh`, `rollback.sh`, `deploy-pilot.sh` ni `rollback-pilot.sh` contra un servidor. No se ejecutaron migraciones, seeds, limpieza, comandos SSH, cambios en Supabase ni llamadas a Meta.

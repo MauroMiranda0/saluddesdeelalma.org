@@ -1,4 +1,5 @@
 import {
+  isWhatsAppOutboundDisabled,
   whatsappGateway,
   type WhatsAppGateway
 } from "../integrations/whatsapp/whatsapp.gateway";
@@ -16,7 +17,8 @@ import {
   markIncomingWhatsAppEventFailed,
   markIncomingWhatsAppEventProcessed,
   markOutgoingWhatsAppEventFailed,
-  markOutgoingWhatsAppEventSent
+  markOutgoingWhatsAppEventSent,
+  releaseOutgoingWhatsAppEvent
 } from "../modules/chatbot/whatsapp-inbox.repository";
 import {
   failReminder,
@@ -90,6 +92,7 @@ type InboxWorkerDependencies = {
   claimOutgoing: typeof claimDueOutgoingWhatsAppEvents;
   markOutgoingSent: typeof markOutgoingWhatsAppEventSent;
   markOutgoingFailed: typeof markOutgoingWhatsAppEventFailed;
+  releaseOutgoing: typeof releaseOutgoingWhatsAppEvent;
   markReminderSent: typeof markQueuedReminderSent;
   markReminderFailed: typeof failReminder;
   saveOutboundMessage: typeof saveOutboundMessage;
@@ -106,6 +109,7 @@ const defaultDependencies: InboxWorkerDependencies = {
   claimOutgoing: claimDueOutgoingWhatsAppEvents,
   markOutgoingSent: markOutgoingWhatsAppEventSent,
   markOutgoingFailed: markOutgoingWhatsAppEventFailed,
+  releaseOutgoing: releaseOutgoingWhatsAppEvent,
   markReminderSent: markQueuedReminderSent,
   markReminderFailed: failReminder,
   saveOutboundMessage
@@ -191,11 +195,20 @@ export const processIncomingWhatsAppInbox = async (
 
   const outgoingEvents = await dependencies.claimOutgoing();
   for (const event of outgoingEvents) {
+    let outboundDisabled = false;
     try {
       const sent = await dependencies.gateway.sendText({
         to: event.whatsappPhone,
         text: event.contentText
       });
+      if (isWhatsAppOutboundDisabled(sent)) {
+        outboundDisabled = true;
+        await dependencies.releaseOutgoing({
+          id: event.id,
+          processingToken: event.processingToken
+        });
+        continue;
+      }
       const marked = await dependencies.markOutgoingSent({
         id: event.id,
         processingToken: event.processingToken,
@@ -219,6 +232,13 @@ export const processIncomingWhatsAppInbox = async (
         });
       }
     } catch (error) {
+      if (outboundDisabled) {
+        logger.error(
+          { ...safeErrorFields(error), outgoingEventId: event.id },
+          "Could not release disabled WhatsApp outgoing event"
+        );
+        continue;
+      }
       await dependencies.markOutgoingFailed({ ...event, error });
       if (event.reminderId) {
         await dependencies.markReminderFailed({
