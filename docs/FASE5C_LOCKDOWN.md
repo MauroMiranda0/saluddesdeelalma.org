@@ -1,12 +1,12 @@
 # Fase 5C - Lockdown de Data API y grants
 
-- **Fecha:** 2026-11-05
+- **Fecha de cierre:** 2026-11-05
 - **Proyecto:** Supabase aislado `xynquaiqkbwvfglwplut`
-- **Rama:** `review/fase5c-lockdown`
+- **Rama:** `review/fase5c-lockdown` (publicada en `origin`)
 - **Script:** `backend/prisma/manual/lockdown_data_api.sql`
 - **Commit del script:** `0d5a0701d7678e50222c0f97d34d7f44f25343db`
 - **Blob del script:** `7a9d81b6fa746c74220846f16d4c31038ad0c319`
-- **Estado:** ejecutado y verificado en el proyecto aislado. No aplicado en producción.
+- **Estado:** lockdown aplicado y verificado. Probe posterior al cambio manual del Dashboard ejecutado en modo read-only.
 - **Aprobación:** confirmación expresa del usuario para ejecutar en `xynquaiqkbwvfglwplut`.
 
 ## Alcance ejecutado
@@ -22,6 +22,8 @@ El script:
 5. Habilitó RLS sin `FORCE` en las 15 tablas de `public`.
 6. Revisó funciones `SECURITY DEFINER`.
 7. Verificó grants de tablas/secuencias dentro de la transacción.
+
+Después del cierre, el propietario cambió manualmente la configuración del Dashboard/Data API. Este agente no modificó esa configuración.
 
 ## Resultado de la ejecución
 
@@ -51,15 +53,15 @@ La transacción terminó con `COMMIT` y código de salida `0`.
 
 ### Funciones que permanecen ejecutables
 
-Las 188 funciones de la extensión `btree_gist` viven en `public`, pertenecen a `supabase_admin` y conservan `EXECUTE` para `anon`/`authenticated`/`PUBLIC`. No son `SECURITY DEFINER`, pero siguen siendo superficie RPC si `public` se expone en la Data API. `postgres` no puede revocarlas porque no es owner ni miembro de `supabase_admin`.
+Las 188 funciones de la extensión `btree_gist` viven en `public`, pertenecen a `supabase_admin` y conservan `EXECUTE` para `anon`/`authenticated`/`PUBLIC`. No son `SECURITY DEFINER`. `postgres` no puede revocarlas porque no es owner ni miembro de `supabase_admin`.
 
 La advertencia del script reportó `24` filas de privilegios de default ACL restantes. Corresponden a las 3 entradas de default ACL de `supabase_admin` en `public` (tablas, secuencias y funciones) por los privilegios de `anon` y `authenticated`; no son 24 objetos distintos.
 
-## Verificación Data API
+## Verificación Data API tras lockdown, antes del cambio de Dashboard
 
 Antes del lockdown, el probe read-only con clave `anon` (`/rest/v1/<tabla>?select=id&limit=0`) devolvió HTTP 200 en las 15 tablas.
 
-Después del lockdown:
+Después del lockdown y antes del cambio manual del Dashboard:
 
 | Tabla | Antes | Después |
 |---|---:|---:|
@@ -81,37 +83,114 @@ Después del lockdown:
 
 No se devolvieron filas ni datos de pacientes.
 
+## Probe posterior al cambio manual del Dashboard
+
+El probe se repitió con la clave `anon` contra las 15 tablas, `/rest/v1/` y la RPC `int4_dist(integer,integer)` de `btree_gist`. No se ejecutó SQL de escritura.
+
+### Tablas
+
+Las 15 tablas devolvieron **HTTP 503** con `PGRST002: Could not query the database for the schema cache. Retrying.` No se devolvió ninguna fila.
+
+| Tabla | HTTP | Filas |
+|---|---:|---|
+| `_prisma_migrations` | 503 | 0 |
+| `admin_sessions` | 503 | 0 |
+| `appointment_reminders` | 503 | 0 |
+| `appointments` | 503 | 0 |
+| `audit_logs` | 503 | 0 |
+| `chat_conversations` | 503 | 0 |
+| `chat_messages` | 503 | 0 |
+| `incoming_whatsapp_events` | 503 | 0 |
+| `outgoing_whatsapp_events` | 503 | 0 |
+| `patients` | 503 | 0 |
+| `payment_proofs` | 503 | 0 |
+| `payments` | 503 | 0 |
+| `session_rates` | 503 | 0 |
+| `therapist_profiles` | 503 | 0 |
+| `users` | 503 | 0 |
+
+### `/rest/v1/` (OpenAPI)
+
+- Resultado: **HTTP 401**.
+- Cuerpo: `{"message":"Secret API key required","hint":"Only secret API keys can be used for this endpoint."}`
+- No se pudo inspeccionar el OpenAPI con la clave `anon`; este endpoint exige una clave secreta. No se usó ninguna clave secreta.
+
+### RPC `int4_dist`
+
+Se probaron tres formatos de body: `$1/$2`, `arg1/arg2` y array posicional. Los tres devolvieron **HTTP 503** con `PGRST002`. No se pudo confirmar si la RPC sigue expuesta por HTTP.
+
+### Diagnóstico del 503
+
+El schema cache de PostgREST no está cargando. La evidencia de catálogo muestra que el rol `authenticator` tiene `USAGE` sobre `public`, pero **no** sobre `graphql_public`:
+
+```text
+authenticator -> public:         USAGE = true
+authenticator -> graphql_public: USAGE = false
+```
+
+Si al retirar `public` del Dashboard quedó `graphql_public` como esquema expuesto, PostgREST no puede introspeccionar ese esquema y falla el schema cache. Es una hipótesis compatible con el `503`, no una configuración modificada por este agente. Requiere revisión del propietario en el Dashboard; no se tocó esa configuración.
+
+## Revalidación de RLS y grants tras el cambio de Dashboard
+
+Las consultas read-only de catálogos se repitieron y no mostraron cambios respecto al cierre 5C:
+
+| Elemento | Resultado |
+|---|---|
+| Tablas con RLS | 15/15 |
+| Tablas con `FORCE RLS` | 0 |
+| Políticas RLS en `public` | 0 |
+| Grants de tabla a `anon`/`authenticated`/`PUBLIC` | 0 filas |
+| Grants de secuencia a `anon`/`authenticated`/`PUBLIC` | 0 filas |
+| Funciones owned by `postgres` sin `EXECUTE` | 2/2 |
+| Funciones owned by `supabase_admin` con `EXECUTE` | 188/188 |
+| Funciones `SECURITY DEFINER` en `public` | 0 |
+| Default ACL de `postgres` en `public` | Sin `anon`/`authenticated`/`PUBLIC` |
+| Default ACL de `supabase_admin` en `public` | Sin cambios; aún con `anon`/`authenticated`/`PUBLIC` |
+| Migraciones Prisma | 12 |
+| Storage: buckets/objetos/políticas | 0/0/0 |
+
+No hubo cambios de RLS, grants, default ACL ni Storage entre el cierre y este probe.
+
 ## Verificación de aplicación
 
 - `GET /health`: 200.
 - `GET /api/v1/health`: 200.
 - `GET /api/v1/auth/me` sin sesión: 401.
 - `GET /api/v1/appointments` sin sesión: 401.
+- `GET /api/v1/directory` sin sesión: 401.
+- `GET /api/v1/session-rates` sin sesión: 401.
+- `GET /api/v1/payment-proofs` sin sesión: 401.
 - Frontend `/admin/login`: 200.
-- Lectura read-only con Prisma: 12 migraciones, 1 usuario, 1 admin, 0 citas. Prisma sigue leyendo con RLS habilitado y sin políticas gracias a `BYPASSRLS` de `postgres`.
 
-No se ejecutó un login admin válido porque la contraseña no está disponible en el entorno de trabajo. Queda pendiente la prueba manual de login con la clave definida por el usuario.
+La lectura read-only con Prisma ya verificada en el cierre 5C sigue siendo válida: 12 migraciones, 1 usuario, 1 admin, 0 citas, con RLS habilitado y sin políticas gracias a `BYPASSRLS` de `postgres`.
 
-## Límites y acciones pendientes
+**Login admin:** el propietario verificó manualmente el login admin con sesión. Este agente no ejecutó esa prueba, no usó la contraseña y no afirma haberla ejecutado.
 
-1. **Data API en Dashboard:** el bloqueo de grants ya impide el acceso con `anon`, pero falta completar el paso manual en Supabase Dashboard: Settings > API > Exposed schemas/Data API, retirar `public` de la exposición (o deshabilitar la Data API) y guardar. Después, repetir el probe con `anon`.
-2. **`supabase_admin`:** los default privileges de `supabase_admin` en `public` siguen concediendo privilegios a `anon`/`authenticated` para objetos futuros creados por ese rol. Requiere una sesión con membresía en `supabase_admin` o mover la extensión `btree_gist` fuera de `public`.
-3. **188 funciones `btree_gist`:** siguen con `EXECUTE` para `anon`/`authenticated`/`PUBLIC`. No son `SECURITY DEFINER`, pero deben cerrarse con un rol privilegiado o moviendo la extensión a `extensions`.
-4. **`service_role`:** no se modificó en esta fase. Conserva grants y default ACL; no se usa en la app y queda fuera del alcance solicitado.
-5. **`USAGE ON SCHEMA public`:** no se revocó. El cierre efectivo de la Data API se completa con el paso de Dashboard. El bloqueo directo de tablas/secuencias ya está aplicado.
-6. **Login admin:** pendiente de prueba con la contraseña definida por el usuario.
+## Riesgo residual y bloqueos para Fase 6
+
+1. **`btree_gist` diferido:** las 188 funciones siguen con `EXECUTE` para `anon`/`authenticated`/`PUBLIC` en el catálogo. No son `SECURITY DEFINER`, pero si `public` vuelve a quedar expuesto y el schema cache de PostgREST sana, podrían ser invocables por RPC. Su cierre requiere una sesión con membresía en `supabase_admin` o mover la extensión a `extensions`. Queda **diferido**.
+2. **Data API en 503:** el cambio de Dashboard dejó PostgREST sin schema cache. No se pudo confirmar el estado final de exposición HTTP de tablas/RPC. Es un bloqueo operativo para Fase 6 hasta corregir la configuración y repetir el probe. No es un `401` limpio.
+3. **`/rest/v1/`:** exige clave secreta; la clave `anon` no permite inspeccionar el OpenAPI. No se usaron claves secretas.
+4. **`supabase_admin`:** sus default privileges en `public` siguen concediendo privilegios a `anon`/`authenticated` para objetos futuros creados por ese rol. No modificable por `postgres`.
+5. **`service_role`:** conserva grants y default ACL; queda fuera del alcance de esta fase y no se usa en la app.
+6. **`USAGE ON SCHEMA public`:** no se revocó. El bloqueo directo de tablas/secuencias está aplicado.
 7. No se creó PR, no se hizo merge, no se desplegó y no se inició Fase 6.
 
-## Reproducción
+## Comandos ejecutados
 
-Ejecución manual, sin credenciales en argumentos ni salida:
+Sin credenciales en argumentos ni en salida:
 
 ```sh
-docker run --rm \
-  --env-file "$ENV_FILE" \
-  -v "$PWD/backend/prisma/manual:/work:ro" \
-  postgres:16-alpine \
-  sh -c 'psql "$MIGRATION_DATABASE_URL" -v ON_ERROR_STOP=1 -f /work/lockdown_data_api.sql'
+git push -u origin review/fase5c-lockdown
+node check-data-api-exposure.mjs
+psql "$MIGRATION_DATABASE_URL" -v ON_ERROR_STOP=1 -f verify-lockdown.sql
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/api/v1/health
+curl http://127.0.0.1:4000/api/v1/auth/me
+curl http://127.0.0.1:4000/api/v1/appointments
+curl http://127.0.0.1:4000/api/v1/directory
+curl http://127.0.0.1:4000/api/v1/session-rates
+curl http://127.0.0.1:4000/api/v1/payment-proofs
 ```
 
-La verificación posterior se realizó con consultas read-only a catálogos (`pg_class`, `pg_proc`, `pg_default_acl`, `pg_policies`, `aclexplode`) y con el probe Data API `select=id&limit=0` usando la clave `anon`. No se imprimieron secretos.
+Las consultas SQL posteriores al cierre fueron exclusivamente read-only sobre catálogos (`pg_class`, `pg_proc`, `pg_default_acl`, `pg_policies`, `aclexplode`, `pg_auth_members`) y sobre `storage.*`. No se ejecutaron DDL, DML, migraciones, seeds ni limpieza.
