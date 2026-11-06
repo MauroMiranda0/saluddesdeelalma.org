@@ -342,11 +342,25 @@ El rollback restaura solo el código ejecutado desde su worktree; no revierte ni
 
 ## Evidencia local de build Linux
 
-Se usó un contenedor Linux local desechable basado en Debian 12 con Node.js 22.20.0 y npm 10.9.3, sin red (`--network none`). El árbol de trabajo del contenedor se extrajo de archivos versionados; no se montaron archivos `.env`. Se inyectaron solo valores sintéticos y `WHATSAPP_OUTBOUND_ENABLED=false`. No se cambiaron dependencias ni lockfile.
+**Ejecución del 2026-11-06 UTC / 2026-11-05 UTC−06:00.** Se probó el SHA `d00cbc353d08c3c9727ae7559737c36547db55a8` en un contenedor local desechable Debian 12, Node.js 22.20.0 y npm 10.9.3. El código provino de un archivo generado con `git archive`; no se montaron el checkout ni archivos `.env` ignorados. Se usaron exclusivamente valores sintéticos y `WHATSAPP_OUTBOUND_ENABLED=false`.
 
-`npm ci --include=dev --offline` **no pudo completarse**: la caché npm local no tenía el paquete opcional nativo `@esbuild/linux-x64@0.28.2`; el script de instalación de esbuild no pudo obtenerlo porque el contenedor carecía de red. Por tanto, en este entorno no fue posible ejecutar después `npm run prisma:validate`, `npm run typecheck` ni `npm run build` dentro de Linux limpio. No se conectó con éxito a un registro npm ni a otro servicio remoto.
+El propietario autorizó descargas de dependencias de npm y Prisma. Después de la instalación se desconectó la red del contenedor para el resto de la secuencia. No se conectó a Hostinger, Supabase ni Meta, ni se cambió el lockfile o las dependencias.
 
-Esta ejecución no confirma ni descarta que el `EPERM` previo de `prisma generate` sea específico de Windows. La causa Windows-only queda **sin determinar** hasta repetir la secuencia completa en Linux con las dependencias nativas disponibles, sin permitir conexiones a servicios prohibidos. No se modificaron paquetes ni lockfile para sortear la falta de caché.
+| Comando en orden | Resultado |
+| --- | --- |
+| `npm ci --include=dev` | OK; 276 paquetes instalados. |
+| `npm run prisma:validate` | OK; esquema válido, sin cargar un `.env` local ignorado. |
+| `npm run typecheck` | **Falló inicialmente:** en el checkout limpio Prisma Client aún no estaba generado y faltaban tipos de `@prisma/client`. |
+| `npm run prisma:generate --workspace backend` | OK; generación local, sin conexión a la base. |
+| `npm run typecheck` | OK después de generar Prisma Client. |
+| `npm run test` | OK: backend 185 aprobadas, 31 omitidas, 0 fallidas; prueba de integración local adicional 1 aprobada; frontend 8 aprobadas. |
+| `npm run build` | OK: genera Prisma Client y compila backend y frontend. |
+
+Para repetir los gates desde una instalación limpia, generar Prisma Client explícitamente antes de `npm run typecheck` y `npm run test`. El script de build ya genera el cliente antes de compilar; no fue necesario modificarlo. Los tests incluyeron bases en memoria para pruebas, no migraciones en una base remota.
+
+El build pasó en este contenedor Linux y el `EPERM` anterior se observó en Windows. Esto acota el problema al entorno o condiciones de aquella ejecución de Windows, pero no identifica por sí solo el proceso o la causa exacta del bloqueo ni garantiza que no pueda suceder en otro entorno. Tampoco valida la configuración o disponibilidad de Hostinger.
+
+El intento Linux anterior, desconectado desde el inicio, quedó bloqueado en `npm ci --include=dev --offline` porque la caché local no contenía `@esbuild/linux-x64@0.28.2`; no llegó a ejecutar el build.
 
 ## Criterios de aborto
 
@@ -374,7 +388,7 @@ La implementación local no autoriza ni ejecuta el despliegue. Antes de tocar Ho
 
 ## Comandos y alcance de validación local
 
-Se ejecutaron localmente, sin conectar con servicios remotos:
+En la preparación anterior se ejecutaron localmente:
 
 ```text
 npm run prisma:validate
@@ -386,6 +400,6 @@ Docker Linux: npm ci --include=dev --offline (bloqueado por paquete nativo no ca
 
 Resultados de esta rama: `prisma:validate` informó que el esquema es válido; el typecheck de backend/frontend pasó; `npm run test` terminó con backend 185 aprobados, 31 omitidos, 0 fallidos, una prueba de integración local adicional aprobada y 8 pruebas frontend aprobadas; `npm run smoke:test` pasó con 19 aprobadas, 0 fallidas y 1 omitida por falta de base desechable local.
 
-**Advertencia de aislamiento:** durante `npm run prisma:validate`, Prisma imprimió que cargó `.env` además de la plantilla explícita. No se inspeccionó ni imprimió su contenido, pero hubo una carga automática local no prevista. Por ello, ese resultado no cumple el requisito de validar en un entorno libre de `.env`; no repetir el comando en ese checkout hasta aislar la carga de entorno. El intento Linux usó un árbol extraído de `git archive` sin `.env`, pero `npm ci --offline` se detuvo por la dependencia nativa ausente.
+**Advertencia de aislamiento de la preparación anterior:** durante `npm run prisma:validate` en Windows, Prisma imprimió que cargó `.env` además de la plantilla explícita. No se inspeccionó ni imprimió su contenido, pero hubo una carga automática local no prevista. Por ello, ese resultado no cumple el requisito de validar en un entorno libre de `.env`. La ejecución Linux posterior descrita arriba sí validó el esquema sin archivos `.env` ignorados.
 
 Los resultados de fases anteriores están identificados como históricos arriba; no sustituyen las validaciones de esta rama. Durante esta preparación no se ejecutaron `preflight:deploy`, `deploy.sh`, `rollback.sh`, `deploy-pilot.sh` ni `rollback-pilot.sh`. No se ejecutaron migraciones, seeds, limpieza, comandos SSH, cambios en Supabase ni llamadas a Meta. Los pasos de DNS, Hostinger, dominio y HTTPS requieren intervención humana tras aprobación y permanecen sin verificar.
