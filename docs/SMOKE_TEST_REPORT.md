@@ -1,6 +1,6 @@
 # Reporte de smoke tests locales — Fase 6
 
-**Fecha:** 2026-11-05
+**Fecha de ejecución registrada:** 2026-11-06 UTC (2026-11-05 en UTC−06:00)
 **Rama:** `feature/fase6-local-smoke-tests`
 **SHA base probado:** `7f6292bfdd5404b18ca8535bbc3437a4fe76abdf`
 

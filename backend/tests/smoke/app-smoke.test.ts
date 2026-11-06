@@ -202,7 +202,7 @@ test("synthetic admin can log in, access the session, and log out locally", asyn
   };
   const cookieName = "sda_admin_session";
   const token = "synthetic-smoke-session-token";
-  const expiresAt = new Date("2026-11-05T23:59:59.000Z");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   let revoked = false;
   const app = express();
   app.use(express.json());
