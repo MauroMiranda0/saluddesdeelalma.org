@@ -12,8 +12,12 @@
   },
   "scripts": {
     "build": "npm run prisma:generate --workspace backend && npm run build --workspaces",
+    "prebuild:shared-pilot": "node backend/scripts/check-shared-build.mjs",
+    "build:shared-pilot": "npm run build",
     "env:check:production": "npm run env:check:production --workspace backend",
     "preflight:deploy": "node backend/scripts/validate-production-env.mjs --require-migration --require-frontend",
+    "preflight:shared-pilot": "node backend/scripts/validate-production-env.mjs --process-env --require-frontend-relative --require-whatsapp-outbound-disabled",
+    "start:shared-pilot": "node server.cjs",
     "clean:artifacts": "node -e \"for (const path of ['backend/dist','frontend/.next','frontend/tsconfig.tsbuildinfo']) require('node:fs').rmSync(path, { recursive: true, force: true })\"",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
@@ -23,6 +27,8 @@
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspace backend && npm run test --workspace frontend",
     "smoke:test": "node backend/scripts/smoke-test.mjs",
+    "test:shared-pilot": "node --test backend/tests/unit/shared-server.test.cjs",
+    "test:shared-integration": "node --test backend/tests/integration/shared-production-smoke.test.mjs",
     "lint": "eslint .",
     "format": "prettier --write --ignore-unknown package.json backend frontend eslint.config.js prettier.config.js",
     "format:check": "prettier --check --ignore-unknown package.json backend frontend eslint.config.js prettier.config.js"

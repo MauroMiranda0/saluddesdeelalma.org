@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -127,6 +127,7 @@ test("pilot preflight requires outbound disabled and rejects true", async (t) =>
       "postgresql://postgres.fake:fake-password@aws-0-us-east-1.pooler.supabase.com:5432/postgres",
     requireOutboundDisabled: true
   });
+
   assert.equal(
     disabledResult.status,
     0,
@@ -143,4 +144,45 @@ test("pilot preflight requires outbound disabled and rejects true", async (t) =>
   assert.match(enabledResult.stdout, /WHATSAPP_OUTBOUND_ENABLED/);
   assert.equal(enabledResult.stdout.includes("fake-access-token"), false);
   assert.equal(enabledResult.stderr.includes("fake-access-token"), false);
+});
+
+test("shared pilot preflight validates process environment without a file", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "sda-preflight-shared-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const backendEnvPath = await createBackendEnv(directory, "false");
+  const entries = (await readFile(backendEnvPath, "utf8"))
+    .split("\n")
+    .map((line) => {
+      const separator = line.indexOf("=");
+      return [line.slice(0, separator), line.slice(separator + 1)];
+    });
+  const environment = {
+    PATH: process.env.PATH,
+    SystemRoot: process.env.SystemRoot,
+    ...Object.fromEntries(entries),
+    NEXT_PUBLIC_API_BASE_URL: "/api/v1"
+  };
+  const args = [
+    scriptPath,
+    "--process-env",
+    "--require-frontend-relative",
+    "--require-whatsapp-outbound-disabled"
+  ];
+  const run = (overrides: NodeJS.ProcessEnv = {}) =>
+    spawnSync(process.execPath, args, {
+      cwd: directory,
+      encoding: "utf8",
+      env: { ...environment, ...overrides }
+    });
+
+  const valid = run();
+  assert.equal(valid.status, 0, valid.stderr || valid.stdout);
+  assert.doesNotMatch(valid.stdout, /fake-jwt-secret|fake-anon-key/);
+  for (const overrides of [
+    { WHATSAPP_OUTBOUND_ENABLED: "true" },
+    { WHATSAPP_OUTBOUND_ENABLED: "" },
+    { NEXT_PUBLIC_API_BASE_URL: "https://api.example.invalid/api/v1" }
+  ]) {
+    assert.notEqual(run(overrides).status, 0);
+  }
 });

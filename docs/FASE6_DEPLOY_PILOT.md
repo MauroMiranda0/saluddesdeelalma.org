@@ -90,6 +90,11 @@ Los valores no se guardan en el repositorio ni se imprimen en este documento. El
 
 ## Configuración requerida en Hostinger
 
+> La guía operativa y los scripts de esta sección describen el piloto en VPS
+> con PM2. **No ejecutar `deploy-pilot.sh` en alojamiento compartido**. El modo
+> experimental de un solo proceso se describe más abajo y aún no autoriza un
+> despliegue.
+
 El propietario debe confirmar, sin compartir secretos en el chat:
 
 1. Acceso SSH con un usuario que pueda crear directorios en su home.
@@ -102,6 +107,74 @@ El propietario debe confirmar, sin compartir secretos en el chat:
 8. Checkout limpio del monorepo en el commit aprobado, sin archivos `.env` locales.
 9. Archivo de runtime externo al checkout, con permisos restringidos.
 10. Meta: no configurar ni apuntar el webhook real durante el piloto; no usar credenciales reales de WhatsApp.
+
+## Adaptación experimental a alojamiento compartido
+
+El comando `npm run start:shared-pilot` inicia `server.cjs`: Next.js y Express
+comparten un solo listener y el `PORT` asignado por la plataforma. `/api/v1` y
+`/health` pasan a Express; las demás rutas pasan a Next.js. Este modo es explícito
+y no cambia los comandos ni scripts del piloto con PM2. No inicia workers y
+exige `WHATSAPP_OUTBOUND_ENABLED=false`; un preflight fallido impide el arranque.
+No se ha validado en Hostinger ni sustituye la aprobación del nuevo SHA.
+
+La configuración candidata para el panel usa la raíz del monorepo, `npm run
+build:shared-pilot` y `npm run start:shared-pilot` (o `server.cjs` si el panel pide un
+archivo). El build y el proceso necesitan `NEXT_PUBLIC_API_BASE_URL=/api/v1`:
+Next.js incorpora esa ruta relativa durante el build. No usar la URL antigua
+del subdominio API para este modo. Configurar las variables de backend de la
+tabla anterior en el entorno de la aplicación; `PORT` debe suministrarlo la
+plataforma, no fijarse manualmente. El panel no debe almacenar
+`MIGRATION_DATABASE_URL` como variable permanente de runtime. Confirmar que
+las variables estén disponibles tanto durante el build como al arrancar.
+
+`npm run preflight:shared-pilot` valida las variables del proceso sin leer un
+archivo `.env` y no imprime sus valores. El mismo preflight se ejecuta en el
+proceso antes de iniciar el servidor. No comprueba conectividad, estado de
+migraciones, disponibilidad de los dominios ni el contenido ya compilado del
+frontend. No sustituye una revisión de esos requisitos.
+
+`npm run build:shared-pilot` comprueba explícitamente la URL relativa antes de
+compilar. No usar `npm run build` directamente para este modo, ya que el
+frontend incorpora la URL en tiempo de build.
+
+Para un entorno de prueba separado, configurar `FRONTEND_ORIGIN` con su origen
+HTTPS exacto y verificar que Hostinger lo trate como sitio independiente, sin
+sustituir el dominio principal. La URL relativa usará ese mismo origen. No
+compartir sesiones ni datos personales con producción; los mismos bloqueos de
+migraciones, base aprobada y revisión humana aplican a staging.
+
+En la validación local de la adaptación se usó un contenedor Linux aislado y
+datos sintéticos. Tras descargar dependencias y el motor de Prisma con
+autorización, se desconectó la red: pasaron `prisma:validate`, `typecheck`,
+`test`, `test:shared-pilot`, `build` y `test:shared-integration`. Esta última
+prueba arrancó Next.js y Express juntos, comprobó home, login, liveness,
+readiness 503 sin base y firmas ficticias del webhook. La respuesta readiness
+saludable se comprobó con un mock, no con Supabase. El login y cierre de sesión
+ficticios también pasaron con mocks a través del enrutador compartido.
+
+La primera ejecución de `smoke:test` falló porque la imagen no incluía `git`,
+requerido por el smoke de frontend. Tras incorporar Git desde otra imagen
+local, sin red, la repetición pasó con 20 pruebas aprobadas y una omitida por
+falta de PostgreSQL local desechable. No se comprobó una conexión real a
+Supabase ni a una base PostgreSQL local.
+
+**Bloqueos antes de un piloto real:**
+
+- Confirmar en Hostinger el comando de inicio real, la instalación de
+  dependencias de desarrollo necesarias para build/Prisma y la persistencia de
+  los artefactos de build; verificar que no existan `.env` imprevistos en el
+  checkout.
+- Definir y autorizar un procedimiento independiente, seguro y de solo lectura
+  para `prisma migrate status`, sin guardar credenciales privilegiadas en el
+  runtime. Si no puede comprobarse que no hay migraciones pendientes, abortar.
+  Este modo **no** ejecuta ni verifica migraciones automáticamente.
+- Verificar DNS, HTTPS, proxy y confianza de proxy efectiva; probar home, login,
+  cookie `Secure`/`HttpOnly`, CSRF y health checks con datos ficticios. El
+  cambio a API del mismo dominio no traslada las cookies existentes del antiguo
+  subdominio; requerirá un nuevo inicio de sesión.
+- No conectar el webhook real ni activar WhatsApp. Mantener detenidos ambos
+  workers y confirmar los límites de recursos, reinicios y rollback del panel.
+  Un rollback de aplicación no revierte esquema ni migraciones.
 
 ## Validación local registrada en la revisión anterior (histórica)
 

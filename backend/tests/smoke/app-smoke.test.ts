@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
+import { createServer as createHttpServer } from "node:http";
+import { createRequire } from "node:module";
 import {
   chmodSync,
   copyFileSync,
@@ -29,6 +31,8 @@ import { processIncomingWhatsAppInbox } from "../../src/jobs/process-whatsapp-in
 
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
+const require = createRequire(import.meta.url);
+const { createRequestHandler } = require("../../../server.cjs");
 
 const getAvailablePort = async () => {
   const server = createServer();
@@ -259,7 +263,16 @@ test("synthetic admin can log in, access the session, and log out locally", asyn
   );
   app.use(errorHandler);
 
-  const server = app.listen(0, "127.0.0.1");
+  const server = createHttpServer(
+    createRequestHandler(
+      app,
+      (_request: unknown, response: import("node:http").ServerResponse) =>
+        response.end("frontend"),
+      () => {
+        throw new Error("Unexpected frontend error");
+      }
+    )
+  ).listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
   assert.ok(address && typeof address !== "string");

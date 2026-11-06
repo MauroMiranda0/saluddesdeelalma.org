@@ -79,6 +79,7 @@ const safeEnvironment = {
 const testFiles = [
   "backend/tests/smoke/app-smoke.test.ts",
   "backend/tests/contract/health.contract.test.ts",
+  "backend/tests/contract/shared-server.contract.test.ts",
   "backend/tests/contract/whatsapp-webhook.contract.test.ts",
   "backend/tests/unit/whatsapp-gateway.test.ts",
   "backend/tests/unit/whatsapp-inbox-outbox.test.ts"
