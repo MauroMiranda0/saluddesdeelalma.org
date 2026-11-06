@@ -14,7 +14,10 @@ import { adminAppointmentRoutes } from "./modules/appointments/appointments.rout
 import { authRoutes } from "./modules/auth/auth.routes";
 import { chatbotRoutes } from "./modules/chatbot/chatbot.routes";
 import { directoryRoutes } from "./modules/directory/directory.routes";
-import { healthRoutes } from "./modules/health/health.routes";
+import {
+  createHealthRoutes,
+  type HealthRouteDependencies
+} from "./modules/health/health.routes";
 import { paymentRoutes } from "./modules/payments/payments.routes";
 import { reminderRoutes } from "./modules/reminders/reminders.routes";
 import { therapistAdminRoutes } from "./modules/therapists/therapists.routes";
@@ -31,9 +34,11 @@ const adminAccessRecoveryRateLimiter = createRateLimiter({
   message: "Demasiados intentos de recuperación. Intenta de nuevo más tarde."
 });
 
-export const createApp = () => {
+export const createApp = (healthDependencies?: HealthRouteDependencies) => {
   const app = express();
   const security = createSecurityMiddleware();
+  const { livenessRoutes, readinessRoutes } =
+    createHealthRoutes(healthDependencies);
 
   app.disable("x-powered-by");
   // FR-026: the audit trail records the caller's IP, so behind Hostinger or
@@ -61,8 +66,8 @@ export const createApp = () => {
     })
   );
 
-  app.use("/health", healthRoutes);
-  app.use(`${env.API_PREFIX}/health`, healthRoutes);
+  app.use("/health", livenessRoutes);
+  app.use(`${env.API_PREFIX}/health`, readinessRoutes);
   app.use(`${env.API_PREFIX}/auth/login`, loginRateLimiter);
   app.use(
     `${env.API_PREFIX}/auth/admin-access/reactivate`,

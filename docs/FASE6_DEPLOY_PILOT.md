@@ -231,12 +231,13 @@ El script exige `DEPLOY_MODE=pilot` y `WHATSAPP_OUTBOUND_ENABLED=false`; ejecuta
 ```bash
 pm2 ls
 curl -fsS http://127.0.0.1:4000/api/v1/health
+curl -fsS http://127.0.0.1:4000/health
 curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/
 curl -fsS https://api.saluddesdeelalma.org/api/v1/health
 curl -sS -o /dev/null -w '%{http_code}\n' https://saluddesdeelalma.org/
 ```
 
-Resultado esperado: API health `200`, frontend `200` o redirección HTTPS válida, `api` y `web` online; `reminders` y `whatsapp-inbox` ausentes. El script elimina solo esos dos procesos PM2 si ya existían, y persiste el estado. No continuar si aparece un worker o falla un health check.
+`/health` es liveness del proceso y no consulta la base. El balanceador y la comprobación de readiness deben usar `/api/v1/health`: devuelve 200 con `database: true` únicamente si `SELECT 1` por Prisma termina correctamente, o 503 con `database: false` y sin detalles internos. Resultado esperado: readiness 200, liveness 200, frontend 200 o redirección HTTPS válida, `api` y `web` online; `reminders` y `whatsapp-inbox` ausentes. El script elimina solo esos dos procesos PM2 si ya existían, y persiste el estado. No continuar si aparece un worker o falla un health check.
 
 Logs para diagnóstico, evitando copiar datos sensibles al chat:
 

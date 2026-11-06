@@ -104,7 +104,10 @@ reproducible usa `package-lock.json` de la raíz.
 ## Verificación posterior
 
 - `pm2 ls`: `api`, `reminders`, `whatsapp-inbox` y `web` deben estar `online`.
-- API: `http://127.0.0.1:4000/api/v1/health`.
+- Liveness de proceso (sin consulta a la base): `http://127.0.0.1:4000/health`.
+- Readiness para balanceador y post-deploy: `http://127.0.0.1:4000/api/v1/health`.
+  Verifica la conexión Prisma con `SELECT 1`; responde 200 solo con la base
+  disponible y 503 sin detalles internos si falla.
 - Frontend: `http://127.0.0.1:3000/`.
 - Desde navegador: comprobar `https://saluddesdeelalma.org` y
   `https://www.saluddesdeelalma.org`, login, cookies con credenciales y rutas
