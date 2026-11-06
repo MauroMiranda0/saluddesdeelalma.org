@@ -1,15 +1,14 @@
 # Fase 6 - Piloto de despliegue en Hostinger
 
-- **Fecha:** 2026-11-05
-- **Rama:** `review/fase6-deploy-pilot`
-- **Base:** `443f72cf9df46074925b6d0c5a0a7ccc9de75e94` (`docs(fase5c): record disabled data API probe`)
-- **Proyecto Supabase aislado:** `xynquaiqkbwvfglwplut`
-- **Estado:** código y scripts específicos de piloto implementados; validación local de esta entrega reportada abajo. No se ejecutó ningún comando en Hostinger, no se desplegó, no se iniciaron workers y no se enviaron mensajes de WhatsApp.
-- **Aprobación pendiente:** confirmación expresa del propietario antes de cualquier acción en el servidor.
+- **Última actualización del runbook:** 2026-11-05
+- **Estado:** guía operativa pendiente de aprobación humana. No implica despliegue ni comprobación actual de Hostinger, Supabase o Meta.
+- **Alcance:** preparación local y pasos que el propietario deberá verificar y ejecutar manualmente después de aprobar un SHA.
+
+Las observaciones de Supabase y los resultados de fases anteriores que aparecen abajo son registros históricos, no verificaciones realizadas durante esta actualización. No contienen autorización para operar sobre esos servicios.
 
 ## Objetivo
 
-Preparar el despliegue del piloto con datos ficticios en Hostinger, usando el Supabase aislado ya revisado en Fase 5C. El piloto debe cumplir estas restricciones:
+Preparar el despliegue del piloto con datos ficticios en Hostinger, bajo la configuración de base de datos aprobada por el propietario. El piloto debe cumplir estas restricciones:
 
 1. No reactivar la Data API.
 2. No usar `service_role` ni claves secretas de Supabase.
@@ -20,13 +19,13 @@ Preparar el despliegue del piloto con datos ficticios en Hostinger, usando el Su
 7. Usar `deploy-pilot.sh` y `rollback-pilot.sh`; `deploy.sh` y `rollback.sh` conservan sin cambios su comportamiento normal de producción.
 8. Mantener secretos fuera del repositorio y fuera de logs.
 
-## Estado de partida
+## Estado de partida (snapshot histórico de Fase 6)
 
 - Data API desactivada manualmente por el propietario. El probe de Fase 5C devolvió `503 PGRST002` en las 15 tablas; no se usa como prueba de grants ni de RLS.
 - RLS 15/15, 0 políticas, 0 grants de tablas/secuencias para `anon`, `authenticated` y `PUBLIC`; 2 funciones propias sin `EXECUTE`; 188 funciones de `btree_gist` aún ejecutables como riesgo residual.
 - Esquema Prisma con 12 migraciones aplicadas y sin pendientes.
 - Base aislada con 1 usuario, 1 administrador y 0 citas. No se cargaron datos ficticios en esta fase.
-- La rama de trabajo es `review/fase6-deploy-pilot`; el SHA final y el estado del árbol se informan al entregar.
+- La rama `review/fase6-deploy-pilot` y sus cifras pertenecen al snapshot histórico de esa revisión; no describen la rama ni el estado actuales.
 
 ## Variables que debe configurar el propietario
 
@@ -104,7 +103,7 @@ El propietario debe confirmar, sin compartir secretos en el chat:
 9. Archivo de runtime externo al checkout, con permisos restringidos.
 10. Meta: no configurar ni apuntar el webhook real durante el piloto; no usar credenciales reales de WhatsApp.
 
-## Validación local previa a esta entrega
+## Validación local registrada en la revisión anterior (histórica)
 
 Los datos históricos de esta tabla corresponden a una revisión anterior; no son los resultados de los cambios descritos en esta entrega. Ningún resultado local equivale a un despliegue ni confirma acceso a Hostinger, Supabase o Meta.
 
@@ -118,24 +117,24 @@ Los datos históricos de esta tabla corresponden a una revisión anterior; no so
 | Test de integración adicional de accesos | 1 pasa |
 | Tests frontend | 8 pasan |
 | Total de tests | 217: 186 pasan, 31 omitidos, 0 fallan |
-| Build limpio en worktree sin `.env` locales | OK; backend y frontend compilan |
+| Build Linux limpio | No se ejecutó en esa revisión histórica; la investigación actual se documenta abajo |
 | `NEXT_PUBLIC_API_BASE_URL` en el bundle | Confirmado `https://api.saluddesdeelalma.org/api/v1` |
 | `prisma migrate status` con `DATABASE_URL` de migración | 12 migraciones; “Database schema is up to date!” |
 | `npm audit` | 7 moderadas, 0 altas, 0 críticas; cadena de desarrollo `typescript-eslint`/`minimatch` |
 | `npm run lint` | 4 errores preexistentes en `password.service.ts` y `whatsapp-inbox.repository.ts` |
 | `npm run format:check` | 124 archivos preexistentes con diferencias de formato |
 
-Notas de ejecución:
+Notas de ejecución de esa revisión:
 
-- El primer `npm run build` en el checkout principal falló con `EPERM` al regenerar Prisma porque el servidor de desarrollo local tenía bloqueado el motor. No fue un fallo de código. Se confirmó con builds por workspace y se repitió el build completo en un worktree limpio.
-- Ese build local del frontend cargó `.env.production` y `.env` ignorados del checkout. Se descartó como evidencia y el build autoritativo se hizo en un worktree limpio, solo con archivos versionados y `NEXT_PUBLIC_API_BASE_URL` inyectada.
+- En Windows, `npm run build` falló con `EPERM` durante Prisma Client generation; los builds de backend y frontend por separado pasaron. Esta evidencia histórica no determina si la causa es exclusiva de Windows.
+- Un build frontend anterior cargó `.env.production` y `.env` ignorados del checkout y se descartó como evidencia. No usarlo para concluir el resultado de un build limpio Linux.
 - `prisma migrate status` confirmó 12 migraciones y no ejecutó migraciones. No se ejecutó `prisma migrate deploy`.
 - El comando local de `prisma migrate status` cargó automáticamente `backend/.env` (ignorado) antes de aplicar el `DATABASE_URL` inyectado; el host reportado correspondió al pooler de migración. No se imprimieron valores. En el servidor se debe ejecutar sin archivos `.env` locales.
 - Los 31 tests omitidos no se ejecutaron contra Supabase. No se usaron datos reales ni secretos de producción.
 - `npm audit` no se corrigió: la corrección disponible implica un salto mayor de `typescript-eslint` y no corresponde a este piloto.
 - Los errores de lint y formato son preexistentes; este documento no los modifica.
 
-## Resultados de esta entrega
+## Resultados reportados en la entrega anterior (históricos)
 
 Todas estas validaciones fueron locales con datos sintéticos. No se conectó a Hostinger, Supabase ni Meta, ni se consultó el estado real de migraciones.
 
@@ -148,13 +147,13 @@ Todas estas validaciones fueron locales con datos sintéticos. No se conectó a 
 | `preflight:deploy` con variables inyectadas | OK, 0 advertencias; no imprimió valores |
 | Build backend (`npm run build --workspace backend`) | OK |
 | Build frontend (`npm run build --workspace frontend`) | OK con `NEXT_PUBLIC_API_BASE_URL` inyectada |
-| `npm run build` completo | Falló durante `prisma:generate` con `EPERM` al renombrar el motor Prisma de Windows, consistente con archivo bloqueado; los builds de ambos workspaces por separado sí pasan |
+| `npm run build` completo | Falló durante `prisma:generate` con `EPERM` al renombrar el motor Prisma de Windows; los builds de ambos workspaces por separado sí pasan. La causa Windows-only no está determinada |
 | `bash -n deploy-pilot.sh rollback-pilot.sh` | OK |
 | Simulación de deploy | OK: consulta solo `migrate status`, elimina workers existentes, inicia solo `api`/`web` |
 | Simulación de abortos | OK: detiene deploy ante migraciones pendientes y ante `WHATSAPP_OUTBOUND_ENABLED=true` |
 | Simulación de rollback | OK: no consulta migraciones ni inicia workers; recarga solo `api`/`web` |
 
-El build frontend encontró los archivos de entorno locales ignorados del checkout, pero recibió la URL pública mediante variable inyectada. El build completo no se repitió para evitar disputar el motor Prisma bloqueado. El archivo de tipos generado por Next.js se restauró tras el build.
+Un build frontend anterior encontró archivos de entorno locales ignorados y recibió la URL pública mediante variable inyectada; no se considera prueba de un entorno limpio. El archivo de tipos generado por Next.js se restauró tras ese build.
 
 ## Bloqueos cerrados y riesgos residuales
 
@@ -172,17 +171,18 @@ El build frontend encontró los archivos de entorno locales ignorados del checko
 - 188 funciones de `btree_gist` siguen con `EXECUTE` para `anon`/`authenticated`/`PUBLIC`; no son `SECURITY DEFINER`, pero son un riesgo si se reactiva la Data API.
 - Default ACL de `supabase_admin` sigue concediendo privilegios a roles de cliente para objetos futuros; no es modificable por `postgres`.
 
-## Plan de despliegue propuesto
+## Checklist operativo canónico del piloto
 
 Este plan no se ejecutó. Requiere confirmación expresa antes de cada bloque que toque el servidor.
 
-### A. Prerrequisitos y checkout
+### A. Precondiciones y checkout
 
-1. Confirmar SSH, Node 22+, npm 10+, PM2, Git, DNS, SSL, proxy, firewall y zona horaria.
+1. El propietario confirma manualmente en Hostinger el acceso SSH, Node.js 22+, npm 10+, Git, PM2, espacio en disco/RAM, DNS, HTTPS, proxy inverso y firewall. Estas comprobaciones no se pueden certificar desde las pruebas locales.
 2. Clonar o actualizar el repositorio en la ruta aprobada, por ejemplo `~/apps/saluddesdeelalma.org`.
-3. Cambiar a la rama `review/fase6-deploy-pilot` y verificar el SHA aprobado.
-4. Verificar que el árbol esté limpio.
+3. Cambiar a la rama nueva aprobada y confirmar que `HEAD` coincide exactamente con el SHA que autorizó el propietario. No asumir que una rama o SHA anteriores siguen aprobados.
+4. Verificar `git status --short --branch`: árbol limpio y rama correcta.
 5. Verificar que no exista ningún `.env`, `.env.*`, `backend/.env*` o `frontend/.env*` fuera de plantillas dentro del checkout.
+6. Confirmar manualmente que los dominios previstos resuelven al servidor correcto, que los certificados TLS/HTTPS son válidos y que el proxy reenvía al frontend/API en `127.0.0.1`; los puertos de aplicación no deben quedar públicos.
 
 Comprobación de archivos de entorno:
 
@@ -199,45 +199,54 @@ done
 
 Criterio de aborto: HEAD distinto al SHA aprobado, árbol sucio o cualquier archivo de entorno local.
 
-### B. Archivo de runtime externo
+### B. Variables y archivo de runtime externo
+
+El propietario configura, sin compartir valores ni secretos, las variables de runtime `NODE_ENV`, `PORT`, `API_PREFIX`, `FRONTEND_ORIGIN`, `DATABASE_URL`, `JWT_SECRET`, `ADMIN_ACCESS_RECOVERY_TOKEN`, `SESSION_COOKIE_NAME`, `SESSION_IDLE_TIMEOUT_MINUTES`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_OUTBOUND_ENABLED`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ADMIN_PHONE`, `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` y `REMINDER_TIMEZONE`. `LOG_LEVEL`, `TRUST_PROXY` y `AI_PROVIDER_API_KEY` son opcionales según el uso.
+
+Para despliegue, se necesitan además `BACKEND_ENV_FILE`, `MIGRATION_DATABASE_URL`, `NEXT_PUBLIC_API_BASE_URL`, `DEPLOY_EXPECTED_SHA` y `DEPLOY_MODE`. `MIGRATION_DATABASE_URL` se inyecta solo en la sesión de despliegue y no se guarda en el archivo de runtime. Para rollback se requieren `ROLLBACK_REVISION` y `ROLLBACK_WORKTREE_DIR`.
+
+El valor de `WHATSAPP_OUTBOUND_ENABLED` debe ser exactamente `false`; los workers `reminders` y `whatsapp-inbox` deben estar detenidos y no se deben iniciar durante el piloto.
 
 1. Crear el archivo fuera del checkout, por ejemplo `/home/<usuario>/secrets/saluddesdeelalma.backend.env`.
 2. Aplicar `chmod 600`.
 3. Cargar las variables de runtime de la tabla anterior.
 4. No guardar `MIGRATION_DATABASE_URL` en ese archivo.
-5. Exportar en la sesión, sin escribir secretos en el historial:
+5. Inyectar las variables de despliegue requeridas en la sesión de forma segura, sin escribir secretos en el historial ni mostrarlos en pantalla.
 
-```bash
-export BACKEND_ENV_FILE=/home/<usuario>/secrets/saluddesdeelalma.backend.env
-read -rsp 'MIGRATION_DATABASE_URL: ' MIGRATION_DATABASE_URL; echo
-export MIGRATION_DATABASE_URL
-export NEXT_PUBLIC_API_BASE_URL='https://api.saluddesdeelalma.org/api/v1'
-export DEPLOY_EXPECTED_SHA='<sha-aprobado>'
-export DEPLOY_MODE=pilot
-```
+Criterio de aborto: el archivo está dentro del checkout, tiene permisos amplios, falta una variable requerida, el kill switch no es `false` o hay workers de despacho activos.
 
-Criterio de aborto: el archivo está dentro del checkout, tiene permisos amplios o faltan variables requeridas.
-
-### C. Ejecutar el script de despliegue del piloto
+### C. Orden de ejecución del piloto
 
 ```bash
 bash deploy-pilot.sh
 ```
 
-El script exige `DEPLOY_MODE=pilot` y `WHATSAPP_OUTBOUND_ENABLED=false`; ejecuta preflight, instalación y build, luego solo `prisma migrate status`. Si el estado no está actualizado o cualquier paso falla, aborta. No ejecuta `prisma migrate deploy`, `db push`, seeds ni SQL.
+Con aprobación humana vigente, el script ejecuta estrictamente en este orden:
+
+1. Verifica rama/HEAD/árbol, ausencia de `.env` locales y ejecuta el preflight con `DEPLOY_MODE=pilot` y `WHATSAPP_OUTBOUND_ENABLED=false`.
+2. Ejecuta `npm ci --include=dev`.
+3. Ejecuta `npm run build` desde la raíz; este comando genera Prisma Client y compila backend y frontend.
+4. Ejecuta únicamente `prisma migrate status` con `MIGRATION_DATABASE_URL`.
+5. Aborta si preflight, instalación, build o `migrate status` falla o si hay migraciones pendientes. Debe indicar que el esquema está al día. No ejecutar ni sustituirlo por `prisma migrate deploy`, `db push`, seeds o SQL.
+6. Solo tras pasar lo anterior, detiene workers preexistentes `reminders`/`whatsapp-inbox` y arranca/reload exclusivamente `api` y `web`.
+7. Guarda estado PM2 y ejecuta los health checks locales del script.
+
+No ejecutar etapas individuales manualmente para eludir un fallo o el resultado de migraciones pendientes.
 
 ### D. Verificación del estado de procesos y health checks
 
+Estos comandos son para el propietario en Hostinger después de una aprobación explícita; no se ejecutaron durante la preparación local.
+
 ```bash
 pm2 ls
-curl -fsS http://127.0.0.1:4000/api/v1/health
-curl -fsS http://127.0.0.1:4000/health
+curl -i http://127.0.0.1:4000/health
+curl -i http://127.0.0.1:4000/api/v1/health
 curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/
 curl -fsS https://api.saluddesdeelalma.org/api/v1/health
 curl -sS -o /dev/null -w '%{http_code}\n' https://saluddesdeelalma.org/
 ```
 
-`/health` es liveness del proceso y no consulta la base. El balanceador y la comprobación de readiness deben usar `/api/v1/health`: devuelve 200 con `database: true` únicamente si `SELECT 1` por Prisma termina correctamente, o 503 con `database: false` y sin detalles internos. Resultado esperado: readiness 200, liveness 200, frontend 200 o redirección HTTPS válida, `api` y `web` online; `reminders` y `whatsapp-inbox` ausentes. El script elimina solo esos dos procesos PM2 si ya existían, y persiste el estado. No continuar si aparece un worker o falla un health check.
+`/health` es liveness del proceso, no consulta la base y debe devolver 200. El balanceador y readiness deben usar `/api/v1/health`: devuelve 200 con `database: true` solo si `SELECT 1` mediante Prisma termina correctamente, o 503 con `database: false` y sin detalles internos. Resultado esperado: ambas rutas de health 200, home 200 (o redirección HTTPS válida), `api` y `web` online; `reminders` y `whatsapp-inbox` ausentes. El script elimina solo esos dos workers PM2 si ya existían; no los inicia.
 
 Logs para diagnóstico, evitando copiar datos sensibles al chat:
 
@@ -246,7 +255,11 @@ pm2 logs api --lines 100
 pm2 logs web --lines 100
 ```
 
+Si falla cualquier health check, no declarar el piloto listo ni seguir con pruebas de usuario. Guardar el SHA, códigos HTTP y logs saneados; revisar `pm2 describe api`, `pm2 describe web` y los logs sin copiar cookies, tokens, datos de pacientes ni variables. Confirmar que no haya workers. Informar al propietario y esperar instrucciones. No ejecutar migraciones ni rollback automáticamente; si se autoriza detener procesos, limitarse a los procesos `api`/`web` de este intento y preservar logs.
+
 ### E. Verificación HTTPS, CORS y cookies
+
+DNS, certificados y respuestas de dominio requieren comprobación humana en Hostinger y desde una red externa tras la aprobación; no quedan demostrados por las pruebas locales.
 
 ```bash
 curl -I https://saluddesdeelalma.org
@@ -278,7 +291,7 @@ curl -i -X OPTIONS https://api.saluddesdeelalma.org/api/v1/auth/login \
 
 Esperado: sin `Access-Control-Allow-Origin` para el origen desconocido.
 
-Cookie de sesión: el propietario debe iniciar sesión desde el navegador o con credenciales propias y revisar `Set-Cookie`. Este agente no usó ni usará la contraseña. Esperado: `sda_admin_session`, `Path=/`, `HttpOnly`, `SameSite=Lax`, `Secure`, sin `Domain`.
+Cookie y login ficticio: después de aprobar, el propietario debe usar una cuenta administrativa de prueba con identidad y credenciales sintéticas creadas para el piloto, nunca la contraseña real del administrador. Revisar `Set-Cookie` sin copiarlo ni guardarlo en el reporte. Esperado: `sda_admin_session`, `Path=/`, `HttpOnly`, `SameSite=Lax`, `Secure`, sin `Domain`. No usar Auth remoto para la prueba local; el login smoke local usa mocks y no demuestra una cuenta operativa en Hostinger.
 
 ### F. Webhook y ausencia de mensajes reales
 
@@ -325,6 +338,16 @@ El rollback es solo de código. No ejecutar migraciones ni restaurar datos sin a
 
 El rollback del piloto no ejecuta `prisma migrate status`, `prisma migrate deploy` ni ningún worker. No usar `rollback.sh`, que conserva el comportamiento normal de producción. Si el código anterior no es compatible con el esquema actual, detenerse y preparar un plan revisado.
 
+El rollback restaura solo el código ejecutado desde su worktree; no revierte ni restaura esquema, migraciones, datos o configuración de Supabase. No asumir que una migración aplicada es reversible. Si los health checks fallan, preservar logs y escalar primero; ejecutar `rollback-pilot.sh` únicamente con SHA aprobado y confirmación de compatibilidad del esquema.
+
+## Evidencia local de build Linux
+
+Se usó un contenedor Linux local desechable basado en Debian 12 con Node.js 22.20.0 y npm 10.9.3, sin red (`--network none`). El árbol de trabajo del contenedor se extrajo de archivos versionados; no se montaron archivos `.env`. Se inyectaron solo valores sintéticos y `WHATSAPP_OUTBOUND_ENABLED=false`. No se cambiaron dependencias ni lockfile.
+
+`npm ci --include=dev --offline` **no pudo completarse**: la caché npm local no tenía el paquete opcional nativo `@esbuild/linux-x64@0.28.2`; el script de instalación de esbuild no pudo obtenerlo porque el contenedor carecía de red. Por tanto, en este entorno no fue posible ejecutar después `npm run prisma:validate`, `npm run typecheck` ni `npm run build` dentro de Linux limpio. No se conectó con éxito a un registro npm ni a otro servicio remoto.
+
+Esta ejecución no confirma ni descarta que el `EPERM` previo de `prisma generate` sea específico de Windows. La causa Windows-only queda **sin determinar** hasta repetir la secuencia completa en Linux con las dependencias nativas disponibles, sin permitir conexiones a servicios prohibidos. No se modificaron paquetes ni lockfile para sortear la falta de caché.
+
 ## Criterios de aborto
 
 Detener el despliegue si ocurre cualquiera de estos casos:
@@ -333,32 +356,36 @@ Detener el despliegue si ocurre cualquiera de estos casos:
 - Hay archivos `.env` locales dentro del checkout.
 - El preflight falla.
 - El build falla o carga variables locales no aprobadas.
-- `prisma migrate status` no muestra 12 migraciones aplicadas.
+- `prisma migrate status` informa migraciones pendientes, divergencia o no confirma que el esquema está al día. No aplicar migraciones para hacer pasar el gate.
 - Se intenta ejecutar `prisma migrate deploy`, seeds o SQL manual.
-- PM2 intenta iniciar `reminders` o `whatsapp-inbox`.
+- Hay workers `reminders` o `whatsapp-inbox` activos, o el plan intenta iniciarlos.
 - `WHATSAPP_OUTBOUND_ENABLED` falta, es distinto de `false` o se registra cualquier envío saliente.
-- El health check o HTTPS falla.
+- DNS, HTTPS, proxy o cualquier health check falla.
 - CORS autoriza un origen desconocido.
 - La cookie no tiene los atributos esperados.
 - El webhook acepta una firma inválida.
 - Se envía un mensaje real de WhatsApp.
 
+Ante un aborto: no continuar con pruebas de usuarios ni declarar el piloto listo; conservar SHA, salida de estado y logs saneados; informar al propietario y esperar decisión. Si se observa un envío saliente o exposición de datos, detener `api` y `web` de este intento, preservar evidencia y escalar inmediatamente. No improvisar cambios de esquema, limpieza ni rollback.
+
 ## Aprobación humana pendiente
 
 La implementación local no autoriza ni ejecuta el despliegue. Antes de tocar Hostinger, el propietario debe aprobar el SHA publicado, configurar los valores de la lista de variables, confirmar SSH/DNS/SSL/proxy/PM2 y acordar la ventana del piloto. Usar solo datos ficticios creados manualmente; no ejecutar seeds.
 
-## Comandos locales ejecutados
+## Comandos y alcance de validación local
 
-Sin secretos en argumentos ni en salida:
+Se ejecutaron localmente, sin conectar con servicios remotos:
 
 ```text
-npm run preflight:deploy
 npm run prisma:validate
 npm run typecheck
-npm test
-npm run build
-bash -n deploy-pilot.sh rollback-pilot.sh
-tests locales simulados de deploy-pilot.sh y rollback-pilot.sh
+npm run test
+npm run smoke:test
+Docker Linux: npm ci --include=dev --offline (bloqueado por paquete nativo no cacheado)
 ```
 
-No se ejecutaron `deploy.sh`, `rollback.sh`, `deploy-pilot.sh` ni `rollback-pilot.sh` contra un servidor. No se ejecutaron migraciones, seeds, limpieza, comandos SSH, cambios en Supabase ni llamadas a Meta.
+Resultados de esta rama: `prisma:validate` informó que el esquema es válido; el typecheck de backend/frontend pasó; `npm run test` terminó con backend 185 aprobados, 31 omitidos, 0 fallidos, una prueba de integración local adicional aprobada y 8 pruebas frontend aprobadas; `npm run smoke:test` pasó con 19 aprobadas, 0 fallidas y 1 omitida por falta de base desechable local.
+
+**Advertencia de aislamiento:** durante `npm run prisma:validate`, Prisma imprimió que cargó `.env` además de la plantilla explícita. No se inspeccionó ni imprimió su contenido, pero hubo una carga automática local no prevista. Por ello, ese resultado no cumple el requisito de validar en un entorno libre de `.env`; no repetir el comando en ese checkout hasta aislar la carga de entorno. El intento Linux usó un árbol extraído de `git archive` sin `.env`, pero `npm ci --offline` se detuvo por la dependencia nativa ausente.
+
+Los resultados de fases anteriores están identificados como históricos arriba; no sustituyen las validaciones de esta rama. Durante esta preparación no se ejecutaron `preflight:deploy`, `deploy.sh`, `rollback.sh`, `deploy-pilot.sh` ni `rollback-pilot.sh`. No se ejecutaron migraciones, seeds, limpieza, comandos SSH, cambios en Supabase ni llamadas a Meta. Los pasos de DNS, Hostinger, dominio y HTTPS requieren intervención humana tras aprobación y permanecen sin verificar.
