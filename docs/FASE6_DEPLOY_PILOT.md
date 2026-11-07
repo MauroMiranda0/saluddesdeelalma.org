@@ -152,8 +152,12 @@ migraciones, disponibilidad de los dominios ni el contenido ya compilado del
 frontend. No sustituye una revisión de esos requisitos.
 
 `npm run build:shared-pilot` comprueba explícitamente la URL relativa antes de
-compilar. No usar `npm run build` directamente para este modo, ya que el
-frontend incorpora la URL en tiempo de build.
+compilar. Si Hostinger solo ofrece `npm run build`, definir
+`SHARED_PILOT_BUILD=true` tanto en build como en runtime: el prebuild verificará
+la URL y el servidor rechazará el arranque si no está activado. El panel debe
+proporcionar ambas variables en ambas fases; configurar el flag solo al arrancar
+no demuestra que el build haya usado la URL correcta. Sin el flag, el build
+normal mantiene su comportamiento anterior.
 
 Para un entorno de prueba separado, configurar `FRONTEND_ORIGIN` con su origen
 HTTPS exacto y verificar que Hostinger lo trate como sitio independiente, sin

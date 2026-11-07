@@ -11,6 +11,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "prebuild": "node backend/scripts/check-shared-build.mjs --if-shared",
     "build": "npm run prisma:generate --workspace backend && npm run build --workspaces",
     "prebuild:shared-pilot": "node backend/scripts/check-shared-build.mjs",
     "build:shared-pilot": "npm run build",

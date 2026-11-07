@@ -41,6 +41,7 @@ test(
           SystemRoot: process.env.SystemRoot,
           HOME: process.env.HOME,
           NODE_ENV: "production",
+          SHARED_PILOT_BUILD: "true",
           NEXT_TELEMETRY_DISABLED: "1",
           STAGING_AUTH_USER: "synthetic-staging-user",
           STAGING_AUTH_PASSWORD:

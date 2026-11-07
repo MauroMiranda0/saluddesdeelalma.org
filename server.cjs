@@ -39,6 +39,9 @@ const createRequestHandler =
   };
 
 const start = async () => {
+  if (process.env.SHARED_PILOT_BUILD !== "true") {
+    throw new StartupError("SHARED_PILOT_BUILD must be true for the shared pilot");
+  }
   let protectStaging;
   try {
     protectStaging = createStagingProtection(

@@ -52,6 +52,20 @@ test("shared routing serves backend and frontend and handles frontend failures",
   }
 });
 
+test("shared server requires explicit shared pilot mode", () => {
+  for (const mode of [undefined, "false", "invalid"]) {
+    const env = {};
+    if (mode !== undefined) env.SHARED_PILOT_BUILD = mode;
+    const result = spawnSync(
+      process.execPath,
+      [path.join(__dirname, "../../../server.cjs")],
+      { encoding: "utf8", env }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /SHARED_PILOT_BUILD/);
+  }
+});
+
 test("shared server refuses unsafe configuration before loading the application", () => {
   const result = spawnSync(
     process.execPath,
@@ -60,6 +74,7 @@ test("shared server refuses unsafe configuration before loading the application"
       encoding: "utf8",
       env: {
         NODE_ENV: "production",
+        SHARED_PILOT_BUILD: "true",
         WHATSAPP_OUTBOUND_ENABLED: "true",
         NEXT_PUBLIC_API_BASE_URL: "/api/v1",
         STAGING_AUTH_USER: "local-user",
@@ -90,7 +105,7 @@ test("staging protection rejects missing or weak configuration", () => {
     [path.join(__dirname, "../../../server.cjs")],
     {
       encoding: "utf8",
-      env: { STAGING_AUTH_USER: "local-user" }
+      env: { STAGING_AUTH_USER: "local-user", SHARED_PILOT_BUILD: "true" }
     }
   );
   assert.notEqual(result.status, 0);
@@ -186,6 +201,28 @@ test("shared build rejects missing or incorrect API URL", () => {
     const result = spawnSync(process.execPath, [script], {
       encoding: "utf8",
       env: value === undefined ? {} : { NEXT_PUBLIC_API_BASE_URL: value }
+    });
+
+    assert.equal(result.status, expected);
+  }
+});
+
+test("normal build guard checks shared mode without changing regular builds", () => {
+  const script = path.join(__dirname, "../../scripts/check-shared-build.mjs");
+  for (const [mode, api, expected] of [
+    [undefined, undefined, 0],
+    ["false", undefined, 0],
+    ["invalid", "/api/v1", 1],
+    ["true", undefined, 1],
+    ["true", "https://example.invalid/api/v1", 1],
+    ["true", "/api/v1", 0]
+  ]) {
+    const env = {};
+    if (mode !== undefined) env.SHARED_PILOT_BUILD = mode;
+    if (api !== undefined) env.NEXT_PUBLIC_API_BASE_URL = api;
+    const result = spawnSync(process.execPath, [script, "--if-shared"], {
+      env,
+      encoding: "utf8"
     });
     assert.equal(result.status, expected);
   }
