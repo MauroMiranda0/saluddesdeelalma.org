@@ -159,6 +159,13 @@ proporcionar ambas variables en ambas fases; configurar el flag solo al arrancar
 no demuestra que el build haya usado la URL correcta. Sin el flag, el build
 normal mantiene su comportamiento anterior.
 
+Con `SHARED_PILOT_BUILD=true`, el frontend se compila con Webpack en lugar de
+Turbopack: Hostinger informó que su glibc no permite cargar los bindings nativos
+de SWC requeridos por Turbopack. El build aún requiere validar que los bindings
+WASM sean compatibles con ese entorno. Hostinger debe instalar dependencias de
+desarrollo para compilar; con `NODE_ENV=production`, configurar
+`NPM_CONFIG_INCLUDE=dev` en su panel.
+
 Para un entorno de prueba separado, configurar `FRONTEND_ORIGIN` con su origen
 HTTPS exacto y verificar que Hostinger lo trate como sitio independiente, sin
 sustituir el dominio principal. La URL relativa usará ese mismo origen. No

@@ -7,6 +7,7 @@ const path = require("node:path");
 const test = require("node:test");
 const { createRequestHandler, isBackendPath } = require("../../../server.cjs");
 const { createStagingProtection } = require("../../../staging-auth.cjs");
+const { buildArguments } = require("../../../frontend/scripts/build.cjs");
 
 test("shared routing uses path boundaries and keeps queries", () => {
   for (const url of ["/health", "/health/", "/api/v1", "/api/v1/health?x=1"]) {
@@ -224,6 +225,14 @@ test("normal build guard checks shared mode without changing regular builds", ()
       env,
       encoding: "utf8"
     });
+
     assert.equal(result.status, expected);
+  }
+});
+
+test("shared pilot selects webpack while regular builds retain their default", () => {
+  assert.deepEqual(buildArguments("true"), ["build", "--webpack"]);
+  for (const mode of [undefined, "false"]) {
+    assert.deepEqual(buildArguments(mode), ["build"]);
   }
 });

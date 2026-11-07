@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "next start",
     "test": "npm run test:components",
