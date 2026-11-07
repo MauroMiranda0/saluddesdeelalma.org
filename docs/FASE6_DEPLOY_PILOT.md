@@ -117,6 +117,24 @@ y no cambia los comandos ni scripts del piloto con PM2. No inicia workers y
 exige `WHATSAPP_OUTBOUND_ENABLED=false`; un preflight fallido impide el arranque.
 No se ha validado en Hostinger ni sustituye la aprobación del nuevo SHA.
 
+Este modo requiere protección de staging antes de iniciar cualquier ruta,
+incluidas `/health`, la API y los recursos de Next.js. Configurar en el panel
+`STAGING_AUTH_USER` (solo letras, números, punto, guion o guion bajo) y
+`STAGING_AUTH_PASSWORD` (32-256 caracteres ASCII imprimibles sin espacios,
+generados aleatoriamente). No imprimirlos ni guardarlos en el repositorio. La
+aplicación no arranca si faltan o no cumplen esas reglas. La protección utiliza
+autenticación HTTP Basic y una cookie `Secure`, `HttpOnly`, `SameSite=Strict`
+para permitir que el backend reciba por separado la autorización Bearer de
+recuperación. Es una barrera adicional, no reemplaza el login ni protege frente
+a fuerza bruta distribuida; cambiar las credenciales invalida la cookie.
+
+Usar solo HTTPS, mantener WhatsApp desactivado y no registrar un webhook real:
+Meta no podrá acceder al webhook protegido. Confirmar con Hostinger que no
+existe acceso HTTP directo ni caché/CDN que entregue respuestas sin pasar por
+la aplicación; verificar desde una ventana privada que rutas, API, health y
+recursos estáticos rechazan acceso sin credenciales. Configurar cualquier health
+check externo con acceso autorizado. Si no se puede comprobar, abortar.
+
 La configuración candidata para el panel usa la raíz del monorepo, `npm run
 build:shared-pilot` y `npm run start:shared-pilot` (o `server.cjs` si el panel pide un
 archivo). El build y el proceso necesitan `NEXT_PUBLIC_API_BASE_URL=/api/v1`:

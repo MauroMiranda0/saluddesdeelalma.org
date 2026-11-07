@@ -4,6 +4,7 @@ const http = require("node:http");
 const { existsSync } = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const { createStagingProtection } = require("./staging-auth.cjs");
 
 class StartupError extends Error {}
 
@@ -38,6 +39,15 @@ const createRequestHandler =
   };
 
 const start = async () => {
+  let protectStaging;
+  try {
+    protectStaging = createStagingProtection(
+      process.env.STAGING_AUTH_USER,
+      process.env.STAGING_AUTH_PASSWORD
+    );
+  } catch (error) {
+    throw new StartupError(error.message);
+  }
   const { validateProductionEnvironment } = await import(
     pathToFileURL(
       path.join(__dirname, "backend/scripts/validate-production-env.mjs")
@@ -88,14 +98,15 @@ const start = async () => {
   });
   await nextApp.prepare();
 
-  const server = http.createServer(
-    createRequestHandler(app, nextApp.getRequestHandler(), () => {
-      logger.error(
-        { event: "shared_frontend_request_failed" },
-        "Frontend request failed"
-      );
-    })
-  );
+  const handler = createRequestHandler(app, nextApp.getRequestHandler(), () => {
+    logger.error(
+      { event: "shared_frontend_request_failed" },
+      "Frontend request failed"
+    );
+  });
+  const server = http.createServer((request, response) => {
+    protectStaging(request, response, () => handler(request, response));
+  });
   server.on("error", () => {
     logger.error({ event: "shared_server_error" }, "Shared server failed");
     process.exitCode = 1;

@@ -6,6 +6,7 @@ const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 const test = require("node:test");
 const { createRequestHandler, isBackendPath } = require("../../../server.cjs");
+const { createStagingProtection } = require("../../../staging-auth.cjs");
 
 test("shared routing uses path boundaries and keeps queries", () => {
   for (const url of ["/health", "/health/", "/api/v1", "/api/v1/health?x=1"]) {
@@ -61,6 +62,8 @@ test("shared server refuses unsafe configuration before loading the application"
         NODE_ENV: "production",
         WHATSAPP_OUTBOUND_ENABLED: "true",
         NEXT_PUBLIC_API_BASE_URL: "/api/v1",
+        STAGING_AUTH_USER: "local-user",
+        STAGING_AUTH_PASSWORD: "synthetic-password-at-least-32-characters",
         JWT_SECRET: "synthetic-private-value-do-not-print"
       }
     }
@@ -71,6 +74,106 @@ test("shared server refuses unsafe configuration before loading the application"
     result.stdout + result.stderr,
     /synthetic-private-value-do-not-print/
   );
+});
+
+test("staging protection rejects missing or weak configuration", () => {
+  for (const [user, password] of [
+    [undefined, "synthetic-password-at-least-32-characters"],
+    ["local-user", undefined],
+    ["local-user", "short"],
+    ["user:name", "synthetic-password-at-least-32-characters"]
+  ]) {
+    assert.throws(() => createStagingProtection(user, password));
+  }
+  const result = spawnSync(
+    process.execPath,
+    [path.join(__dirname, "../../../server.cjs")],
+    {
+      encoding: "utf8",
+      env: { STAGING_AUTH_USER: "local-user" }
+    }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /STAGING_AUTH_PASSWORD/);
+});
+
+test("staging protection covers frontend, health and API and preserves Bearer authorization", async () => {
+  const username = "local-user";
+  const password = "synthetic-password-at-least-32-characters";
+  const protect = createStagingProtection(username, password);
+  let handled = 0;
+  const server = http.createServer((request, response) => {
+    protect(request, response, () => {
+      handled += 1;
+      response.setHeader("Cache-Control", "public, max-age=3600");
+      response.writeHead(200, { "Cache-Control": "public, max-age=3600" });
+      response.end(request.headers.authorization || "protected");
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const base = `http://127.0.0.1:${address.port}`;
+  const basic = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+  try {
+    for (const route of [
+      "/",
+      "/admin/login",
+      "/_next/static/file.js",
+      "/health",
+      "/api/v1/health",
+      "/api/v1/webhooks/whatsapp"
+    ]) {
+      const response = await fetch(`${base}${route}`);
+      assert.equal(response.status, 401);
+      assert.match(response.headers.get("www-authenticate"), /^Basic /);
+      assert.match(response.headers.get("cache-control"), /no-store/);
+    }
+    assert.equal(handled, 0);
+    assert.equal(
+      (await fetch(base, { headers: { authorization: "Basic invalid" } }))
+        .status,
+      401
+    );
+    const accepted = await fetch(base, { headers: { authorization: basic } });
+    assert.equal(accepted.status, 200);
+    assert.match(accepted.headers.get("cache-control"), /no-store/);
+    const setCookie = accepted.headers.get("set-cookie");
+    assert.match(setCookie, /__Host-sda-staging=/);
+    assert.match(setCookie, /Secure/);
+    assert.match(setCookie, /HttpOnly/);
+    assert.match(setCookie, /SameSite=Strict/);
+    const cookie = setCookie.split(";", 1)[0];
+    const recovery = await fetch(
+      `${base}/api/v1/auth/admin-access/reactivate`,
+      {
+        headers: { authorization: "Bearer synthetic-recovery", cookie }
+      }
+    );
+    assert.equal(recovery.status, 200);
+    assert.equal(await recovery.text(), "Bearer synthetic-recovery");
+    assert.equal(
+      (await fetch(base, { headers: { cookie: "__Host-sda-staging=invalid" } }))
+        .status,
+      401
+    );
+    const changed = createStagingProtection(username, `${password}-changed`);
+    const fakeResponse = {
+      setHeader() {},
+      writeHead(status) {
+        this.status = status;
+      },
+      end() {}
+    };
+    changed({ headers: { cookie } }, fakeResponse, () =>
+      assert.fail("old cookie accepted")
+    );
+    assert.equal(fakeResponse.status, 401);
+  } finally {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    );
+  }
 });
 
 test("shared build rejects missing or incorrect API URL", () => {
