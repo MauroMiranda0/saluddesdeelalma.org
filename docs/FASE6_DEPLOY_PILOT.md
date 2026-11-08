@@ -141,9 +141,11 @@ archivo). El build y el proceso necesitan `NEXT_PUBLIC_API_BASE_URL=/api/v1`:
 Next.js incorpora esa ruta relativa durante el build. No usar la URL antigua
 del subdominio API para este modo. Configurar las variables de backend de la
 tabla anterior en el entorno de la aplicación; `PORT` debe suministrarlo la
-plataforma, no fijarse manualmente. El panel no debe almacenar
-`MIGRATION_DATABASE_URL` como variable permanente de runtime. Confirmar que
-las variables estén disponibles tanto durante el build como al arrancar.
+plataforma, no fijarse manualmente. El panel no debe almacenar `MIGRATION_DATABASE_URL` como variable permanente de
+runtime. Confirmar que las variables estén disponibles tanto durante el build
+como al arrancar. En Hostinger el panel puede materializarlas como `.env`
+interno del despliegue; ese archivo gestionado por la plataforma es compatible
+con este modo mientras no se suban `.env` al repositorio.
 
 `npm run preflight:shared-pilot` valida las variables del proceso sin leer un
 archivo `.env` y no imprime sus valores. El mismo preflight se ejecuta en el

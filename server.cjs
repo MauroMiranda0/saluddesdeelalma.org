@@ -1,7 +1,6 @@
 "use strict";
 
 const http = require("node:http");
-const { existsSync } = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { createStagingProtection } = require("./staging-auth.cjs");
@@ -66,20 +65,6 @@ const start = async () => {
   }
   if (process.env.ENV_FILE) {
     throw new StartupError("ENV_FILE is not supported by the shared pilot");
-  }
-  for (const directory of [__dirname, path.join(__dirname, "frontend")]) {
-    for (const name of [
-      ".env",
-      ".env.local",
-      ".env.production",
-      ".env.production.local"
-    ]) {
-      if (existsSync(path.join(directory, name))) {
-        throw new StartupError(
-          "Local environment files are not supported by the shared pilot"
-        );
-      }
-    }
   }
   if (process.env.API_PREFIX !== "/api/v1") {
     throw new StartupError("API_PREFIX must be /api/v1 for the shared pilot");
