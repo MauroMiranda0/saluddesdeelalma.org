@@ -8,6 +8,7 @@ const test = require("node:test");
 const {
   createProtectedHandler,
   createRequestHandler,
+  getSharedPort,
   isBackendPath
 } = require("../../../shared-server.cjs");
 const { createStagingProtection } = require("../../../staging-auth.cjs");
@@ -128,6 +129,34 @@ test("shared server refuses unsafe configuration before loading the application"
     result.stdout + result.stderr,
     /synthetic-private-value-do-not-print/
   );
+});
+
+test("shared server defaults a missing port but respects an assigned port", () => {
+  assert.equal(getSharedPort(undefined), 3000);
+  assert.equal(getSharedPort("8123"), 8123);
+});
+
+test("shared server rejects invalid explicit ports instead of using the fallback", () => {
+  for (const port of ["", "0", "not-a-port", "65536"]) {
+    const result = spawnSync(
+      process.execPath,
+      [path.join(__dirname, "../../../server.cjs")],
+      {
+        encoding: "utf8",
+        env: {
+          SHARED_PILOT_BUILD: "true",
+          WHATSAPP_OUTBOUND_ENABLED: "false",
+          NEXT_PUBLIC_API_BASE_URL: "/api/v1",
+          API_PREFIX: "/api/v1",
+          STAGING_AUTH_USER: "local-user",
+          STAGING_AUTH_PASSWORD: "synthetic-password-at-least-32-characters",
+          PORT: port
+        }
+      }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /PORT must be a valid port/);
+  }
 });
 
 test("staging protection rejects missing or weak configuration", () => {

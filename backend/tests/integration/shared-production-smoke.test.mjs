@@ -72,6 +72,8 @@ test(
         "./backend/tests/integration/mock-shared-prisma.cjs",
         "--require",
         "./backend/tests/integration/mock-slow-next.cjs",
+        "--require",
+        "./backend/tests/integration/mock-hostinger-listen.cjs",
         "-e",
         'require("./server.cjs")'
       ],
@@ -87,7 +89,7 @@ test(
           STAGING_AUTH_USER: "synthetic-staging-user",
           STAGING_AUTH_PASSWORD:
             "synthetic-staging-password-at-least-32-characters",
-          PORT: String(port),
+          TEST_LISTEN_PORT: String(port),
           API_PREFIX: "/api/v1",
           FRONTEND_ORIGIN: "https://example.invalid",
           DATABASE_URL:

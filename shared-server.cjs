@@ -7,6 +7,14 @@ const { createStagingProtection } = require("./staging-auth.cjs");
 
 class StartupError extends Error {}
 
+const getSharedPort = (value) => {
+  const port = value === undefined ? 3000 : Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new StartupError("PORT must be a valid port");
+  }
+  return port;
+};
+
 const isBackendPath = (url) => {
   const pathname = url.split("?", 1)[0];
   return (
@@ -79,10 +87,8 @@ const start = async () => {
   if (process.env.API_PREFIX !== "/api/v1") {
     throw new StartupError("API_PREFIX must be /api/v1 for the shared pilot");
   }
-  const port = Number(process.env.PORT);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new StartupError("PORT must be a valid platform-assigned port");
-  }
+  const port = getSharedPort(process.env.PORT);
+  process.env.PORT = String(port);
 
   let handler;
   const server = http.createServer(
@@ -175,6 +181,7 @@ const start = async () => {
 module.exports = {
   createProtectedHandler,
   createRequestHandler,
+  getSharedPort,
   isBackendPath,
   start,
   StartupError

@@ -111,7 +111,8 @@ El propietario debe confirmar, sin compartir secretos en el chat:
 ## Adaptación experimental a alojamiento compartido
 
 El comando `npm run start:shared-pilot` inicia `server.cjs`: Next.js y Express
-comparten un solo listener y el `PORT` asignado por la plataforma. `/api/v1` y
+comparten un solo listener y usan el `PORT` de la plataforma, o `3000` si falta.
+`/api/v1` y
 `/health` pasan a Express; las demás rutas pasan a Next.js. Este modo es explícito
 y no cambia los comandos ni scripts del piloto con PM2. No inicia workers y
 exige `WHATSAPP_OUTBOUND_ENABLED=false`; un preflight fallido impide el arranque.
@@ -140,8 +141,11 @@ build:shared-pilot` y `npm run start:shared-pilot` (o `server.cjs` si el panel p
 archivo). El build y el proceso necesitan `NEXT_PUBLIC_API_BASE_URL=/api/v1`:
 Next.js incorpora esa ruta relativa durante el build. No usar la URL antigua
 del subdominio API para este modo. Configurar las variables de backend de la
-tabla anterior en el entorno de la aplicación; `PORT` debe suministrarlo la
-plataforma, no fijarse manualmente. El panel no debe almacenar
+tabla anterior en el entorno de la aplicación. Hostinger indicó que este
+alojamiento usa el puerto `3000` si no proporciona `PORT`; el servidor del
+piloto usa ese valor solo cuando la variable falta y rechaza valores inválidos.
+Si la plataforma asigna `PORT`, se utiliza ese puerto. No fijarlo manualmente
+en el panel. El panel no debe almacenar
 `MIGRATION_DATABASE_URL` como variable permanente de runtime. Confirmar que las
 variables estén disponibles tanto durante el build como al arrancar: el
 preflight del piloto las exige en `process.env`, no las carga de archivos.
