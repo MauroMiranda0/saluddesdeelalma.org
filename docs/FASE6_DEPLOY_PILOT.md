@@ -148,10 +148,13 @@ interno del despliegue; ese archivo gestionado por la plataforma es compatible
 con este modo mientras no se suban `.env` al repositorio.
 
 `npm run preflight:shared-pilot` valida las variables del proceso sin leer un
-archivo `.env` y no imprime sus valores. El mismo preflight se ejecuta en el
-proceso antes de iniciar el servidor. No comprueba conectividad, estado de
-migraciones, disponibilidad de los dominios ni el contenido ya compilado del
-frontend. No sustituye una revisión de esos requisitos.
+archivo `.env` y no imprime sus valores. En runtime, `server.cjs` aplica las
+validaciones críticas del piloto (`SHARED_PILOT_BUILD`, `API_PREFIX`,
+`NEXT_PUBLIC_API_BASE_URL` y `WHATSAPP_OUTBOUND_ENABLED=false`) antes de abrir
+el puerto. El preflight completo sigue siendo obligatorio en validaciones
+manuales previas al despliegue. Ninguna de estas validaciones comprueba
+conectividad, estado de migraciones, disponibilidad de dominios ni contenido ya
+compilado del frontend.
 
 `npm run build:shared-pilot` comprueba explícitamente la URL relativa antes de
 compilar. Si Hostinger solo ofrece `npm run build`, definir

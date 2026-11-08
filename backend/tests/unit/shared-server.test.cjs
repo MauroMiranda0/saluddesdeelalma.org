@@ -85,7 +85,7 @@ test("shared server refuses unsafe configuration before loading the application"
     }
   );
   assert.notEqual(result.status, 0);
-  assert.match(result.stdout, /WHATSAPP_OUTBOUND_ENABLED/);
+  assert.match(result.stdout + result.stderr, /WHATSAPP_OUTBOUND_ENABLED/);
   assert.doesNotMatch(
     result.stdout + result.stderr,
     /synthetic-private-value-do-not-print/

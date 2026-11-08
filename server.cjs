@@ -2,7 +2,6 @@
 
 const http = require("node:http");
 const path = require("node:path");
-const { pathToFileURL } = require("node:url");
 const { createStagingProtection } = require("./staging-auth.cjs");
 
 class StartupError extends Error {}
@@ -50,21 +49,18 @@ const start = async () => {
   } catch (error) {
     throw new StartupError(error.message);
   }
-  const { validateProductionEnvironment } = await import(
-    pathToFileURL(
-      path.join(__dirname, "backend/scripts/validate-production-env.mjs")
-    ).href
-  );
-  const preflight = validateProductionEnvironment([
-    "--process-env",
-    "--require-frontend-relative",
-    "--require-whatsapp-outbound-disabled"
-  ]);
-  if (preflight !== 0) {
-    throw new StartupError("Shared pilot preflight failed");
-  }
   if (process.env.ENV_FILE) {
     throw new StartupError("ENV_FILE is not supported by the shared pilot");
+  }
+  if (process.env.WHATSAPP_OUTBOUND_ENABLED !== "false") {
+    throw new StartupError(
+      'WHATSAPP_OUTBOUND_ENABLED must be "false" for the shared pilot'
+    );
+  }
+  if (process.env.NEXT_PUBLIC_API_BASE_URL !== "/api/v1") {
+    throw new StartupError(
+      'NEXT_PUBLIC_API_BASE_URL must be "/api/v1" for the shared pilot'
+    );
   }
   if (process.env.API_PREFIX !== "/api/v1") {
     throw new StartupError("API_PREFIX must be /api/v1 for the shared pilot");
