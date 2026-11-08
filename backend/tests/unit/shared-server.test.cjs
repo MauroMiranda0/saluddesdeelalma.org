@@ -5,7 +5,11 @@ const http = require("node:http");
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 const test = require("node:test");
-const { createRequestHandler, isBackendPath } = require("../../../server.cjs");
+const {
+  createProtectedHandler,
+  createRequestHandler,
+  isBackendPath
+} = require("../../../shared-server.cjs");
 const { createStagingProtection } = require("../../../staging-auth.cjs");
 const { buildArguments } = require("../../../frontend/scripts/build.cjs");
 
@@ -64,6 +68,40 @@ test("shared server requires explicit shared pilot mode", () => {
     );
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /SHARED_PILOT_BUILD/);
+  }
+});
+
+test("the entry point starts when loaded as a module by a hosting loader", () => {
+  const result = spawnSync(process.execPath, [
+    "-e",
+    `require(${JSON.stringify(path.join(__dirname, "../../../server.cjs"))})`
+  ], { encoding: "utf8", env: {} });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /SHARED_PILOT_BUILD/);
+});
+
+test("initialization remains protected and returns 503 until the app is ready", async () => {
+  const user = "pilot";
+  const password = "synthetic-password-at-least-32-characters";
+  let handler;
+  const server = http.createServer(
+    createProtectedHandler(createStagingProtection(user, password), () => handler)
+  );
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const url = `http://127.0.0.1:${server.address().port}/api/v1/health`;
+  const headers = {
+    authorization: `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`
+  };
+  try {
+    assert.equal((await fetch(url)).status, 401);
+    assert.equal((await fetch(url, { headers })).status, 503);
+    handler = (_request, response) => response.end("ready");
+    assert.equal(await (await fetch(url, { headers })).text(), "ready");
+    assert.equal((await fetch(url)).status, 401);
+  } finally {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    );
   }
 });
 

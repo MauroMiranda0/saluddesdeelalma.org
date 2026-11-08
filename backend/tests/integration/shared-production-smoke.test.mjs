@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { once } from "node:events";
 import { createServer } from "node:net";
@@ -12,6 +12,44 @@ const root = path.resolve(
   "../../.."
 );
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test("failed full preflight closes the early listener", { timeout: 15000 }, async () => {
+  const reservation = createServer();
+  reservation.listen(0, "127.0.0.1");
+  await once(reservation, "listening");
+  const address = reservation.address();
+  assert.ok(address && typeof address !== "string");
+  await new Promise((resolve, reject) =>
+    reservation.close((error) => (error ? reject(error) : resolve()))
+  );
+  const result = spawnSync(process.execPath, ["-e", 'require("./server.cjs")'], {
+    cwd: root,
+    env: {
+      PATH: process.env.PATH,
+      SystemRoot: process.env.SystemRoot,
+      NODE_ENV: "production",
+      SHARED_PILOT_BUILD: "true",
+      WHATSAPP_OUTBOUND_ENABLED: "false",
+      NEXT_PUBLIC_API_BASE_URL: "/api/v1",
+      API_PREFIX: "/api/v1",
+      PORT: String(address.port),
+      STAGING_AUTH_USER: "pilot",
+      STAGING_AUTH_PASSWORD: "synthetic-password-at-least-32-characters"
+    },
+    encoding: "utf8",
+    timeout: 10000
+  });
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Shared pilot preflight failed/);
+  await new Promise((resolve, reject) => {
+    reservation.once("error", reject);
+    reservation.listen(address.port, "127.0.0.1", resolve);
+  });
+  await new Promise((resolve, reject) =>
+    reservation.close((error) => (error ? reject(error) : resolve()))
+  );
+});
 
 test(
   "built shared server serves Next and Express with synthetic local configuration",
@@ -32,7 +70,10 @@ test(
       [
         "--require",
         "./backend/tests/integration/mock-shared-prisma.cjs",
-        "server.cjs"
+        "--require",
+        "./backend/tests/integration/mock-slow-next.cjs",
+        "-e",
+        'require("./server.cjs")'
       ],
       {
         cwd: root,
@@ -81,6 +122,24 @@ test(
     const base = `http://127.0.0.1:${port}`;
     const auth = `Basic ${Buffer.from("synthetic-staging-user:synthetic-staging-password-at-least-32-characters").toString("base64")}`;
     try {
+      const deadline = Date.now() + 3000;
+      let warming;
+      while (Date.now() < deadline) {
+        if (child.exitCode !== null)
+          throw new Error(`Shared server exited: ${output}`);
+        try {
+          warming = await fetch(base, { signal: AbortSignal.timeout(250) });
+          break;
+        } catch {
+          await wait(50);
+        }
+      }
+      assert.ok(warming, `Shared server did not listen within 3 seconds: ${output}`);
+      assert.equal(warming.status, 401);
+      assert.equal(
+        (await fetch(base, { headers: { authorization: auth } })).status,
+        503
+      );
       let home;
       for (let attempt = 0; attempt < 100; attempt += 1) {
         if (child.exitCode !== null)
@@ -90,7 +149,8 @@ test(
             headers: { authorization: auth },
             signal: AbortSignal.timeout(2000)
           });
-          break;
+          if (home.status === 200) break;
+          await wait(250);
         } catch {
           await wait(250);
         }

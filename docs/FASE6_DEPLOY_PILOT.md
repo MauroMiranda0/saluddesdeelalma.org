@@ -141,20 +141,19 @@ archivo). El build y el proceso necesitan `NEXT_PUBLIC_API_BASE_URL=/api/v1`:
 Next.js incorpora esa ruta relativa durante el build. No usar la URL antigua
 del subdominio API para este modo. Configurar las variables de backend de la
 tabla anterior en el entorno de la aplicación; `PORT` debe suministrarlo la
-plataforma, no fijarse manualmente. El panel no debe almacenar `MIGRATION_DATABASE_URL` como variable permanente de
-runtime. Confirmar que las variables estén disponibles tanto durante el build
-como al arrancar. En Hostinger el panel puede materializarlas como `.env`
-interno del despliegue; ese archivo gestionado por la plataforma es compatible
-con este modo mientras no se suban `.env` al repositorio.
+plataforma, no fijarse manualmente. El panel no debe almacenar
+`MIGRATION_DATABASE_URL` como variable permanente de runtime. Confirmar que las
+variables estén disponibles tanto durante el build como al arrancar: el
+preflight del piloto las exige en `process.env`, no las carga de archivos.
+No subir archivos `.env` al repositorio.
 
 `npm run preflight:shared-pilot` valida las variables del proceso sin leer un
-archivo `.env` y no imprime sus valores. En runtime, `server.cjs` aplica las
-validaciones críticas del piloto (`SHARED_PILOT_BUILD`, `API_PREFIX`,
-`NEXT_PUBLIC_API_BASE_URL` y `WHATSAPP_OUTBOUND_ENABLED=false`) antes de abrir
-el puerto. El preflight completo sigue siendo obligatorio en validaciones
-manuales previas al despliegue. Ninguna de estas validaciones comprueba
-conectividad, estado de migraciones, disponibilidad de dominios ni contenido ya
-compilado del frontend.
+archivo `.env` y no imprime sus valores. El servidor escucha antes de preparar
+Next.js para que Passenger detecte el arranque; durante la inicialización, la
+protección sigue activa y las solicitudes autorizadas reciben 503. El
+preflight completo debe aprobarse antes de servir la aplicación; si falla, el
+servidor se cierra. No comprueba conectividad, estado de migraciones,
+disponibilidad de dominios ni contenido ya compilado del frontend.
 
 `npm run build:shared-pilot` comprueba explícitamente la URL relativa antes de
 compilar. Si Hostinger solo ofrece `npm run build`, definir
