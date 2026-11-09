@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createApp } from "../../src/app.js";
+import { logger } from "../../src/lib/logger.js";
 
 const withApp = async (
   checkDatabase: () => Promise<unknown>,
@@ -110,4 +111,45 @@ test("the legacy health route remains a lightweight liveness check", async () =>
       assert.equal(databaseChecks, 0);
     }
   );
+});
+
+test("readiness logs a safe Prisma error code without leaking error details", async () => {
+  const secret = "postgresql://user:private-password@example.com/db";
+  const error = Object.assign(new Error(secret), {
+    errorCode: "P1001",
+    meta: { url: secret }
+  });
+  const originalError = logger.error;
+  const records: unknown[] = [];
+  logger.error = ((record: unknown) => {
+    records.push(record);
+  }) as typeof logger.error;
+  try {
+    await withApp(
+      async () => {
+        throw error;
+      },
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/api/v1/health`, {
+          headers: { "x-request-id": "health-request-safe" }
+        });
+        assert.equal(response.status, 503);
+        assert.equal(
+          JSON.stringify(await response.json()).includes(secret),
+          false
+        );
+      }
+    );
+    assert.deepEqual(records, [
+      {
+        event: "health_database_unavailable",
+        requestId: "health-request-safe",
+        errorType: "Error",
+        errorCode: "P1001"
+      }
+    ]);
+    assert.equal(JSON.stringify(records).includes(secret), false);
+  } finally {
+    logger.error = originalError;
+  }
 });

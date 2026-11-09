@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { logger } from "../../lib/logger";
 import { prisma } from "../../lib/prisma";
+import { safeDatabaseErrorFields } from "../../lib/safe-error";
 
 export type HealthRouteDependencies = {
   checkDatabase: () => Promise<unknown>;
@@ -31,9 +32,13 @@ export const createHealthRoutes = (
         database: true,
         timestamp: new Date().toISOString()
       });
-    } catch {
+    } catch (error) {
       logger.error(
-        { event: "health_database_unavailable", requestId },
+        {
+          event: "health_database_unavailable",
+          requestId,
+          ...safeDatabaseErrorFields(error)
+        },
         "Readiness check failed"
       );
       response.status(503).json({
