@@ -3,11 +3,20 @@ export const safeErrorFields = (error: unknown) => ({
 });
 
 export const safeDatabaseErrorFields = (error: unknown) => {
-  const fields = safeErrorFields(error);
   if (!(error instanceof Error)) {
-    return fields;
+    return { errorType: "UnknownError" };
   }
 
+  const allowedTypes = new Set([
+    "Error",
+    "PrismaClientInitializationError",
+    "PrismaClientKnownRequestError",
+    "PrismaClientUnknownRequestError",
+    "PrismaClientRustPanicError",
+    "PrismaClientValidationError"
+  ]);
+  const name = error.constructor.name;
+  const fields = { errorType: allowedTypes.has(name) ? name : "UnknownError" };
   const prismaError = error as Error & { code?: unknown; errorCode?: unknown };
   const code = [prismaError.code, prismaError.errorCode].find(
     (value): value is string =>

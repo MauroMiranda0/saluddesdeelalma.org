@@ -3,6 +3,8 @@ import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 
 import { env } from "../../config/env";
+import { prisma } from "../../lib/prisma";
+import { safeDatabaseErrorFields } from "../../lib/safe-error";
 import { loginCredentialsSchema } from "../../lib/validators/auth";
 import { authenticate } from "../../middleware/authenticate";
 import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identity";
@@ -39,6 +41,7 @@ type AuthRouteDependencies = {
   revokeAdminSessionWithAudit: typeof revokeAdminSessionWithAudit;
   adminAccessRecoveryToken?: string;
   reactivateAdminPanelAccess: typeof reactivateAdminPanelAccessWithAudit;
+  checkDatabase: () => Promise<unknown>;
 };
 
 export const isValidAdminAccessRecoveryToken = (
@@ -78,6 +81,8 @@ export const createAuthRoutes = (
   const reactivateAdminPanelAccess =
     dependencies.reactivateAdminPanelAccess ??
     reactivateAdminPanelAccessWithAudit;
+  const checkDatabase =
+    dependencies.checkDatabase ?? (() => prisma.$queryRaw`SELECT 1`);
 
   router.post(
     "/login",
@@ -235,6 +240,39 @@ export const createAuthRoutes = (
         getClearSessionCookieOptions()
       );
       response.status(204).send();
+    })
+  );
+
+  router.post(
+    "/admin-access/diagnose-database",
+    asyncHandler(async (request, response) => {
+      response.setHeader("Cache-Control", "no-store");
+      const authorization = request.header("authorization");
+      const providedToken = authorization?.startsWith("Bearer ")
+        ? authorization.slice("Bearer ".length)
+        : undefined;
+      if (
+        !isValidAdminAccessRecoveryToken(
+          providedToken,
+          adminAccessRecoveryToken
+        )
+      ) {
+        throw new AppError(
+          401,
+          "unauthorized",
+          "Recovery authorization required"
+        );
+      }
+
+      try {
+        await checkDatabase();
+        response.json({ database: true });
+      } catch (error) {
+        response.status(503).json({
+          database: false,
+          ...safeDatabaseErrorFields(error)
+        });
+      }
     })
   );
 

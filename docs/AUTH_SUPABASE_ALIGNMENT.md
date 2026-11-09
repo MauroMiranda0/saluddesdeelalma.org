@@ -28,6 +28,12 @@ y enlazada a Auth, reactiva el acceso, revoca las sesiones previas y audita la
 acción sin almacenar el token. El endpoint está limitado a 5 intentos por 15
 minutos. Guardar el token fuera del repositorio y no incluirlo en logs.
 
+Diagnóstico temporal de despliegue: `POST /api/v1/auth/admin-access/diagnose-database`
+requiere el mismo token Bearer y comparte el límite de recuperación. Ejecuta
+solo `SELECT 1` y responde con el estado y, si falla, únicamente el tipo
+permitido y el código Prisma validado. No enviar el token en URL ni compartirlo.
+Retirar este endpoint temporal una vez finalizado el diagnóstico.
+
 ## Alineación Prisma
 
 - `User.id` es el ID interno de dominio y conserva el default PostgreSQL `gen_random_uuid()`.

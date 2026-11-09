@@ -73,6 +73,10 @@ export const createApp = (healthDependencies?: HealthRouteDependencies) => {
     `${env.API_PREFIX}/auth/admin-access/reactivate`,
     adminAccessRecoveryRateLimiter
   );
+  app.use(
+    `${env.API_PREFIX}/auth/admin-access/diagnose-database`,
+    adminAccessRecoveryRateLimiter
+  );
   app.use(`${env.API_PREFIX}/auth`, authRoutes);
   app.use(
     `${env.API_PREFIX}/webhooks`,
