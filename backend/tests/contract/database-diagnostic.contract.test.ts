@@ -67,7 +67,8 @@ test("diagnostic requires recovery authorization and exposes only safe fields", 
     assert.deepEqual(JSON.parse(body), {
       database: false,
       errorType: "Error",
-      errorCode: "P1001"
+      errorCode: "P1001",
+      category: "unknown"
     });
     assert.equal(body.includes(secret), false);
     assert.equal(body.includes(token), false);
@@ -102,7 +103,8 @@ test("diagnostic reports database success and hides unsafe error codes", async (
     assert.equal(failure.status, 503);
     assert.deepEqual(await failure.json(), {
       database: false,
-      errorType: "Error"
+      errorType: "Error",
+      category: "unknown"
     });
   });
 });

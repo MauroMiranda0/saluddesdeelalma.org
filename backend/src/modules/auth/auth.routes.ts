@@ -4,7 +4,10 @@ import { Router } from "express";
 
 import { env } from "../../config/env";
 import { prisma } from "../../lib/prisma";
-import { safeDatabaseErrorFields } from "../../lib/safe-error";
+import {
+  classifyDatabaseError,
+  safeDatabaseErrorFields
+} from "../../lib/safe-error";
 import { loginCredentialsSchema } from "../../lib/validators/auth";
 import { authenticate } from "../../middleware/authenticate";
 import { authorizeAdminIdentity } from "../../middleware/authorize-admin-identity";
@@ -270,7 +273,8 @@ export const createAuthRoutes = (
       } catch (error) {
         response.status(503).json({
           database: false,
-          ...safeDatabaseErrorFields(error)
+          ...safeDatabaseErrorFields(error),
+          category: classifyDatabaseError(error)
         });
       }
     })

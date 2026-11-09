@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  classifyDatabaseError,
   safeDatabaseErrorFields,
   safeErrorFields
 } from "../../src/lib/safe-error.js";
@@ -13,6 +14,25 @@ test("safe error fields expose only an error type, never error details", () => {
   assert.deepEqual(fields, { errorType: "Error" });
   assert.equal(JSON.stringify(fields).includes(secret), false);
   assert.deepEqual(safeErrorFields(secret), { errorType: "UnknownError" });
+});
+
+test("database error classification returns only predefined categories", () => {
+  const samples = [
+    ["version `GLIBC_2.29' not found", "glibc"],
+    ["libssl.so.1.1: cannot open shared object file", "openssl"],
+    ["Prisma Client could not locate the Query Engine", "engine_missing"],
+    ["Unable to require private database connection", "engine_load"],
+    ["Authentication failed against database server", "authentication"],
+    ["Can't reach database server at private host", "unreachable"],
+    ["connection timed out at private host", "timeout"],
+    ["TLS certificate validation failed", "tls"],
+    ["Tenant or user not found", "pooler_identity"],
+    ["sensitive arbitrary error", "unknown"]
+  ] as const;
+  for (const [message, category] of samples) {
+    assert.equal(classifyDatabaseError(new Error(message)), category);
+  }
+  assert.equal(classifyDatabaseError("secret"), "unknown");
 });
 
 test("database error fields expose only validated Prisma codes", () => {
