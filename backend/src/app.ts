@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import cors from "cors";
 import express from "express";
+import type { Response } from "express";
 
 import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
@@ -30,6 +31,15 @@ export const createApp = () => {
     cors({
       origin: env.FRONTEND_ORIGIN,
       credentials: true
+    })
+  );
+  app.use(
+    `${env.API_PREFIX}/webhooks/whatsapp`,
+    express.json({
+      limit: "1mb",
+      verify: (_request, response, body) => {
+        (response as Response).locals.whatsappRawBody = body;
+      }
     })
   );
   app.use(express.json({ limit: "1mb" }));

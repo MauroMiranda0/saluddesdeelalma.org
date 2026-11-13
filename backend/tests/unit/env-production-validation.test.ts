@@ -16,6 +16,7 @@ const productionEnvironment = {
   SESSION_COOKIE_NAME: "sda_admin_session",
   SESSION_IDLE_TIMEOUT_MINUTES: 30,
   WHATSAPP_VERIFY_TOKEN: "real-webhook-token",
+  WHATSAPP_APP_SECRET: "real-app-secret",
   WHATSAPP_ACCESS_TOKEN: "real-access-token",
   WHATSAPP_PHONE_NUMBER_ID: "123456789",
   WHATSAPP_ADMIN_PHONE: "5215500000000",
@@ -85,6 +86,14 @@ test("production rejects documented secret placeholders", () => {
         WHATSAPP_VERIFY_TOKEN: "replace-with-meta-webhook-verify-token"
       }),
     /WHATSAPP_VERIFY_TOKEN/
+  );
+  assert.throws(
+    () =>
+      assertProductionEnvironment({
+        ...productionEnvironment,
+        WHATSAPP_APP_SECRET: "replace-with-meta-app-secret"
+      }),
+    /WHATSAPP_APP_SECRET/
   );
   assert.throws(
     () =>

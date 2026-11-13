@@ -29,12 +29,15 @@ Archivo: `backend/.env.example`
 - `ENABLE_REMINDER_WORKER` (`true` arranca el worker de recordatorios cada 5 minutos junto con el backend; recomendado en producción, deshabilitado por defecto)
 - `ENABLE_WHATSAPP_INBOX_WORKER` (`true` arranca el worker del inbox de WhatsApp cada 30 segundos junto con el backend; requerido en producción para que un webhook aceptado no quede sin procesar, deshabilitado por defecto)
 - `WHATSAPP_VERIFY_TOKEN`
+- `WHATSAPP_APP_SECRET` (secreto de la aplicación de Meta, distinto del token de verificación; obligatorio para validar la firma de eventos entrantes y arrancar en producción)
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_ADMIN_PHONE` (número individual de Jocelyn para avisos de comprobantes)
 - `WHATSAPP_PSYCHOLOGISTS_GROUP_ID` (destino interno; requiere proveedor compatible con grupos)
 - `AI_PROVIDER_API_KEY` (ningún módulo la lee hoy: la capa de IA que `plan.md` declara no existe. Ver `T209` en `tasks.md`)
 - `TRUST_PROXY` (opcional; si no se declara, Express ignora `X-Forwarded-For` y resuelve `request.ip` sin proxy. Defínela en producción si la app corre detrás de un proxy o CDN, para que `audit_logs` guarde la IP real del solicitante)
+
+Antes de desplegar esta versión, configura `WHATSAPP_APP_SECRET` en el entorno del backend con el secreto de la aplicación de Meta, sin incluirlo en el repositorio. Sin este secreto, los eventos entrantes se rechazan y el backend no arranca en producción. `WHATSAPP_VERIFY_TOKEN` sigue siendo el valor elegido para verificar la URL del webhook en Meta.
 
 ### Frontend
 

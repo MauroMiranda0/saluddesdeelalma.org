@@ -12,6 +12,7 @@ const envSchema = z.object({
   SESSION_COOKIE_NAME: z.string().min(1).default("sda_admin_session"),
   SESSION_IDLE_TIMEOUT_MINUTES: z.coerce.number().int().positive().default(30),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
+  WHATSAPP_APP_SECRET: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ADMIN_PHONE: z.string().min(1).optional(),
@@ -51,6 +52,9 @@ export const assertProductionEnvironment = (environment: Environment) => {
   }
   if (isPlaceholder(environment.WHATSAPP_VERIFY_TOKEN)) {
     throw new Error("WHATSAPP_VERIFY_TOKEN must be replaced in production");
+  }
+  if (isPlaceholder(environment.WHATSAPP_APP_SECRET)) {
+    throw new Error("WHATSAPP_APP_SECRET must be configured in production");
   }
   if (
     isPlaceholder(environment.WHATSAPP_ACCESS_TOKEN) ||

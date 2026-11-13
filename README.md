@@ -22,7 +22,7 @@ En este punto existe:
 - middleware de autenticacion, autorizacion admin y auditoria de denegaciones con `requestId` en la metadata
 - helpers frontend para API y sesion
 - validadores Zod para paciente, cita, pago y chatbot
-- webhook de WhatsApp en `/api/v1/webhooks/whatsapp`, con verificacion de Meta y aceptacion asincrona de mensajes de texto
+- webhook de WhatsApp en `/api/v1/webhooks/whatsapp`, con verificacion de suscripcion y firma de Meta y aceptacion asincrona de mensajes de texto
 - flujo determinista de disponibilidad, agendamiento, derivacion clinica y transparencia sobre el asistente digital; la evaluación clínica ocurre antes que el flujo de reserva (handoff prioritario)
 - la respuesta de disponibilidad ofrece horarios concretos (3 slots siguientes) cuando el paciente tiene psicóloga activa asignada
 - cancelación por WhatsApp: intent `cancel` reconocido tras la revisión clínica y antes que la reserva; resuelve el paciente por su número registrado y exige nombre y fecha de nacimiento coincidentes antes de cancelar la próxima cita activa, con auditoría de la cancelación y de las denegaciones (`appointment_cancellation_denied`) y oferta de reagendar

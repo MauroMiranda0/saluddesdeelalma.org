@@ -1627,6 +1627,13 @@ paths:
         originan las intenciones `faq`, `availability`, `book`, `cancel`,
         `payment_status` y `handoff`. FR-023 exige numero registrado mas nombre y
         fecha de nacimiento antes de disclose el estado de una cita o de un saldo.
+      parameters:
+        - in: header
+          name: X-Hub-Signature-256
+          required: true
+          description: Firma HMAC-SHA256 del cuerpo original con el secreto de la aplicación de Meta.
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1636,5 +1643,9 @@ paths:
       responses:
         "202":
           description: Evento aceptado para procesamiento asincrono
+        "403":
+          description: Firma ausente o invalida
+        "503":
+          description: Secreto de aplicación no configurado
         "429":
           $ref: "#/components/responses/RateLimited"

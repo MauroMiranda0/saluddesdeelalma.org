@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 
 import { createApp } from "../../src/app.js";
 import { env } from "../../src/config/env.js";
 import { extractIncomingPaymentProofs } from "../../src/modules/chatbot/chatbot.controller.js";
+
+const testAppSecret = "test-only-app-secret";
+env.WHATSAPP_APP_SECRET = testAppSecret;
+
+const sign = (body: string) =>
+  `sha256=${createHmac("sha256", testAppSecret).update(body).digest("hex")}`;
 
 const withServer = async (run: (baseUrl: string) => Promise<void>) => {
   const server = createApp().listen(0);
@@ -54,14 +61,63 @@ test("GET WhatsApp webhook rejects an invalid verification token", async () => {
 
 test("POST WhatsApp webhook accepts a valid Meta envelope asynchronously", async () => {
   await withServer(async (baseUrl) => {
+    const body = JSON.stringify({
+      object: "whatsapp_business_account",
+      entry: []
+    });
     const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ object: "whatsapp_business_account", entry: [] })
+      headers: {
+        "content-type": "application/json",
+        "x-hub-signature-256": sign(body)
+      },
+      body
     });
 
     assert.equal(response.status, 202);
   });
+});
+
+test("POST WhatsApp webhook rejects missing, malformed, and mismatched signatures", async () => {
+  await withServer(async (baseUrl) => {
+    const body = JSON.stringify({
+      object: "whatsapp_business_account",
+      entry: []
+    });
+    for (const signature of [undefined, "sha256=invalid", sign(`${body} `)]) {
+      const headers: Record<string, string> = {
+        "content-type": "application/json"
+      };
+      if (signature) headers["x-hub-signature-256"] = signature;
+      const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
+        method: "POST",
+        headers,
+        body
+      });
+      assert.equal(response.status, 403);
+      assert.equal(
+        ((await response.json()) as { code: string }).code,
+        "invalid_webhook_signature"
+      );
+    }
+  });
+});
+
+test("POST WhatsApp webhook fails closed when the app secret is missing", async () => {
+  const previous = env.WHATSAPP_APP_SECRET;
+  env.WHATSAPP_APP_SECRET = undefined;
+  try {
+    await withServer(async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/webhooks/whatsapp`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}"
+      });
+      assert.equal(response.status, 503);
+    });
+  } finally {
+    env.WHATSAPP_APP_SECRET = previous;
+  }
 });
 
 test("WhatsApp webhook extracts image and document payment proofs", () => {
